@@ -1,0 +1,26 @@
+<foo tal:omit-tag="1" metal:define-macro="layout"><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${page_title}</title>
+  <link rel="stylesheet" href="${base}style.css">
+  <tal:block metal:define-slot="head_extra"></tal:block>
+</head>
+<body>
+  <header>
+    <nav>
+      <a href="${base}index.html">Home</a>
+      <a class="secondary" href="${base}people/${me_id}/">Me</a>
+      <a class="secondary" href="${base}people/">People</a>
+      <a class="secondary" href="${base}places/">Places</a>
+      <a class="secondary" href="${base}surnames/">Surnames</a>
+    </nav>
+  </header>
+  <main>
+    <div metal:define-slot="content"></div>
+  </main>
+  <tal:block metal:define-slot="scripts"></tal:block>
+</body>
+</html>
+</foo>

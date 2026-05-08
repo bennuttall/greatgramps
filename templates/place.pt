@@ -1,23 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${place['name']} — Family Tree</title>
-  <link rel="stylesheet" href="../../style.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-</head>
-<body>
-  <header>
-    <nav>
-      <a href="../../index.html">Home</a>
-      <a class="secondary" href="../../people/${me_id}/">Me</a>
-      <a class="secondary" href="../../people/">People</a>
-      <a class="secondary" href="../../places/">Places</a>
-      <a class="secondary" href="../../surnames/">Surnames</a>
-    </nav>
-  </header>
-  <main>
+<div metal:use-macro="layout">
+  <tal:block metal:fill-slot="head_extra">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  </tal:block>
+  <div metal:fill-slot="content" tal:omit-tag="1">
     <h1>${place['name']} <span class="place-type">${place['type']}</span></h1>
 
     <div id="map" tal:condition="place['lat'] and place['lon']"></div>
@@ -53,22 +38,21 @@
         </tbody>
       </table>
     </section>
-  </main>
-
-  <script tal:condition="place['lat'] and place['lon']"
-          src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script tal:condition="place['lat'] and place['lon']">
+  </div>
+  <tal:block metal:fill-slot="scripts">
+    <script tal:condition="place['lat'] and place['lon']"
+            src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script tal:condition="place['lat'] and place['lon']">
     var map = L.map('map').setView([${place['lat']}, ${place['lon']}], 11);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(map);
     L.marker([${place['lat']}, ${place['lon']}]).addTo(map);
-  </script>
-  <script>
+    </script>
+    <script>
     const rows = Array.from(document.querySelectorAll('#places-events-table tbody tr'));
     const filtersEl = document.getElementById('filters');
 
-    // Collect unique event types preserving order of first appearance
     const types = [...new Set(rows.map(r => r.dataset.type))];
 
     let active = null;
@@ -91,6 +75,6 @@
       filtersEl.appendChild(makeButton('All'));
       types.forEach(t => filtersEl.appendChild(makeButton(t)));
     }
-  </script>
-</body>
-</html>
+    </script>
+  </tal:block>
+</div>

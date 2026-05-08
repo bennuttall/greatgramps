@@ -1,23 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${person['full_name']} — Family Tree</title>
-  <link rel="stylesheet" href="../../style.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-</head>
-<body>
-  <header>
-    <nav>
-      <a href="../../index.html">Home</a>
-      <a class="secondary" href="../../people/${me_id}/">Me</a>
-      <a class="secondary" href="../../people/">People</a>
-      <a class="secondary" href="../../places/">Places</a>
-      <a class="secondary" href="../../surnames/">Surnames</a>
-    </nav>
-  </header>
-  <main>
+<div metal:use-macro="layout">
+  <tal:block metal:fill-slot="head_extra">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  </tal:block>
+  <div metal:fill-slot="content" tal:omit-tag="1">
     <article class="person-detail">
       <h1>
         <tal:block tal:condition="not surname_url">${person['full_name']}</tal:block>
@@ -145,10 +130,11 @@
         </div>
       </section>
     </article>
-  </main>
-  <script tal:condition="event_map_json != '[]'"
-          src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script tal:condition="event_map_json != '[]'">
+  </div>
+  <tal:block metal:fill-slot="scripts">
+    <script tal:condition="event_map_json != '[]'"
+            src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script tal:condition="event_map_json != '[]'">
     var points = ${structure: event_map_json};
     var map = L.map('map');
     var bounds = points.map(p => [p.lat, p.lon]);
@@ -160,6 +146,6 @@
       L.marker([p.lat, p.lon]).addTo(map)
         .bindPopup('<a href="' + p.url + '">' + p.name + '</a><br>' + p.types.join(', '));
     });
-  </script>
-</body>
-</html>
+    </script>
+  </tal:block>
+</div>

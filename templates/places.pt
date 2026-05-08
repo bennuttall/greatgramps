@@ -1,23 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Places — Family Tree</title>
-  <link rel="stylesheet" href="../style.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-</head>
-<body>
-  <header>
-    <nav>
-      <a href="../index.html">Home</a>
-      <a class="secondary" href="../people/${me_id}/">Me</a>
-      <a class="secondary" href="../people/">People</a>
-      <a class="secondary" href="../places/">Places</a>
-      <a class="secondary" href="../surnames/">Surnames</a>
-    </nav>
-  </header>
-  <main>
+<div metal:use-macro="layout">
+  <tal:block metal:fill-slot="head_extra">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  </tal:block>
+  <div metal:fill-slot="content" tal:omit-tag="1">
     <h1>Places</h1>
 
     <div id="map"></div>
@@ -40,10 +25,10 @@
         </tr>
       </tbody>
     </table>
-  </main>
-
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script>
+  </div>
+  <tal:block metal:fill-slot="scripts">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
     var map = L.map('map').setView([53.5, -1.5], 6);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -61,8 +46,8 @@
       }).addTo(map);
       marker.bindPopup('<a href="' + p.url + '">' + p.name + '</a> (' + p.count + ' events)');
     });
-  </script>
-  <script>
+    </script>
+    <script>
     const tbody = document.querySelector('#places-table tbody');
     const rows = Array.from(tbody.querySelectorAll('tr'));
     const countEl = document.getElementById('count');
@@ -104,6 +89,6 @@
         rows.forEach(r => tbody.appendChild(r));
       });
     });
-  </script>
-</body>
-</html>
+    </script>
+  </tal:block>
+</div>

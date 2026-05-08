@@ -4,7 +4,7 @@ import re
 import shutil
 from collections import Counter
 from PIL import Image
-from chameleon import PageTemplateFile
+from chameleon import PageTemplateLoader
 from greatgramps.gramps_data import (
     open_db, collect_all_people, collect_ancestors,
     get_parents, get_children, get_siblings, get_spouses, get_all_events,
@@ -117,15 +117,22 @@ def build():
         'generations': group_by_generation(my_ancestors),
     }
 
+    # Load templates
+    templates = PageTemplateLoader(str(config.templates_dir))
+    layout = templates['layout.pt'].macros['layout']
+
+    def render(template_name, base, page_title, **kwargs):
+        return templates[f'{template_name}.pt'](
+            layout=layout, base=base, page_title=page_title, me_id=me_id, **kwargs
+        )
+
     # Build index
-    index_tmpl = PageTemplateFile(str(config.templates_dir / 'index.pt'))
     (config.output_dir / 'index.html').write_text(
-        index_tmpl(summary=summary, me_id=me_id)
+        render('index', base='', page_title='Family Tree', summary=summary)
     )
     print('Built index.html')
 
     # Build a page for every person
-    person_tmpl = PageTemplateFile(str(config.templates_dir / 'person.pt'))
     search_rows = []
     for gid, data in all_people.items():
         p = db.get_person_from_gramps_id(gid)
@@ -153,7 +160,10 @@ def build():
                     }
                 map_points[pid]['types'].append(event['type'])
         event_map_json = json.dumps(list(map_points.values()))
-        html = person_tmpl(
+        html = render(
+            'person',
+            base='../../',
+            page_title=f"{data['full_name']} — Family Tree",
             person=data,
             father=person_data(db, father_p) if father_p else None,
             mother=person_data(db, mother_p) if mother_p else None,
@@ -167,7 +177,6 @@ def build():
             photos=photos,
             place_url=place_url,
             generations=group_by_generation(person_ancestors),
-            me_id=me_id,
             event_map_json=event_map_json,
             surname_url=surname_page_url.get(data['surname']),
         )
@@ -180,20 +189,24 @@ def build():
 
     # Build search page
     search_rows.sort(key=lambda r: (r['surname'], r['given']))
-    search_tmpl = PageTemplateFile(str(config.templates_dir / 'search.pt'))
-    (people_dir / 'index.html').write_text(search_tmpl(rows=search_rows, me_id=me_id))
+    (people_dir / 'index.html').write_text(
+        render('search', base='../', page_title='People — Family Tree', rows=search_rows)
+    )
     print('Built people/index.html')
 
     # Build place pages
-    place_tmpl = PageTemplateFile(str(config.templates_dir / 'place.pt'))
-    places_index_tmpl = PageTemplateFile(str(config.templates_dir / 'places.pt'))
-
     places_with_events = []
     for handle, pdata in all_places.items():
         events = place_event_index.get(handle, [])
         if events:
             places_with_events.append({**pdata, 'event_count': len(events)})
-        html = place_tmpl(place=pdata, events=events, me_id=me_id)
+        html = render(
+            'place',
+            base='../../',
+            page_title=f"{pdata['name']} — Family Tree",
+            place=pdata,
+            events=events,
+        )
         place_out = places_dir / pdata['gramps_id']
         place_out.mkdir(exist_ok=True)
         (place_out / 'index.html').write_text(html)
@@ -209,19 +222,18 @@ def build():
         for p in mappable
     ])
     (places_dir / 'index.html').write_text(
-        places_index_tmpl(places=places_with_events, mappable_json=mappable_json, me_id=me_id)
+        render('places', base='../', page_title='Places — Family Tree',
+               places=places_with_events, mappable_json=mappable_json)
     )
     print(f'Built {len(all_places)} place pages')
 
     # Build surname pages and index
-    surname_tmpl = PageTemplateFile(str(config.templates_dir / 'surname.pt'))
-    surnames_index_tmpl = PageTemplateFile(str(config.templates_dir / 'surnames.pt'))
     surnames_list = sorted(
         [{'surname': s, 'count': len(gids), 'slug': surname_slug(s)} for s, gids in by_surname.items()],
         key=lambda x: x['surname'],
     )
     (surnames_dir / 'index.html').write_text(
-        surnames_index_tmpl(surnames=surnames_list, me_id=me_id)
+        render('surnames', base='../', page_title='Surnames — Family Tree', surnames=surnames_list)
     )
     for surname, gids in by_surname.items():
         people_on_page = sorted(
@@ -233,7 +245,8 @@ def build():
         surname_out = surnames_dir / slug
         surname_out.mkdir(exist_ok=True)
         (surname_out / 'index.html').write_text(
-            surname_tmpl(surname=surname, people=people_on_page, me_id=me_id)
+            render('surname', base='../../', page_title=f'{surname} — Family Tree',
+                   surname=surname, people=people_on_page)
         )
     print(f'Built {len(by_surname)} surname pages')
 

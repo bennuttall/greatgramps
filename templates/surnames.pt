@@ -1,22 +1,5 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Surnames — Family Tree</title>
-  <link rel="stylesheet" href="../style.css">
-</head>
-<body>
-  <header>
-    <nav>
-      <a href="../index.html">Home</a>
-      <a class="secondary" href="../people/${me_id}/">Me</a>
-      <a class="secondary" href="../people/">People</a>
-      <a class="secondary" href="../places/">Places</a>
-      <a class="secondary" href="../surnames/">Surnames</a>
-    </nav>
-  </header>
-  <main>
+<div metal:use-macro="layout">
+  <div metal:fill-slot="content" tal:omit-tag="1">
     <h1>Surnames</h1>
     <input type="search" id="search" placeholder="Search surnames…" autofocus>
     <p id="count"></p>
@@ -34,8 +17,9 @@
         </tr>
       </tbody>
     </table>
-  </main>
-  <script>
+  </div>
+  <tal:block metal:fill-slot="scripts">
+    <script>
     const tbody = document.querySelector('#surnames-table tbody');
     const rows = Array.from(tbody.querySelectorAll('tr'));
     const countEl = document.getElementById('count');
@@ -76,6 +60,6 @@
         rows.forEach(r => tbody.appendChild(r));
       });
     });
-  </script>
-</body>
-</html>
+    </script>
+  </tal:block>
+</div>
