@@ -118,14 +118,14 @@ def format_date(date_obj):
     return str(year)
 
 
-def _event_dict(db, event, birth_year, desc=None, desc_url=None):
+def _event_dict(db, event, birth_year, desc=None, desc_url=None, label=None):
     etype = int(event.get_type())
     place_h = event.get_place_handle()
     place_obj = db.get_place_from_handle(place_h) if place_h else None
     event_year = event.get_date_object().get_year() or None
     age = (event_year - birth_year) if (event_year and birth_year) else None
     return {
-        'type': EVENT_TYPE_LABELS.get(etype, str(event.get_type())),
+        'type': label or EVENT_TYPE_LABELS.get(etype, str(event.get_type())),
         'sort': EVENT_SORT_ORDER.index(etype) if etype in EVENT_SORT_ORDER else 99,
         'date': format_date(event.get_date_object()),
         'year': event_year,
@@ -155,6 +155,18 @@ def get_all_events(db, person):
         for eref in family.get_event_ref_list():
             event = db.get_event_from_handle(eref.get_reference_handle())
             events.append(_event_dict(db, event, birth_year, desc=spouse_name, desc_url=spouse_url))
+
+        for child_ref in family.get_child_ref_list():
+            child = db.get_person_from_handle(child_ref.get_reference_handle())
+            birth = get_event(db, child, EventType.BIRTH)
+            if birth:
+                child_data = person_data(db, child)
+                events.append(_event_dict(
+                    db, birth, birth_year,
+                    label='Child born',
+                    desc=child_data['full_name'],
+                    desc_url=f'../{child.get_gramps_id()}/',
+                ))
 
     events.sort(key=lambda e: (e['year'] or 9999, e['sort']))
     return events
