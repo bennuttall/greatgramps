@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${surname} — Family Tree</title>
+  <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+  <header>
+    <nav>
+      <a href="../../index.html">Home</a>
+      <a class="secondary" href="../../people/${me_id}/">Me</a>
+      <a class="secondary" href="../../people/">People</a>
+      <a class="secondary" href="../../places/">Places</a>
+      <a class="secondary" href="../../surnames/">Surnames</a>
+    </nav>
+  </header>
+  <main>
+    <h1>${surname} <span class="years">(${len(people)})</span></h1>
+    <input type="search" id="search" placeholder="Search…">
+    <p id="count"></p>
+    <table id="people-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Born</th>
+          <th>Died</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr tal:repeat="person people">
+          <td>
+            <a href="../../people/${person['gramps_id']}/">${person['full_name']}</a>
+            <span class="ancestor-badge me" tal:condition="person['is_me']">me</span>
+            <span class="ancestor-badge" tal:condition="person['is_ancestor']">ancestor</span>
+          </td>
+          <td class="year">${person['birth_year'] or ''}</td>
+          <td class="year">${person['death_year'] or ''}</td>
+        </tr>
+      </tbody>
+    </table>
+  </main>
+  <script>
+    const tbody = document.querySelector('#people-table tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const countEl = document.getElementById('count');
+    const total = rows.length;
+
+    function updateCount(visible) {
+      countEl.textContent = visible === total ? `$${total} people` : `$${visible} of $${total} people`;
+    }
+    updateCount(total);
+
+    document.getElementById('search').addEventListener('input', function() {
+      const q = this.value.toLowerCase();
+      let visible = 0;
+      rows.forEach(row => {
+        const show = row.cells[0].textContent.toLowerCase().includes(q);
+        row.hidden = !show;
+        if (show) visible++;
+      });
+      updateCount(visible);
+    });
+  </script>
+</body>
+</html>

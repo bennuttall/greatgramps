@@ -119,19 +119,20 @@ header a.secondary:hover { color: #333; }
   margin: 0 0 0.75rem;
 }
 
-#people-table, #places-table {
+#people-table, #places-table, #surnames-table {
   border-collapse: collapse;
   width: 100%;
 }
 
 #people-table th, #people-table td,
-#places-table th, #places-table td {
+#places-table th, #places-table td,
+#surnames-table th, #surnames-table td {
   text-align: left;
   padding: 0.3rem 1rem 0.3rem 0;
   border-bottom: 1px solid #eee;
 }
 
-#people-table th, #places-table th {
+#people-table th, #places-table th, #surnames-table th {
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -140,8 +141,8 @@ header a.secondary:hover { color: #333; }
   cursor: pointer;
 }
 
-#people-table th.sort-asc::after, #places-table th.sort-asc::after { content: ' ↑'; }
-#people-table th.sort-desc::after, #places-table th.sort-desc::after { content: ' ↓'; }
+#people-table th.sort-asc::after, #places-table th.sort-asc::after, #surnames-table th.sort-asc::after { content: ' ↑'; }
+#people-table th.sort-desc::after, #places-table th.sort-desc::after, #surnames-table th.sort-desc::after { content: ' ↓'; }
 
 #people-table td:nth-child(n+2) { color: #666; font-size: 0.9em; }
 

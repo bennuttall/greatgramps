@@ -13,6 +13,7 @@
       <a class="secondary" href="people/${me_id}/">Me</a>
       <a class="secondary" href="people/">People</a>
       <a class="secondary" href="places/">Places</a>
+      <a class="secondary" href="surnames/">Surnames</a>
     </nav>
   </header>
   <main>
@@ -42,7 +43,7 @@
         <h2>Top surnames</h2>
         <table class="summary-table">
           <tr tal:repeat="item summary['top_surnames']">
-            <td>${item[0]}</td>
+            <td><a href="surnames/${item[2]}/">${item[0]}</a></td>
             <td class="year">${item[1]}</td>
           </tr>
         </table>

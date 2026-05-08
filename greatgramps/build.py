@@ -1,5 +1,6 @@
 #!/home/ben/.virtualenvs/gramps/bin/python
 import json
+import re
 import shutil
 from collections import Counter
 from PIL import Image
@@ -32,6 +33,12 @@ def process_photo(photo, media_dir, person_id):
         img.save(dest, quality=85)
 
     return f'../../media/{filename}'
+
+
+def surname_slug(name):
+    slug = re.sub(r"['’]", '', name)
+    slug = re.sub(r'[^\w-]', '-', slug)
+    return re.sub(r'-+', '-', slug).strip('-') or 'unknown'
 
 
 def group_by_generation(ancestors):
@@ -83,6 +90,16 @@ def build():
 
     me_id = config.me
 
+    # Build surname slug map and URL map (relative to person pages at people/{id}/)
+    surnames_dir = config.output_dir / 'surnames'
+    surnames_dir.mkdir(exist_ok=True)
+    by_surname = {}
+    for gid, data in all_people.items():
+        s = data['surname']
+        if s:
+            by_surname.setdefault(s, []).append(gid)
+    surname_page_url = {s: f'../../surnames/{surname_slug(s)}/' for s in by_surname}
+
     # Compute summary stats
     surnames = Counter(d['surname'] for d in all_people.values() if d['surname'])
     all_years = [y for d in all_people.values() for y in [d['birth_year'], d['death_year']] if y]
@@ -92,7 +109,7 @@ def build():
         'total_places': len(all_places),
         'year_from': min(all_years) if all_years else None,
         'year_to': max(all_years) if all_years else None,
-        'top_surnames': surnames.most_common(15),
+        'top_surnames': [(s, c, surname_slug(s)) for s, c in surnames.most_common(15)],
         'generations': group_by_generation(my_ancestors),
     }
 
@@ -148,6 +165,7 @@ def build():
             generations=group_by_generation(person_ancestors),
             me_id=me_id,
             event_map_json=event_map_json,
+            surname_url=surname_page_url.get(data['surname']),
         )
         person_out = people_dir / gid
         person_out.mkdir(exist_ok=True)
@@ -190,6 +208,30 @@ def build():
         places_index_tmpl(places=places_with_events, mappable_json=mappable_json, me_id=me_id)
     )
     print(f'Built {len(all_places)} place pages')
+
+    # Build surname pages and index
+    surname_tmpl = PageTemplateFile(str(config.templates_dir / 'surname.pt'))
+    surnames_index_tmpl = PageTemplateFile(str(config.templates_dir / 'surnames.pt'))
+    surnames_list = sorted(
+        [{'surname': s, 'count': len(gids), 'slug': surname_slug(s)} for s, gids in by_surname.items()],
+        key=lambda x: x['surname'],
+    )
+    (surnames_dir / 'index.html').write_text(
+        surnames_index_tmpl(surnames=surnames_list, me_id=me_id)
+    )
+    for surname, gids in by_surname.items():
+        people_on_page = sorted(
+            [{**all_people[gid], 'is_ancestor': gid in my_ancestors and gid != config.me,
+              'is_me': gid == config.me} for gid in gids],
+            key=lambda p: (p['birth_year'] or 9999, p['surname'], p['given']),
+        )
+        slug = surname_slug(surname)
+        surname_out = surnames_dir / slug
+        surname_out.mkdir(exist_ok=True)
+        (surname_out / 'index.html').write_text(
+            surname_tmpl(surname=surname, people=people_on_page, me_id=me_id)
+        )
+    print(f'Built {len(by_surname)} surname pages')
 
     db.close()
 

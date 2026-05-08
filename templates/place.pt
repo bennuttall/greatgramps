@@ -14,6 +14,7 @@
       <a class="secondary" href="../../people/${me_id}/">Me</a>
       <a class="secondary" href="../../people/">People</a>
       <a class="secondary" href="../../places/">Places</a>
+      <a class="secondary" href="../../surnames/">Surnames</a>
     </nav>
   </header>
   <main>

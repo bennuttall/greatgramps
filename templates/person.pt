@@ -14,12 +14,16 @@
       <a class="secondary" href="../../people/${me_id}/">Me</a>
       <a class="secondary" href="../../people/">People</a>
       <a class="secondary" href="../../places/">Places</a>
+      <a class="secondary" href="../../surnames/">Surnames</a>
     </nav>
   </header>
   <main>
     <article class="person-detail">
       <h1>
-        ${person['full_name']}
+        <tal:block tal:condition="not surname_url">${person['full_name']}</tal:block>
+        <tal:block tal:condition="surname_url">
+          <span tal:condition="person['given']">${person['given']} </span><a href="${surname_url}">${person['surname']}</a>
+        </tal:block>
         <span class="ancestor-badge me" tal:condition="is_me">me</span>
         <span class="ancestor-badge" tal:condition="is_ancestor">ancestor</span>
       </h1>
