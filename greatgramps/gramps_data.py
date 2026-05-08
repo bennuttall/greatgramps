@@ -1,4 +1,5 @@
 import sys
+from pathlib import Path
 sys.path.insert(0, '/usr/lib/python3/dist-packages')
 
 from gramps.plugins.db.dbapi.sqlite import SQLite
@@ -6,6 +7,13 @@ from gramps.gen.db import DBMODE_R
 from gramps.gen.lib.eventtype import EventType
 
 from greatgramps.settings import get_config
+
+
+def _resolve_media_path(path):
+    p = Path(path)
+    if not p.is_absolute():
+        p = Path.home() / p
+    return p
 
 
 def open_db():
@@ -291,3 +299,22 @@ def collect_ancestors(db, person, generation=0, ancestors=None):
     if mother:
         collect_ancestors(db, mother, generation + 1, ancestors)
     return ancestors
+
+
+def get_photos(db, person):
+    photos = []
+    for ref in person.get_media_list():
+        media = db.get_media_from_handle(ref.get_reference_handle())
+        if not media.get_mime_type().startswith('image/'):
+            continue
+        src = _resolve_media_path(media.get_path())
+        if not src.exists():
+            continue
+        rect = ref.get_rectangle()
+        photos.append({
+            'media_id': media.get_gramps_id(),
+            'src': src,
+            'rect': rect,
+            'description': media.get_description(),
+        })
+    return photos

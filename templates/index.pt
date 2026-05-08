@@ -8,7 +8,10 @@
 </head>
 <body>
   <header>
-    <h1>Family Tree</h1>
+    <nav>
+      <h1 style="margin:0">Family Tree</h1>
+      <a class="secondary" href="search.html">Search</a>
+    </nav>
   </header>
   <main>
     <div class="tree">

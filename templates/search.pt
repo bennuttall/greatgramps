@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search — Family Tree</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <a href="index.html">Family Tree</a>
+  </header>
+  <main>
+    <h1>Search</h1>
+    <input type="search" id="search" placeholder="Search by name…" autofocus>
+    <p id="count"></p>
+    <table id="people-table">
+      <thead>
+        <tr>
+          <th data-col="0">Name</th>
+          <th data-col="1">Born</th>
+          <th data-col="2">Died</th>
+          <th data-col="3">Children</th>
+          <th data-col="4">Spouses</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr tal:repeat="row rows">
+          <td><a href="people/${row['gramps_id']}.html">${row['full_name']}</a></td>
+          <td data-val="${row['birth_year'] or ''}">${row['birth_year'] or ''}</td>
+          <td data-val="${row['death_year'] or ''}">${row['death_year'] or ''}</td>
+          <td data-val="${row['num_children']}">${row['num_children']}</td>
+          <td data-val="${row['num_spouses']}">${row['num_spouses']}</td>
+        </tr>
+      </tbody>
+    </table>
+  </main>
+  <script>
+    const tbody = document.querySelector('#people-table tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const countEl = document.getElementById('count');
+    const total = rows.length;
+
+    function updateCount(visible) {
+      countEl.textContent = visible === total ? `$${total} people` : `$${visible} of $${total} people`;
+    }
+    updateCount(total);
+
+    // Search
+    document.getElementById('search').addEventListener('input', function() {
+      const q = this.value.toLowerCase();
+      let visible = 0;
+      rows.forEach(row => {
+        const name = row.cells[0].textContent.toLowerCase();
+        const show = name.includes(q);
+        row.hidden = !show;
+        if (show) visible++;
+      });
+      updateCount(visible);
+    });
+
+    // Sort
+    let sortCol = null, sortAsc = true;
+    document.querySelectorAll('#people-table th').forEach(th => {
+      th.style.cursor = 'pointer';
+      th.addEventListener('click', () => {
+        const col = parseInt(th.dataset.col);
+        sortAsc = sortCol === col ? !sortAsc : true;
+        sortCol = col;
+
+        document.querySelectorAll('#people-table th').forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+        th.classList.add(sortAsc ? 'sort-asc' : 'sort-desc');
+
+        rows.sort((a, b) => {
+          const aCell = a.cells[col];
+          const bCell = b.cells[col];
+          const aVal = aCell.dataset.val !== undefined ? aCell.dataset.val : aCell.textContent;
+          const bVal = bCell.dataset.val !== undefined ? bCell.dataset.val : bCell.textContent;
+          const aNum = parseFloat(aVal), bNum = parseFloat(bVal);
+          let cmp;
+          if (!isNaN(aNum) && !isNaN(bNum)) {
+            cmp = aNum - bNum;
+          } else {
+            cmp = aVal.localeCompare(bVal);
+          }
+          return sortAsc ? cmp : -cmp;
+        });
+        rows.forEach(r => tbody.appendChild(r));
+      });
+    });
+  </script>
+</body>
+</html>
