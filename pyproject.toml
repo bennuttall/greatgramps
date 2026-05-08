@@ -1,0 +1,18 @@
+[tool.poetry]
+package-mode = false
+
+[project]
+name = "great-gramps"
+version = "0.1.0"
+description = "Tools for exploring GRAMPS family tree data"
+authors = [
+    { name = "Ben Nuttall", email = "ben@bennuttall.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "chameleon (>=4.6.0,<5.0.0)"
+]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

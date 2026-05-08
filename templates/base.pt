@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${title} — Family Tree</title>
+  <link rel="stylesheet" href="${root}style.css">
+</head>
+<body>
+  <header>
+    <a href="${root}index.html">Family Tree</a>
+  </header>
+  <main>
+    ${structure:content}
+  </main>
+</body>
+</html>

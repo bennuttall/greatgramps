@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${person['full_name']} — Family Tree</title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+  <header>
+    <a href="../index.html">Family Tree</a>
+  </header>
+  <main>
+    <article class="person-detail">
+      <h1>
+        ${person['full_name']}
+        <span class="ancestor-badge me" tal:condition="is_me">me</span>
+        <span class="ancestor-badge" tal:condition="is_ancestor">ancestor</span>
+      </h1>
+
+      <p class="years" tal:condition="person['birth_year'] or person['death_year']">
+        <span tal:condition="person['birth_year']">b. ${person['birth_year']}</span><span tal:condition="person['birth_place']">, ${person['birth_place']}</span>
+        <span tal:condition="person['death_year']"> &nbsp;&mdash;&nbsp; d. ${person['death_year']}</span><span tal:condition="person['death_place']">, ${person['death_place']}</span>
+      </p>
+
+      <section class="parents" tal:condition="father or mother">
+        <h2>Parents</h2>
+        <ul>
+          <li tal:condition="father">
+            <a href="${father['gramps_id']}.html">${father['full_name']}</a>
+            <span class="years" tal:condition="father['birth_year']">(b. ${father['birth_year']})</span>
+          </li>
+          <li tal:condition="mother">
+            <a href="${mother['gramps_id']}.html">${mother['full_name']}</a>
+            <span class="years" tal:condition="mother['birth_year']">(b. ${mother['birth_year']})</span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="children" tal:condition="children">
+        <h2>Children</h2>
+        <ul>
+          <li tal:repeat="child children">
+            <a href="${child['gramps_id']}.html">${child['full_name']}</a>
+            <span class="years" tal:condition="child['birth_year']">(b. ${child['birth_year']})</span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="ancestors" tal:condition="len(generations) > 1">
+        <h2>Ancestors</h2>
+        <div class="tree">
+          <div tal:repeat="gen_group generations[1:]" class="generation">
+            <h3>
+              <span tal:condition="gen_group['gen'] == 1">Parents</span>
+              <span tal:condition="gen_group['gen'] == 2">Grandparents</span>
+              <span tal:condition="gen_group['gen'] == 3">Great-grandparents</span>
+              <span tal:condition="gen_group['gen'] == 4">2nd great-grandparents</span>
+              <span tal:condition="gen_group['gen'] &gt; 4">${gen_group['gen'] - 1}th great-grandparents</span>
+            </h3>
+            <ul>
+              <li tal:repeat="ancestor gen_group['people']">
+                <a href="${ancestor['gramps_id']}.html">${ancestor['full_name']}</a>
+                <span class="years" tal:condition="ancestor['birth_year'] or ancestor['death_year']">
+                  (${ancestor['birth_year'] or '?'}–${ancestor['death_year'] or ''})
+                </span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </article>
+  </main>
+</body>
+</html>
