@@ -43,15 +43,19 @@
         <table>
           <tr tal:repeat="event events">
             <th>${event['type']}</th>
+            <td tal:condition="event['description']">
+              <a tal:condition="event['description_url']"
+                 href="${event['description_url']}">${event['description']}</a>
+              <span tal:condition="not event['description_url']">${event['description']}</span>
+            </td>
+            <td tal:condition="not event['description']"></td>
             <td>${event['date'] or ''}</td>
             <td>
               <a tal:condition="event['place_id']"
                  href="${place_url.get(event['place_id'], '')}">${event['place']}</a>
               <span tal:condition="not event['place_id']">${event['place'] or ''}</span>
             </td>
-            <td tal:condition="event['description']">${event['description']}</td>
-            <td tal:condition="not event['description']"></td>
-            <td class="age-at-death" tal:condition="event['age']">aged ${event['age']}</td>
+            <td class="event-age" tal:condition="event['age']">aged ${event['age']}</td>
             <td tal:condition="not event['age']"></td>
           </tr>
         </table>
@@ -82,13 +86,14 @@
       </section>
 
       <section class="spouses" tal:condition="spouses">
-        <h2>Marriages</h2>
+        <h2>Relationships</h2>
         <ul>
           <li tal:repeat="s spouses">
             <a tal:condition="s['person']" href="../${s['person']['gramps_id']}/">${s['person']['full_name']}</a>
             <span tal:condition="not s['person']">Unknown</span>
+            <span class="years">${s['rel_type']}</span>
             <span class="years" tal:condition="s['marriage'] and s['marriage']['date']">
-              m. ${s['marriage']['date']}<span tal:condition="s['marriage']['place']">, ${s['marriage']['place']}</span>
+              ${s['marriage']['date']}<span tal:condition="s['marriage']['place']">, ${s['marriage']['place']}</span>
             </span>
           </li>
         </ul>

@@ -118,32 +118,55 @@ def format_date(date_obj):
     return str(year)
 
 
+def _event_dict(db, event, birth_year, desc=None, desc_url=None):
+    etype = int(event.get_type())
+    place_h = event.get_place_handle()
+    place_obj = db.get_place_from_handle(place_h) if place_h else None
+    event_year = event.get_date_object().get_year() or None
+    age = (event_year - birth_year) if (event_year and birth_year) else None
+    return {
+        'type': EVENT_TYPE_LABELS.get(etype, str(event.get_type())),
+        'sort': EVENT_SORT_ORDER.index(etype) if etype in EVENT_SORT_ORDER else 99,
+        'date': format_date(event.get_date_object()),
+        'year': event_year,
+        'place': place_obj.get_name().get_value() if place_obj else None,
+        'place_id': place_obj.get_gramps_id() if place_obj else None,
+        'description': desc if desc is not None else (event.get_description() or None),
+        'description_url': desc_url,
+        'age': age,
+    }
+
+
 def get_all_events(db, person):
     birth_year = get_year(get_event(db, person, EventType.BIRTH))
     events = []
+
     for eref in person.get_event_ref_list():
         event = db.get_event_from_handle(eref.get_reference_handle())
-        etype = int(event.get_type())
-        label = EVENT_TYPE_LABELS.get(etype, str(event.get_type()))
-        date_str = format_date(event.get_date_object())
-        place_h = event.get_place_handle()
-        place_obj = db.get_place_from_handle(place_h) if place_h else None
-        place = place_obj.get_name().get_value() if place_obj else None
-        place_id = place_obj.get_gramps_id() if place_obj else None
-        desc = event.get_description() or None
-        death_year = get_year(event) if etype == EventType.DEATH else None
-        age = (death_year - birth_year) if (death_year and birth_year) else None
-        events.append({
-            'type': label,
-            'sort': EVENT_SORT_ORDER.index(etype) if etype in EVENT_SORT_ORDER else 99,
-            'date': date_str,
-            'place': place,
-            'place_id': place_id,
-            'description': desc,
-            'age': age,
-        })
-    events.sort(key=lambda e: e['sort'])
+        events.append(_event_dict(db, event, birth_year))
+
+    for fam_handle in person.get_family_handle_list():
+        family = db.get_family_from_handle(fam_handle)
+        is_father = family.get_father_handle() == person.get_handle()
+        spouse_h = family.get_mother_handle() if is_father else family.get_father_handle()
+        spouse = db.get_person_from_handle(spouse_h) if spouse_h else None
+        spouse_name = person_data(db, spouse)['full_name'] if spouse else None
+        spouse_url = f'../{spouse.get_gramps_id()}/' if spouse else None
+        for eref in family.get_event_ref_list():
+            event = db.get_event_from_handle(eref.get_reference_handle())
+            events.append(_event_dict(db, event, birth_year, desc=spouse_name, desc_url=spouse_url))
+
+    events.sort(key=lambda e: (e['year'] or 9999, e['sort']))
     return events
+
+
+FAMILY_REL_LABELS = {
+    0: 'Married',
+    1: 'Unmarried',
+    2: 'Civil union',
+    3: 'Unknown',
+    4: 'Unknown',
+}
 
 
 def get_spouses(db, person):
@@ -153,6 +176,7 @@ def get_spouses(db, person):
         is_father = family.get_father_handle() == person.get_handle()
         spouse_handle = family.get_mother_handle() if is_father else family.get_father_handle()
         spouse = db.get_person_from_handle(spouse_handle) if spouse_handle else None
+        rel_type = FAMILY_REL_LABELS.get(int(family.get_relationship()), 'Unknown')
         marriage = None
         for eref in family.get_event_ref_list():
             event = db.get_event_from_handle(eref.get_reference_handle())
@@ -165,6 +189,7 @@ def get_spouses(db, person):
                 break
         spouses.append({
             'person': person_data(db, spouse) if spouse else None,
+            'rel_type': rel_type,
             'marriage': marriage,
         })
     return spouses
