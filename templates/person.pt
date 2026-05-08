@@ -17,11 +17,26 @@
         <span class="ancestor-badge me" tal:condition="is_me">me</span>
         <span class="ancestor-badge" tal:condition="is_ancestor">ancestor</span>
       </h1>
+      <p class="relation" tal:condition="relation and not is_me">your ${relation}</p>
 
-      <p class="years" tal:condition="person['birth_year'] or person['death_year']">
-        <span tal:condition="person['birth_year']">b. ${person['birth_year']}</span><span tal:condition="person['birth_place']">, ${person['birth_place']}</span>
-        <span tal:condition="person['death_year']"> &nbsp;&mdash;&nbsp; d. ${person['death_year']}</span><span tal:condition="person['death_place']">, ${person['death_place']}</span>
+      <p class="grave-link" tal:condition="person['grave_url']">
+        <a href="${person['grave_url']}">View on FindAGrave</a>
       </p>
+
+      <section class="events" tal:condition="events">
+        <h2>Life events</h2>
+        <table>
+          <tr tal:repeat="event events">
+            <th>${event['type']}</th>
+            <td>${event['date'] or ''}</td>
+            <td>${event['place'] or ''}</td>
+            <td tal:condition="event['description']">${event['description']}</td>
+            <td tal:condition="not event['description']"></td>
+            <td class="age-at-death" tal:condition="event['age']">aged ${event['age']}</td>
+            <td tal:condition="not event['age']"></td>
+          </tr>
+        </table>
+      </section>
 
       <section class="parents" tal:condition="father or mother">
         <h2>Parents</h2>
@@ -33,6 +48,29 @@
           <li tal:condition="mother">
             <a href="${mother['gramps_id']}.html">${mother['full_name']}</a>
             <span class="years" tal:condition="mother['birth_year']">(b. ${mother['birth_year']})</span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="siblings" tal:condition="siblings">
+        <h2>Siblings</h2>
+        <ul>
+          <li tal:repeat="sibling siblings">
+            <a href="${sibling['gramps_id']}.html">${sibling['full_name']}</a>
+            <span class="years" tal:condition="sibling['birth_year']">(b. ${sibling['birth_year']})</span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="spouses" tal:condition="spouses">
+        <h2>Marriages</h2>
+        <ul>
+          <li tal:repeat="s spouses">
+            <a tal:condition="s['person']" href="${s['person']['gramps_id']}.html">${s['person']['full_name']}</a>
+            <span tal:condition="not s['person']">Unknown</span>
+            <span class="years" tal:condition="s['marriage'] and s['marriage']['date']">
+              m. ${s['marriage']['date']}<span tal:condition="s['marriage']['place']">, ${s['marriage']['place']}</span>
+            </span>
           </li>
         </ul>
       </section>
