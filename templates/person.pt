@@ -4,13 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${person['full_name']} — Family Tree</title>
-  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../../style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
   <header>
     <nav>
-      <a href="../index.html">Family Tree</a>
-      <a class="secondary" href="../search.html">Search</a>
+      <a href="../../index.html">Home</a>
+      <a class="secondary" href="../../people/${me_id}/">Me</a>
+      <a class="secondary" href="../../people/">People</a>
+      <a class="secondary" href="../../places/">Places</a>
     </nav>
   </header>
   <main>
@@ -33,13 +36,19 @@
         <a href="${person['grave_url']}">View on FindAGrave</a>
       </p>
 
+      <div id="map" tal:condition="event_map_json != '[]'"></div>
+
       <section class="events" tal:condition="events">
         <h2>Life events</h2>
         <table>
           <tr tal:repeat="event events">
             <th>${event['type']}</th>
             <td>${event['date'] or ''}</td>
-            <td>${event['place'] or ''}</td>
+            <td>
+              <a tal:condition="event['place_id']"
+                 href="${place_url.get(event['place_id'], '')}">${event['place']}</a>
+              <span tal:condition="not event['place_id']">${event['place'] or ''}</span>
+            </td>
             <td tal:condition="event['description']">${event['description']}</td>
             <td tal:condition="not event['description']"></td>
             <td class="age-at-death" tal:condition="event['age']">aged ${event['age']}</td>
@@ -52,11 +61,11 @@
         <h2>Parents</h2>
         <ul>
           <li tal:condition="father">
-            <a href="${father['gramps_id']}.html">${father['full_name']}</a>
+            <a href="../${father['gramps_id']}/">${father['full_name']}</a>
             <span class="years" tal:condition="father['birth_year']">(b. ${father['birth_year']})</span>
           </li>
           <li tal:condition="mother">
-            <a href="${mother['gramps_id']}.html">${mother['full_name']}</a>
+            <a href="../${mother['gramps_id']}/">${mother['full_name']}</a>
             <span class="years" tal:condition="mother['birth_year']">(b. ${mother['birth_year']})</span>
           </li>
         </ul>
@@ -66,7 +75,7 @@
         <h2>Siblings</h2>
         <ul>
           <li tal:repeat="sibling siblings">
-            <a href="${sibling['gramps_id']}.html">${sibling['full_name']}</a>
+            <a href="../${sibling['gramps_id']}/">${sibling['full_name']}</a>
             <span class="years" tal:condition="sibling['birth_year']">(b. ${sibling['birth_year']})</span>
           </li>
         </ul>
@@ -76,7 +85,7 @@
         <h2>Marriages</h2>
         <ul>
           <li tal:repeat="s spouses">
-            <a tal:condition="s['person']" href="${s['person']['gramps_id']}.html">${s['person']['full_name']}</a>
+            <a tal:condition="s['person']" href="../${s['person']['gramps_id']}/">${s['person']['full_name']}</a>
             <span tal:condition="not s['person']">Unknown</span>
             <span class="years" tal:condition="s['marriage'] and s['marriage']['date']">
               m. ${s['marriage']['date']}<span tal:condition="s['marriage']['place']">, ${s['marriage']['place']}</span>
@@ -89,14 +98,14 @@
         <h2>Children</h2>
         <ul>
           <li tal:repeat="child children">
-            <a href="${child['gramps_id']}.html">${child['full_name']}</a>
+            <a href="../${child['gramps_id']}/">${child['full_name']}</a>
             <span class="years" tal:condition="child['birth_year']">(b. ${child['birth_year']})</span>
           </li>
         </ul>
       </section>
 
       <section class="ancestors" tal:condition="len(generations) > 1">
-        <h2>Ancestors</h2>
+        <h2>Ancestors (${sum(len(g['people']) for g in generations[1:])})</h2>
         <div class="tree">
           <div tal:repeat="gen_group generations[1:]" class="generation">
             <h3>
@@ -105,13 +114,17 @@
               <span tal:condition="gen_group['gen'] == 3">Great-grandparents</span>
               <span tal:condition="gen_group['gen'] == 4">2nd great-grandparents</span>
               <span tal:condition="gen_group['gen'] &gt; 4">${gen_group['gen'] - 1}th great-grandparents</span>
+              <span class="years">(${len(gen_group['people'])} / ${2 ** gen_group['gen']})</span>
             </h3>
             <ul>
-              <li tal:repeat="ancestor gen_group['people']">
-                <a href="${ancestor['gramps_id']}.html">${ancestor['full_name']}</a>
-                <span class="years" tal:condition="ancestor['birth_year'] or ancestor['death_year']">
-                  (${ancestor['birth_year'] or '?'}–${ancestor['death_year'] or ''})
-                </span>
+              <li tal:repeat="couple gen_group['couples']">
+                <tal:block tal:repeat="person couple">
+                  <a href="../${person['gramps_id']}/">${person['full_name']}</a>
+                  <span class="years" tal:condition="person['birth_year'] or person['death_year']">
+                    (${person['birth_year'] or '?'}–${person['death_year'] or ''})
+                  </span>
+                  <tal:block tal:condition="not repeat.person.end"> &amp; </tal:block>
+                </tal:block>
               </li>
             </ul>
           </div>
@@ -119,5 +132,20 @@
       </section>
     </article>
   </main>
+  <script tal:condition="event_map_json != '[]'"
+          src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script tal:condition="event_map_json != '[]'">
+    var points = ${structure: event_map_json};
+    var map = L.map('map');
+    var bounds = points.map(p => [p.lat, p.lon]);
+    map.fitBounds(bounds, {padding: [20, 20], maxZoom: 10});
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+    points.forEach(function(p) {
+      L.marker([p.lat, p.lon]).addTo(map)
+        .bindPopup('<a href="' + p.url + '">' + p.name + '</a><br>' + p.types.join(', '));
+    });
+  </script>
 </body>
 </html>

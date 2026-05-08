@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${place['name']} — Family Tree</title>
+  <link rel="stylesheet" href="../../style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+</head>
+<body>
+  <header>
+    <nav>
+      <a href="../../index.html">Home</a>
+      <a class="secondary" href="../../people/${me_id}/">Me</a>
+      <a class="secondary" href="../../people/">People</a>
+      <a class="secondary" href="../../places/">Places</a>
+    </nav>
+  </header>
+  <main>
+    <h1>${place['name']} <span class="place-type">${place['type']}</span></h1>
+
+    <div id="map" tal:condition="place['lat'] and place['lon']"></div>
+
+    <section tal:condition="events">
+      <h2>Events (${len(events)})</h2>
+      <div id="filters" class="event-filters"></div>
+      <table class="events-table" id="places-events-table">
+        <thead>
+          <tr><th>Year</th><th>Event</th><th>People</th></tr>
+        </thead>
+        <tbody>
+          <tr tal:repeat="event events" data-type="${event['type']}">
+            <td class="year">${event['year'] or ''}</td>
+            <td>${event['type']}</td>
+            <td>
+              <span tal:condition="event['couple']">
+                <span tal:condition="event['couple'][0]">
+                  <a href="../../people/${event['couple'][0]['gramps_id']}/">${event['couple'][0]['full_name']}</a>
+                </span>
+                <span tal:condition="event['couple'][0] and event['couple'][1]"> &amp; </span>
+                <span tal:condition="event['couple'][1]">
+                  <a href="../../people/${event['couple'][1]['gramps_id']}/">${event['couple'][1]['full_name']}</a>
+                </span>
+              </span>
+              <span tal:condition="not event['couple']">
+                <span tal:repeat="person event['people']">
+                  <a href="../../people/${person['gramps_id']}/">${person['full_name']}</a>
+                </span>
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <script tal:condition="place['lat'] and place['lon']"
+          src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script tal:condition="place['lat'] and place['lon']">
+    var map = L.map('map').setView([${place['lat']}, ${place['lon']}], 11);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+    L.marker([${place['lat']}, ${place['lon']}]).addTo(map);
+  </script>
+  <script>
+    const rows = Array.from(document.querySelectorAll('#places-events-table tbody tr'));
+    const filtersEl = document.getElementById('filters');
+
+    // Collect unique event types preserving order of first appearance
+    const types = [...new Set(rows.map(r => r.dataset.type))];
+
+    let active = null;
+
+    function makeButton(label) {
+      const btn = document.createElement('button');
+      btn.textContent = label;
+      btn.className = 'filter-btn';
+      if (label === null) btn.classList.add('active');
+      btn.addEventListener('click', () => {
+        active = label === 'All' ? null : label;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        rows.forEach(r => { r.hidden = active !== null && r.dataset.type !== active; });
+      });
+      return btn;
+    }
+
+    if (types.length > 1) {
+      filtersEl.appendChild(makeButton('All'));
+      types.forEach(t => filtersEl.appendChild(makeButton(t)));
+    }
+  </script>
+</body>
+</html>

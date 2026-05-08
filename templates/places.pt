@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Places — Family Tree</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+</head>
+<body>
+  <header>
+    <nav>
+      <a href="../index.html">Home</a>
+      <a class="secondary" href="../people/${me_id}/">Me</a>
+      <a class="secondary" href="../people/">People</a>
+      <a class="secondary" href="../places/">Places</a>
+    </nav>
+  </header>
+  <main>
+    <h1>Places</h1>
+
+    <div id="map"></div>
+
+    <input type="search" id="search" placeholder="Search places…">
+    <p id="count"></p>
+    <table id="places-table" class="events-table">
+      <thead>
+        <tr>
+          <th data-col="0">Place</th>
+          <th data-col="1">Type</th>
+          <th data-col="2">Events</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr tal:repeat="place places">
+          <td><a href="${place['gramps_id']}/">${place['name']}</a></td>
+          <td class="year">${place['type']}</td>
+          <td class="year" data-val="${place['event_count']}">${place['event_count']}</td>
+        </tr>
+      </tbody>
+    </table>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    var map = L.map('map').setView([53.5, -1.5], 6);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+
+    var places = ${structure: mappable_json};
+
+    places.forEach(function(p) {
+      var marker = L.circleMarker([p.lat, p.lon], {
+        radius: Math.max(4, Math.min(14, 3 + p.count / 10)),
+        color: '#5a3e28',
+        fillColor: '#5a3e28',
+        fillOpacity: 0.6,
+        weight: 1,
+      }).addTo(map);
+      marker.bindPopup('<a href="' + p.url + '">' + p.name + '</a> (' + p.count + ' events)');
+    });
+  </script>
+  <script>
+    const tbody = document.querySelector('#places-table tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const countEl = document.getElementById('count');
+    const total = rows.length;
+
+    function updateCount(visible) {
+      countEl.textContent = visible === total ? `$${total} places` : `$${visible} of $${total} places`;
+    }
+    updateCount(total);
+
+    document.getElementById('search').addEventListener('input', function() {
+      const q = this.value.toLowerCase();
+      let visible = 0;
+      rows.forEach(row => {
+        const show = row.cells[0].textContent.toLowerCase().includes(q);
+        row.hidden = !show;
+        if (show) visible++;
+      });
+      updateCount(visible);
+    });
+
+    let sortCol = null, sortAsc = true;
+    document.querySelectorAll('#places-table th').forEach(th => {
+      th.style.cursor = 'pointer';
+      th.addEventListener('click', () => {
+        const col = parseInt(th.dataset.col);
+        sortAsc = sortCol === col ? !sortAsc : true;
+        sortCol = col;
+        document.querySelectorAll('#places-table th').forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+        th.classList.add(sortAsc ? 'sort-asc' : 'sort-desc');
+        rows.sort((a, b) => {
+          const aCell = a.cells[col], bCell = b.cells[col];
+          const aVal = aCell.dataset.val ?? aCell.textContent;
+          const bVal = bCell.dataset.val ?? bCell.textContent;
+          const aNum = parseFloat(aVal), bNum = parseFloat(bVal);
+          const cmp = (!isNaN(aNum) && !isNaN(bNum)) ? aNum - bNum : aVal.localeCompare(bVal);
+          return sortAsc ? cmp : -cmp;
+        });
+        rows.forEach(r => tbody.appendChild(r));
+      });
+    });
+  </script>
+</body>
+</html>

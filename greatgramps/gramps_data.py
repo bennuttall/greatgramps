@@ -127,7 +127,9 @@ def get_all_events(db, person):
         label = EVENT_TYPE_LABELS.get(etype, str(event.get_type()))
         date_str = format_date(event.get_date_object())
         place_h = event.get_place_handle()
-        place = db.get_place_from_handle(place_h).get_name().get_value() if place_h else None
+        place_obj = db.get_place_from_handle(place_h) if place_h else None
+        place = place_obj.get_name().get_value() if place_obj else None
+        place_id = place_obj.get_gramps_id() if place_obj else None
         desc = event.get_description() or None
         death_year = get_year(event) if etype == EventType.DEATH else None
         age = (death_year - birth_year) if (death_year and birth_year) else None
@@ -136,6 +138,7 @@ def get_all_events(db, person):
             'sort': EVENT_SORT_ORDER.index(etype) if etype in EVENT_SORT_ORDER else 99,
             'date': date_str,
             'place': place,
+            'place_id': place_id,
             'description': desc,
             'age': age,
         })
@@ -284,21 +287,82 @@ def collect_all_people(db):
     }
 
 
-def collect_ancestors(db, person, generation=0, ancestors=None):
+def collect_ancestors(db, person, generation=0, ancestors=None, couple_slot=None, _slot_counter=None):
     if ancestors is None:
         ancestors = {}
+        _slot_counter = [0]
     gid = person.get_gramps_id()
     if gid in ancestors:
         return ancestors
     data = person_data(db, person)
     data['generation'] = generation
+    data['couple_slot'] = couple_slot
     ancestors[gid] = data
     father, mother = get_parents(db, person)
-    if father:
-        collect_ancestors(db, father, generation + 1, ancestors)
-    if mother:
-        collect_ancestors(db, mother, generation + 1, ancestors)
+    if father or mother:
+        slot = _slot_counter[0]
+        _slot_counter[0] += 1
+        if father:
+            collect_ancestors(db, father, generation + 1, ancestors, slot, _slot_counter)
+        if mother:
+            collect_ancestors(db, mother, generation + 1, ancestors, slot, _slot_counter)
     return ancestors
+
+
+def place_data(place):
+    return {
+        'gramps_id': place.get_gramps_id(),
+        'name': place.get_name().get_value(),
+        'type': str(place.get_type()),
+        'lat': place.get_latitude() or None,
+        'lon': place.get_longitude() or None,
+    }
+
+
+def build_place_event_index(db):
+    """Returns (place_handle -> [event_dict], event_handle -> [person_data]) indexes."""
+    from greatgramps.gramps_data import format_date, EVENT_TYPE_LABELS
+
+    # event_handle -> list of involved parties as dicts with 'people' and 'couple'
+    event_parties = {}
+
+    for person in db.iter_people():
+        pdata = person_data(db, person)
+        for eref in person.get_event_ref_list():
+            h = eref.get_reference_handle()
+            event_parties.setdefault(h, {'people': [], 'couple': None})
+            event_parties[h]['people'].append(pdata)
+
+    for family in db.iter_families():
+        fh = family.get_father_handle()
+        mh = family.get_mother_handle()
+        father = person_data(db, db.get_person_from_handle(fh)) if fh else None
+        mother = person_data(db, db.get_person_from_handle(mh)) if mh else None
+        for eref in family.get_event_ref_list():
+            h = eref.get_reference_handle()
+            event_parties.setdefault(h, {'people': [], 'couple': None})
+            event_parties[h]['couple'] = (father, mother)
+
+    place_index = {}
+    for event in db.iter_events():
+        ph = event.get_place_handle()
+        if not ph:
+            continue
+        etype = int(event.get_type())
+        parties = event_parties.get(event.get_handle(), {'people': [], 'couple': None})
+        entry = {
+            'type': EVENT_TYPE_LABELS.get(etype, str(event.get_type())),
+            'date': format_date(event.get_date_object()),
+            'year': event.get_date_object().get_year() or None,
+            'people': parties['people'],
+            'couple': parties['couple'],
+        }
+        place_index.setdefault(ph, []).append(entry)
+
+    for events in place_index.values():
+        events.sort(key=lambda e: e['year'] or 9999)
+
+    return place_index
 
 
 def get_photos(db, person):

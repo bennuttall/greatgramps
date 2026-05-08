@@ -9,30 +9,63 @@
 <body>
   <header>
     <nav>
-      <h1 style="margin:0">Family Tree</h1>
-      <a class="secondary" href="search.html">Search</a>
+      <a href="index.html">Home</a>
+      <a class="secondary" href="people/${me_id}/">Me</a>
+      <a class="secondary" href="people/">People</a>
+      <a class="secondary" href="places/">Places</a>
     </nav>
   </header>
   <main>
-    <div class="tree">
-      <div tal:repeat="gen_group generations" class="generation">
-        <h2>
-          <span tal:condition="gen_group['gen'] == 0">You</span>
-          <span tal:condition="gen_group['gen'] == 1">Parents</span>
-          <span tal:condition="gen_group['gen'] == 2">Grandparents</span>
-          <span tal:condition="gen_group['gen'] == 3">Great-grandparents</span>
-          <span tal:condition="gen_group['gen'] == 4">2nd great-grandparents</span>
-          <span tal:condition="gen_group['gen'] &gt; 4">${gen_group['gen'] - 1}th great-grandparents</span>
-        </h2>
-        <ul>
-          <li tal:repeat="person gen_group['people']">
-            <a href="people/${person['gramps_id']}.html">${person['full_name']}</a>
-            <span class="years" tal:condition="person['birth_year'] or person['death_year']">
-              (${person['birth_year'] or '?'}–${person['death_year'] or ''})
-            </span>
-          </li>
-        </ul>
+    <h1>Family Tree</h1>
+
+    <div class="summary-stats">
+      <div class="stat">
+        <span class="stat-value">${summary['total_people']}</span>
+        <span class="stat-label">people</span>
       </div>
+      <div class="stat">
+        <span class="stat-value">${summary['total_ancestors']}</span>
+        <span class="stat-label">ancestors</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">${summary['total_places']}</span>
+        <span class="stat-label">places</span>
+      </div>
+      <div class="stat" tal:condition="summary['year_from']">
+        <span class="stat-value">${summary['year_from']}–${summary['year_to']}</span>
+        <span class="stat-label">records</span>
+      </div>
+    </div>
+
+    <div class="summary-grid">
+      <section>
+        <h2>Top surnames</h2>
+        <table class="summary-table">
+          <tr tal:repeat="item summary['top_surnames']">
+            <td>${item[0]}</td>
+            <td class="year">${item[1]}</td>
+          </tr>
+        </table>
+      </section>
+
+      <section>
+        <h2>Ancestors</h2>
+        <table class="summary-table">
+          <tr tal:repeat="gen_group summary['generations']">
+            <td>
+              <span tal:condition="gen_group['gen'] == 0">
+                <a href="people/${me_id}/">Me</a>
+              </span>
+              <span tal:condition="gen_group['gen'] == 1">Parents</span>
+              <span tal:condition="gen_group['gen'] == 2">Grandparents</span>
+              <span tal:condition="gen_group['gen'] == 3">Great-grandparents</span>
+              <span tal:condition="gen_group['gen'] == 4">2nd great-grandparents</span>
+              <span tal:condition="gen_group['gen'] &gt; 4">${gen_group['gen'] - 1}th great-grandparents</span>
+            </td>
+            <td class="year">${len(gen_group['people'])}</td>
+          </tr>
+        </table>
+      </section>
     </div>
   </main>
 </body>

@@ -3,15 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Search — Family Tree</title>
-  <link rel="stylesheet" href="style.css">
+  <title>People — Family Tree</title>
+  <link rel="stylesheet" href="../style.css">
 </head>
 <body>
   <header>
-    <a href="index.html">Family Tree</a>
+    <nav>
+      <a href="../index.html">Home</a>
+      <a class="secondary" href="${me_id}/">Me</a>
+      <a class="secondary" href="../people/">People</a>
+      <a class="secondary" href="../places/">Places</a>
+    </nav>
   </header>
   <main>
-    <h1>Search</h1>
+    <h1>People</h1>
     <input type="search" id="search" placeholder="Search by name…" autofocus>
     <p id="count"></p>
     <table id="people-table">
@@ -26,7 +31,7 @@
       </thead>
       <tbody>
         <tr tal:repeat="row rows">
-          <td><a href="people/${row['gramps_id']}.html">${row['full_name']}</a></td>
+          <td><a href="${row['gramps_id']}/">${row['full_name']}</a></td>
           <td data-val="${row['birth_year'] or ''}">${row['birth_year'] or ''}</td>
           <td data-val="${row['death_year'] or ''}">${row['death_year'] or ''}</td>
           <td data-val="${row['num_children']}">${row['num_children']}</td>
