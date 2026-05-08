@@ -1,0 +1,312 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: Georgia, serif;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem 2rem;
+  color: #222;
+  line-height: 1.6;
+}
+
+header {
+  border-bottom: 1px solid #ccc;
+  margin-bottom: 2rem;
+  padding-bottom: 0.5rem;
+}
+
+header nav {
+  display: flex;
+  gap: 1.5rem;
+  align-items: baseline;
+}
+
+header a {
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-decoration: none;
+  color: #333;
+}
+
+header a.secondary {
+  font-size: 0.95rem;
+  font-weight: normal;
+  color: #666;
+}
+
+header a.secondary:hover { color: #333; }
+
+/* Place pages */
+.place-type {
+  font-size: 0.6rem;
+  font-family: sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: #4a6080;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  vertical-align: middle;
+  margin-left: 0.5rem;
+}
+
+.event-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.filter-btn {
+  font-family: inherit;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  background: white;
+  color: #555;
+  cursor: pointer;
+}
+
+.filter-btn:hover { border-color: #5a3e28; color: #5a3e28; }
+.filter-btn.active { background: #5a3e28; border-color: #5a3e28; color: white; }
+
+#map {
+  height: 400px;
+  border-radius: 6px;
+  margin: 1rem 0;
+}
+
+.events-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.events-table th, .events-table td {
+  text-align: left;
+  padding: 0.3rem 1rem 0.3rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+.events-table th {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #666;
+}
+
+.events-table .year {
+  color: #888;
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+
+/* Search page */
+#search {
+  font-size: 1rem;
+  font-family: inherit;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 0.75rem;
+}
+
+#count {
+  color: #888;
+  font-size: 0.9em;
+  margin: 0 0 0.75rem;
+}
+
+#people-table, #places-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+#people-table th, #people-table td,
+#places-table th, #places-table td {
+  text-align: left;
+  padding: 0.3rem 1rem 0.3rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+#people-table th, #places-table th {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #666;
+  user-select: none;
+  cursor: pointer;
+}
+
+#people-table th.sort-asc::after, #places-table th.sort-asc::after { content: ' ↑'; }
+#people-table th.sort-desc::after, #places-table th.sort-desc::after { content: ' ↓'; }
+
+#people-table td:nth-child(n+2) { color: #666; font-size: 0.9em; }
+
+h1 { margin-top: 0; }
+h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #666; margin-top: 1.5rem; }
+
+a { color: #5a3e28; }
+a:hover { color: #222; }
+
+.years { color: #666; font-size: 0.9em; }
+
+.relation {
+  color: #666;
+  font-style: italic;
+  margin-top: -0.5rem;
+}
+
+.ancestor-badge.me {
+  background: #2a5a3e;
+}
+
+.ancestor-badge {
+  font-size: 0.6rem;
+  font-family: sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: #5a3e28;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  vertical-align: middle;
+  margin-left: 0.5rem;
+}
+
+/* Photos */
+.photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.person-photo {
+  max-height: 220px;
+  max-width: 100%;
+  border-radius: 4px;
+  display: block;
+}
+
+/* Index tree */
+.tree .generation {
+  margin-bottom: 2rem;
+}
+
+.tree ul {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.tree li a {
+  color: #5a3e28;
+  text-decoration: none;
+  border-bottom: 1px solid #c4a882;
+}
+
+.tree li a:hover { border-color: #5a3e28; }
+
+/* Events table */
+.events table {
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+
+.events th, .events td {
+  text-align: left;
+  padding: 0.2rem 1rem 0.2rem 0;
+  vertical-align: top;
+}
+
+.event-age {
+  color: #888;
+  font-size: 0.85em;
+}
+
+.events th {
+  font-weight: normal;
+  color: #666;
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+
+/* Person detail */
+.person-detail .ancestors h3 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #888;
+  margin: 1rem 0 0.25rem;
+}
+
+.person-detail section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0.25rem 0 0;
+}
+
+.person-detail section li {
+  margin: 0.25rem 0;
+}
+
+/* Summary / homepage */
+.summary-stats {
+  display: flex;
+  gap: 2.5rem;
+  margin: 1.5rem 0 2.5rem;
+  flex-wrap: wrap;
+}
+
+.stat-value {
+  display: block;
+  font-size: 2rem;
+  font-weight: bold;
+  color: #5a3e28;
+  line-height: 1.1;
+}
+
+.pct-high, .pct-mid, .pct-low {
+  font-size: 0.6rem;
+  font-family: sans-serif;
+  color: white;
+  padding: 2px 5px;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+.pct-high { background: #2a7a3e; }
+.pct-mid  { background: #a06010; }
+.pct-low  { background: #b03020; }
+
+.stat-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #888;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+@media (max-width: 580px) {
+  .summary-grid { grid-template-columns: 1fr; }
+}
+
+.summary-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.summary-table td {
+  padding: 0.2rem 1rem 0.2rem 0;
+  border-bottom: 1px solid #eee;
+}

@@ -1,5 +1,6 @@
 #!/home/ben/.virtualenvs/gramps/bin/python
 import json
+import shutil
 from collections import Counter
 from PIL import Image
 from chameleon import PageTemplateFile
@@ -56,6 +57,10 @@ def build():
     all_people = collect_all_people(db)
     my_ancestors = collect_ancestors(db, me)
     me_ancestor_distances = ancestors_with_distances(db, me)
+
+    config.output_dir.mkdir(parents=True, exist_ok=True)
+    for f in config.static_dir.iterdir():
+        shutil.copy2(f, config.output_dir / f.name)
 
     people_dir = config.output_dir / 'people'
     people_dir.mkdir(parents=True, exist_ok=True)

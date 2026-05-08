@@ -17,11 +17,12 @@ class Config(BaseModel):
     db_path: Path
     me: str
     templates_dir: Path = Path('templates')
+    static_dir: Path = Path('static')
     output_dir: Path = Path('www')
 
     def model_post_init(self, _context):
         root = self.root_path
-        for attr in ('db_path', 'templates_dir', 'output_dir'):
+        for attr in ('db_path', 'templates_dir', 'static_dir', 'output_dir'):
             p = getattr(self, attr)
             if not p.is_absolute():
                 setattr(self, attr, root / p)
