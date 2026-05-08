@@ -62,7 +62,14 @@
               <span tal:condition="gen_group['gen'] == 4">2nd great-grandparents</span>
               <span tal:condition="gen_group['gen'] &gt; 4">${gen_group['gen'] - 1}th great-grandparents</span>
             </td>
-            <td class="year">${len(gen_group['people'])}</td>
+            <td class="year" tal:condition="gen_group['gen'] == 0">1</td>
+            <td class="year" tal:condition="gen_group['gen'] != 0">
+              ${len(gen_group['people'])} / ${2 ** gen_group['gen']}
+              <span tal:define="pct len(gen_group['people']) * 100 // (2 ** gen_group['gen'])"
+                    tal:attributes="class 'pct-high' if pct >= 75 else ('pct-mid' if pct >= 50 else 'pct-low')">
+                ${pct}%
+              </span>
+            </td>
           </tr>
         </table>
       </section>
