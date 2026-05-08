@@ -298,6 +298,10 @@ a:hover { color: #222; }
   gap: 2rem;
 }
 
+.summary-grid .full-width {
+  grid-column: 1 / -1;
+}
+
 @media (max-width: 580px) {
   .summary-grid { grid-template-columns: 1fr; }
 }

@@ -102,6 +102,9 @@ def build():
 
     # Compute summary stats
     surnames = Counter(d['surname'] for d in all_people.values() if d['surname'])
+    given_names = Counter(
+        d['given'].split()[0] for d in all_people.values() if d['given']
+    )
     all_years = [y for d in all_people.values() for y in [d['birth_year'], d['death_year']] if y]
     summary = {
         'total_people': len(all_people),
@@ -110,6 +113,7 @@ def build():
         'year_from': min(all_years) if all_years else None,
         'year_to': max(all_years) if all_years else None,
         'top_surnames': [(s, c, surname_slug(s)) for s, c in surnames.most_common(15)],
+        'top_given': given_names.most_common(15),
         'generations': group_by_generation(my_ancestors),
     }
 

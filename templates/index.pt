@@ -50,6 +50,16 @@
       </section>
 
       <section>
+        <h2>Top first names</h2>
+        <table class="summary-table">
+          <tr tal:repeat="item summary['top_given']">
+            <td>${item[0]}</td>
+            <td class="year">${item[1]}</td>
+          </tr>
+        </table>
+      </section>
+
+      <section class="full-width">
         <h2>Ancestors</h2>
         <table class="summary-table">
           <tr tal:repeat="gen_group summary['generations']">
