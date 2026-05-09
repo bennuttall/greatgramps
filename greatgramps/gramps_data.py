@@ -1,6 +1,4 @@
-import sys
 from pathlib import Path
-sys.path.insert(0, '/usr/lib/python3/dist-packages')
 
 from gramps.plugins.db.dbapi.sqlite import SQLite
 from gramps.gen.db import DBMODE_R
