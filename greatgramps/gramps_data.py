@@ -52,7 +52,7 @@ def person_data(db, person):
     death = get_event(db, person, EventType.DEATH)
     name = person.get_primary_name()
     grave_url = next(
-        (url.get_path() for url in person.get_url_list() if str(url.get_type()) == 'Grave'),
+        (url.get_path() for url in person.get_url_list() if str(url.get_type()) == 'Find a Grave'),
         None
     )
     return {
