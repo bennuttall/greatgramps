@@ -2,6 +2,7 @@
   <div metal:fill-slot="content" tal:omit-tag="1">
     <h1>People</h1>
     <input type="search" id="search" placeholder="Search by name…" autofocus>
+    <label><input type="checkbox" id="ancestors-only"> Ancestors only</label>
     <p id="count"></p>
     <table id="people-table">
       <thead>
@@ -14,8 +15,11 @@
         </tr>
       </thead>
       <tbody>
-        <tr tal:repeat="row rows">
-          <td><a href="${row['gramps_id']}/">${row['full_name']}</a></td>
+        <tr tal:repeat="row rows" tal:attributes="data-ancestor 1 if row['is_ancestor'] else None">
+          <td data-name="${row['full_name']}">
+            <a href="${row['gramps_id']}/">${row['full_name']}</a>
+            <span class="ancestor-badge" tal:condition="row['is_ancestor']">ancestor</span>
+          </td>
           <td data-val="${row['birth_year'] or ''}">${row['birth_year'] or ''}</td>
           <td data-val="${row['death_year'] or ''}">${row['death_year'] or ''}</td>
           <td data-val="${row['num_children']}">${row['num_children']}</td>
@@ -36,18 +40,21 @@
     }
     updateCount(total);
 
-    // Search
-    document.getElementById('search').addEventListener('input', function() {
-      const q = this.value.toLowerCase();
+    function applyFilters() {
+      const q = document.getElementById('search').value.toLowerCase();
+      const ancestorsOnly = document.getElementById('ancestors-only').checked;
       let visible = 0;
       rows.forEach(row => {
-        const name = row.cells[0].textContent.toLowerCase();
-        const show = name.includes(q);
+        const name = (row.cells[0].dataset.name || row.cells[0].textContent).toLowerCase();
+        const show = name.includes(q) && (!ancestorsOnly || row.dataset.ancestor);
         row.hidden = !show;
         if (show) visible++;
       });
       updateCount(visible);
-    });
+    }
+
+    document.getElementById('search').addEventListener('input', applyFilters);
+    document.getElementById('ancestors-only').addEventListener('change', applyFilters);
 
     // Sort
     let sortCol = null, sortAsc = true;

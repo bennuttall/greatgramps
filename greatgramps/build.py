@@ -185,7 +185,8 @@ def build():
         person_out = people_dir / gid
         person_out.mkdir(exist_ok=True)
         (person_out / 'index.html').write_text(html)
-        search_rows.append({**data, 'num_children': len(children_p), 'num_spouses': len(spouses)})
+        search_rows.append({**data, 'num_children': len(children_p), 'num_spouses': len(spouses),
+                            'is_ancestor': gid in my_ancestors and gid != config.me})
 
     print(f'Built {len(all_people)} person pages')
 
