@@ -3,6 +3,7 @@ import json
 import re
 import shutil
 from collections import Counter
+from datetime import date
 from PIL import Image
 from chameleon import PageTemplateLoader
 from greatgramps.gramps_data import (
@@ -179,6 +180,7 @@ def build():
             generations=group_by_generation(person_ancestors),
             event_map_json=event_map_json,
             surname_url=surname_page_url.get(data['surname']),
+            current_year=date.today().year,
         )
         person_out = people_dir / gid
         person_out.mkdir(exist_ok=True)

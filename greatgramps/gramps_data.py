@@ -5,6 +5,7 @@ sys.path.insert(0, '/usr/lib/python3/dist-packages')
 from gramps.plugins.db.dbapi.sqlite import SQLite
 from gramps.gen.db import DBMODE_R
 from gramps.gen.lib.eventtype import EventType
+from gramps.gen.utils.alive import probably_alive
 
 from greatgramps.settings import get_config
 
@@ -66,6 +67,7 @@ def person_data(db, person):
         'death_place': get_place_name(db, death),
         'gender': person.get_gender(),
         'grave_url': grave_url,
+        'is_living': probably_alive(person, db),
     }
 
 
@@ -118,12 +120,12 @@ def format_date(date_obj):
     return str(year)
 
 
-def _event_dict(db, event, birth_year, desc=None, desc_url=None, label=None):
+def _event_dict(db, event, birth_year, desc=None, desc_url=None, label=None, show_age=True):
     etype = int(event.get_type())
     place_h = event.get_place_handle()
     place_obj = db.get_place_from_handle(place_h) if place_h else None
     event_year = event.get_date_object().get_year() or None
-    age = (event_year - birth_year) if (event_year and birth_year) else None
+    age = (event_year - birth_year) if (show_age and event_year and birth_year) else None
     return {
         'type': label or EVENT_TYPE_LABELS.get(etype, str(event.get_type())),
         'sort': EVENT_SORT_ORDER.index(etype) if etype in EVENT_SORT_ORDER else 99,
@@ -139,11 +141,18 @@ def _event_dict(db, event, birth_year, desc=None, desc_url=None, label=None):
 
 def get_all_events(db, person):
     birth_year = get_year(get_event(db, person, EventType.BIRTH))
+    grave_url = next(
+        (url.get_path() for url in person.get_url_list() if str(url.get_type()) == 'Find a Grave'),
+        None
+    )
     events = []
 
     for eref in person.get_event_ref_list():
         event = db.get_event_from_handle(eref.get_reference_handle())
-        events.append(_event_dict(db, event, birth_year))
+        is_burial = int(event.get_type()) == EventType.BURIAL
+        desc_url = grave_url if is_burial else None
+        desc = 'Find a Grave' if (is_burial and grave_url and not event.get_description()) else None
+        events.append(_event_dict(db, event, birth_year, desc=desc, desc_url=desc_url, show_age=not is_burial))
 
     for fam_handle in person.get_family_handle_list():
         family = db.get_family_from_handle(fam_handle)
