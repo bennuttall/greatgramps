@@ -16,15 +16,15 @@ class Config(BaseModel):
     root_path: Path
     db_path: Path
     me: str
+    templates_dir: Path = Path('templates')
+    static_dir: Path = Path('static')
+    output_dir: Path = Path('www')
 
     @property
     def validated_db_path(self) -> Path:
         if not self.db_path.exists():
             raise FileNotFoundError(f"Gramps database not found: {self.db_path}")
         return self.db_path
-    templates_dir: Path = Path('templates')
-    static_dir: Path = Path('static')
-    output_dir: Path = Path('www')
 
     def model_post_init(self, _context):
         root = self.root_path
