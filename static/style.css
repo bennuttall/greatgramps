@@ -315,3 +315,89 @@ a:hover { color: #222; }
   padding: 0.2rem 1rem 0.2rem 0;
   border-bottom: 1px solid #eee;
 }
+
+/* Pedigree / ancestor tree */
+.pedigree-wrap {
+  overflow-x: auto;
+  margin-top: 1.5rem;
+}
+
+.pedigree-chart {
+  display: grid;
+  gap: 4px;
+  min-width: 600px;
+}
+
+.pedigree-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  text-decoration: none;
+  color: inherit;
+  font-size: 0.85rem;
+  overflow: hidden;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.pedigree-cell:hover {
+  border-color: #5a3e28;
+  background: #fdf8f3;
+  color: #5a3e28;
+}
+
+.pedigree-cell.gen-0 {
+  border-width: 2px;
+}
+
+.pedigree-cell.male {
+  background: #dbe8f5;
+  border-color: #8aafc8;
+}
+
+.pedigree-cell.male:hover {
+  background: #c8daf0;
+  border-color: #5a3e28;
+}
+
+.pedigree-cell.female {
+  background: #f5dbe8;
+  border-color: #c88aaf;
+}
+
+.pedigree-cell.female:hover {
+  background: #f0c8da;
+  border-color: #5a3e28;
+}
+
+.pedigree-name {
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pedigree-years {
+  font-size: 0.8em;
+  color: #888;
+  white-space: nowrap;
+}
+
+.pedigree-cell.has-further {
+  position: relative;
+  padding-right: 1.4rem;
+}
+
+.pedigree-cell.has-further::after {
+  content: '›';
+  position: absolute;
+  right: 0.4rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #c4a882;
+  font-size: 1.2em;
+  line-height: 1;
+}

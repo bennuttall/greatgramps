@@ -1,0 +1,22 @@
+<div metal:use-macro="layout">
+  <div metal:fill-slot="content" tal:omit-tag="1">
+    <h1>
+      <a href="../">${person['full_name']}</a> — Ancestor Tree
+    </h1>
+    <div class="pedigree-wrap">
+      <div class="pedigree-chart" tal:attributes="style tree_grid_style">
+        <a tal:repeat="node nodes"
+           tal:attributes="
+             href '../' if node['gen'] == 0 else ('../../' + node['gramps_id'] + '/tree/' if node['has_parents'] else '../../' + node['gramps_id'] + '/');
+             class 'pedigree-cell gen-' + str(node['gen']) + (' has-further' if node['has_further'] else '') + (' male' if node['gender'] == 1 else (' female' if node['gender'] == 0 else ''));
+             style node['grid_style']
+           ">
+          <span class="pedigree-name">${node['full_name']}</span>
+          <span class="pedigree-years" tal:condition="node['birth_year'] or node['death_year']">
+            ${node['birth_year'] or '?'}–${node['death_year'] or ''}
+          </span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

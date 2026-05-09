@@ -357,6 +357,38 @@ def collect_ancestors(db, person, generation=0, ancestors=None, couple_slot=None
     return ancestors
 
 
+def collect_ancestor_tree(db, person, max_gen=4):
+    """Return (nodes, grid_rows, grid_cols) for a pedigree chart.
+
+    Each node is person_data plus 'gen' and 'grid_style' (CSS grid placement).
+    Ahnentafel numbering: subject=1, father=2, mother=3, paternal GF=4, etc.
+    """
+    leaves = 1 << max_gen
+    nodes = []
+    queue = [(person, 1)]
+    while queue:
+        p, ahn = queue.pop(0)
+        gen = ahn.bit_length() - 1
+        if gen > max_gen:
+            continue
+        pos = ahn - (1 << gen)
+        span = leaves >> gen
+        row_start = pos * span + 1
+        row_end = row_start + span
+        data = person_data(db, p)
+        data['gen'] = gen
+        data['grid_style'] = f'grid-column:{gen + 1};grid-row:{row_start}/{row_end}'
+        father, mother = get_parents(db, p)
+        data['has_parents'] = bool(father or mother)
+        data['has_further'] = gen == max_gen and data['has_parents']
+        nodes.append(data)
+        if father:
+            queue.append((father, ahn * 2))
+        if mother:
+            queue.append((mother, ahn * 2 + 1))
+    return nodes, leaves, max_gen + 1
+
+
 def place_data(place):
     return {
         'gramps_id': place.get_gramps_id(),

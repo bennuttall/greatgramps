@@ -8,10 +8,11 @@
       <thead>
         <tr>
           <th data-col="0">Name</th>
-          <th data-col="1">Born</th>
-          <th data-col="2">Died</th>
-          <th data-col="3">Children</th>
-          <th data-col="4">Spouses</th>
+          <th data-col="1">Gender</th>
+          <th data-col="2">Born</th>
+          <th data-col="3">Died</th>
+          <th data-col="4">Children</th>
+          <th data-col="5">Spouses</th>
         </tr>
       </thead>
       <tbody>
@@ -20,6 +21,9 @@
             <a href="${row['gramps_id']}/">${row['full_name']}</a>
             <span class="ancestor-badge" tal:condition="row['is_ancestor']">ancestor</span>
           </td>
+          <td tal:define="label 'Male' if row['gender'] == 1 else ('Female' if row['gender'] == 0 else '')"
+              tal:attributes="data-val label"
+              tal:content="label"></td>
           <td data-val="${row['birth_year'] or ''}">${row['birth_year'] or ''}</td>
           <td data-val="${row['death_year'] or ''}">${row['death_year'] or ''}</td>
           <td data-val="${row['num_children']}">${row['num_children']}</td>

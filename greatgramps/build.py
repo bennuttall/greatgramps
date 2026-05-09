@@ -11,6 +11,7 @@ from .gramps_data import (
     get_parents, get_children, get_siblings, get_spouses, get_all_events,
     ancestors_with_distances, get_relation_to_me,
     get_photos, place_data, build_place_event_index, person_data,
+    collect_ancestor_tree,
 )
 from .settings import get_config
 
@@ -185,6 +186,24 @@ def build():
         person_out = people_dir / gid
         person_out.mkdir(exist_ok=True)
         (person_out / 'index.html').write_text(html)
+
+        if father_p or mother_p:
+            tree_nodes, tree_rows, tree_cols = collect_ancestor_tree(db, p)
+            tree_grid_style = (
+                f'grid-template-rows:repeat({tree_rows},minmax(2.5rem,auto));'
+                f'grid-template-columns:repeat({tree_cols},minmax(140px,1fr))'
+            )
+            tree_dir = person_out / 'tree'
+            tree_dir.mkdir(exist_ok=True)
+            (tree_dir / 'index.html').write_text(render(
+                'tree',
+                base='../../../',
+                page_title=f"{data['full_name']} — Ancestor Tree",
+                person=data,
+                nodes=tree_nodes,
+                tree_grid_style=tree_grid_style,
+            ))
+
         search_rows.append({**data, 'num_children': len(children_p), 'num_spouses': len(spouses),
                             'is_ancestor': gid in my_ancestors and gid != config.me})
 

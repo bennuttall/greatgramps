@@ -24,6 +24,7 @@
         <span class="ancestor-badge deceased" tal:condition="not is_living and not died_age">deceased</span>
       </h1>
       <p class="relation" tal:condition="relation and not is_me">your ${relation}</p>
+      <p class="tree-link" tal:condition="len(generations) > 1"><a href="tree/">View ancestor tree →</a></p>
 
       <div class="photos" tal:condition="photos">
         <img tal:repeat="photo photos"
@@ -112,7 +113,7 @@
       </section>
 
       <section class="ancestors" tal:condition="len(generations) > 1">
-        <h2>Ancestors (${sum(len(g['people']) for g in generations[1:])})</h2>
+        <h2>Ancestors (${sum(len(g['people']) for g in generations[1:])}) — <a href="tree/">tree view</a></h2>
         <div class="tree">
           <div tal:repeat="gen_group generations[1:]" class="generation">
             <h3>
