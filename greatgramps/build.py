@@ -6,13 +6,13 @@ from collections import Counter
 from datetime import date
 from PIL import Image
 from chameleon import PageTemplateLoader
-from greatgramps.gramps_data import (
+from .gramps_data import (
     open_db, collect_all_people, collect_ancestors,
     get_parents, get_children, get_siblings, get_spouses, get_all_events,
     ancestors_with_distances, get_relation_to_me,
     get_photos, place_data, build_place_event_index, person_data,
 )
-from greatgramps.settings import get_config
+from .settings import get_config
 
 
 def process_photo(photo, media_dir, person_id):

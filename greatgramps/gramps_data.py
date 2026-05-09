@@ -7,7 +7,7 @@ from gramps.gen.db import DBMODE_R
 from gramps.gen.lib.eventtype import EventType
 from gramps.gen.utils.alive import probably_alive
 
-from greatgramps.settings import get_config
+from .settings import get_config
 
 
 def _resolve_media_path(path):
