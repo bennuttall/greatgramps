@@ -1,5 +1,5 @@
 [project]
-name = "great-gramps"
+name = "greatgramps"
 version = "0.1.0"
 description = "Family tree static site generator for GRAMPS databases"
 authors = [
