@@ -125,7 +125,7 @@ def _event_dict(db, event, birth_year, desc=None, desc_url=None, label=None, sho
     place_h = event.get_place_handle()
     place_obj = db.get_place_from_handle(place_h) if place_h else None
     event_year = event.get_date_object().get_year() or None
-    age = (event_year - birth_year) if (show_age and event_year and birth_year) else None
+    age = max(0, event_year - birth_year - 1) if (show_age and event_year and birth_year) else None
     return {
         'type': label or EVENT_TYPE_LABELS.get(etype, str(event.get_type())),
         'sort': EVENT_SORT_ORDER.index(etype) if etype in EVENT_SORT_ORDER else 99,
@@ -149,10 +149,12 @@ def get_all_events(db, person):
 
     for eref in person.get_event_ref_list():
         event = db.get_event_from_handle(eref.get_reference_handle())
-        is_burial = int(event.get_type()) == EventType.BURIAL
+        etype = int(event.get_type())
+        is_burial = etype == EventType.BURIAL
+        is_birth = etype == EventType.BIRTH
         desc_url = grave_url if is_burial else None
         desc = 'Find a Grave' if (is_burial and grave_url and not event.get_description()) else None
-        events.append(_event_dict(db, event, birth_year, desc=desc, desc_url=desc_url, show_age=not is_burial))
+        events.append(_event_dict(db, event, birth_year, desc=desc, desc_url=desc_url, show_age=not is_burial and not is_birth))
 
     for fam_handle in person.get_family_handle_list():
         family = db.get_family_from_handle(fam_handle)

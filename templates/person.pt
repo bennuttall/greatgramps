@@ -55,8 +55,10 @@
                  href="${place_url.get(event['place_id'], '')}">${event['place']}</a>
               <span tal:condition="not event['place_id']">${event['place'] or ''}</span>
             </td>
-            <td class="event-age" tal:condition="event['age']">aged ${event['age']}</td>
-            <td tal:condition="not event['age']"></td>
+            <tal:block tal:define="has_age event['age'] is not None">
+              <td class="event-age" tal:condition="has_age">aged ${event['age']}</td>
+              <td tal:condition="not has_age"></td>
+            </tal:block>
           </tr>
         </table>
       </section>
