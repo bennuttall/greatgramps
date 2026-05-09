@@ -16,6 +16,12 @@ class Config(BaseModel):
     root_path: Path
     db_path: Path
     me: str
+
+    @property
+    def validated_db_path(self) -> Path:
+        if not self.db_path.exists():
+            raise FileNotFoundError(f"Gramps database not found: {self.db_path}")
+        return self.db_path
     templates_dir: Path = Path('templates')
     static_dir: Path = Path('static')
     output_dir: Path = Path('www')
@@ -31,7 +37,10 @@ class Config(BaseModel):
 @cache
 def get_config() -> Config:
     settings = Settings()
+    print(f"Loading config: {settings.config}")
     with open(settings.config) as f:
         data = yaml.safe_load(f)
     data['root_path'] = settings.config.parent.absolute()
-    return Config.model_validate(data)
+    config = Config.model_validate(data)
+    print(f"  db_path: {config.db_path}")
+    return config

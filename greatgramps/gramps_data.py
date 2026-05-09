@@ -18,8 +18,10 @@ def _resolve_media_path(path):
 
 
 def open_db():
+    db_path = get_config().validated_db_path
+    print(f"Opening Gramps database: {db_path}")
     db = SQLite()
-    db.load(str(get_config().db_path), mode=DBMODE_R)
+    db.load(str(db_path), mode=DBMODE_R)
     return db
 
 
