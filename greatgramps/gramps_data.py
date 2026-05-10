@@ -550,6 +550,9 @@ def build_event_list(db, ancestor_ids):
         people = parties['people']
         couple = parties['couple']
         all_people = list(people) + [p for p in couple if p] if couple else list(people)
+        year = event.get_date_object().get_year() or None
+        if not year:
+            continue
         is_ancestor_event = any(p['gramps_id'] in ancestor_ids for p in all_people)
         etype = int(event.get_type())
         place_h = event.get_place_handle()
@@ -557,7 +560,7 @@ def build_event_list(db, ancestor_ids):
         events.append({
             'type': EVENT_TYPE_LABELS.get(etype, str(event.get_type())),
             'date': format_date(event.get_date_object()),
-            'year': event.get_date_object().get_year() or None,
+            'year': year,
             'people': people,
             'couple': couple,
             'place': place_obj.get_name().get_value() if place_obj else None,
