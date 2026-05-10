@@ -323,6 +323,13 @@ pre.event-note {
   margin-top: 1.5rem;
 }
 
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem 1.5rem;
+  margin: 0.5rem 0 0;
+}
+
 .person-detail .events { background: #fdf8f3; }
 .person-detail .family { background: #f0f5fb; }
 .person-detail .ancestors { background: #f0f7f2; }

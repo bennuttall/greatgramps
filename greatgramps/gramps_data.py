@@ -264,6 +264,7 @@ def get_siblings(db, person):
                     seen.add(child.get_gramps_id())
                     result.append({**person_data(db, child), 'half_sibling': True})
 
+    result.sort(key=lambda p: p['birth_year'] or 9999)
     return result
 
 
