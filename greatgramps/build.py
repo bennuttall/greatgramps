@@ -263,6 +263,7 @@ def build():
             page_title=f"{pdata['name']} — Family Tree",
             place=pdata,
             events=events,
+            ancestor_ids=set(my_ancestors) - {config.me},
         )
         place_out = places_dir / pdata['gramps_id']
         place_out.mkdir(exist_ok=True)

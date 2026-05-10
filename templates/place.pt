@@ -20,17 +20,22 @@
             <td>${event['type']}</td>
             <td>
               <span tal:condition="event['couple']">
-                <span tal:condition="event['couple'][0]">
-                  <a href="../../people/${event['couple'][0]['gramps_id']}/">${event['couple'][0]['full_name']}</a>
+                <span tal:condition="event['couple'][0]"
+                      tal:define="person event['couple'][0]">
+                  <a href="../../people/${person['gramps_id']}/">${person['full_name']}</a>
+                  <span class="ancestor-badge" tal:condition="person['gramps_id'] in ancestor_ids">ancestor</span>
                 </span>
                 <span tal:condition="event['couple'][0] and event['couple'][1]"> &amp; </span>
-                <span tal:condition="event['couple'][1]">
-                  <a href="../../people/${event['couple'][1]['gramps_id']}/">${event['couple'][1]['full_name']}</a>
+                <span tal:condition="event['couple'][1]"
+                      tal:define="person event['couple'][1]">
+                  <a href="../../people/${person['gramps_id']}/">${person['full_name']}</a>
+                  <span class="ancestor-badge" tal:condition="person['gramps_id'] in ancestor_ids">ancestor</span>
                 </span>
               </span>
               <span tal:condition="not event['couple']">
                 <span tal:repeat="person event['people']">
                   <a href="../../people/${person['gramps_id']}/">${person['full_name']}</a>
+                  <span class="ancestor-badge" tal:condition="person['gramps_id'] in ancestor_ids">ancestor</span>
                 </span>
               </span>
             </td>
