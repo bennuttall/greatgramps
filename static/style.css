@@ -207,6 +207,20 @@ a:hover { color: #222; }
   background: #2a5a3e;
 }
 
+.ancestor-badge.living {
+  background: #4a8a5a;
+}
+
+.ancestor-badge.deceased {
+  background: #999;
+}
+
+.birthday-people {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
 .ancestor-badge {
   font-size: 0.6rem;
   font-family: sans-serif;

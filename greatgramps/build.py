@@ -11,7 +11,8 @@ from .gramps_data import (
     get_parents, get_children, get_siblings, get_spouses, get_all_events,
     ancestors_with_distances, get_relation_to_me,
     get_photos, place_data, build_place_event_index, build_event_list,
-    person_data, collect_ancestor_tree, collect_descendant_tree, count_descendants,
+    build_birthday_list, person_data, collect_ancestor_tree, collect_descendant_tree,
+    count_descendants,
 )
 from .settings import get_config
 
@@ -297,6 +298,18 @@ def build():
                events=ancestor_events, relation_map=relation_map)
     )
     print(f'Built events/index.html ({len(ancestor_events)} events)')
+
+    # Build birthdays page
+    birthdays_dir = config.output_dir / 'birthdays'
+    birthdays_dir.mkdir(exist_ok=True)
+    birthday_months = build_birthday_list(db)
+    total_birthdays = sum(len(d['people']) for m in birthday_months for d in m['days'])
+    (birthdays_dir / 'index.html').write_text(
+        render('birthdays', base='../', page_title='Birthdays — Family Tree',
+               birthday_months=birthday_months, total_birthdays=total_birthdays,
+               ancestor_ids=set(my_ancestors) - {config.me})
+    )
+    print(f'Built birthdays/index.html ({total_birthdays} birthdays)')
 
     # Build surname pages and index
     surnames_list = sorted(

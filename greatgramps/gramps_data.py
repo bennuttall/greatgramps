@@ -106,6 +106,9 @@ EVENT_SORT_ORDER = list(EVENT_TYPE_LABELS.keys())
 MONTHS = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
           'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
+MONTH_NAMES = ['', 'January', 'February', 'March', 'April', 'May', 'June',
+               'July', 'August', 'September', 'October', 'November', 'December']
+
 
 def format_date(date_obj):
     if not date_obj or not date_obj.get_year():
@@ -570,6 +573,34 @@ def build_event_list(db, ancestor_ids):
 
     events.sort(key=lambda e: e['year'] or 9999)
     return events
+
+
+def build_birthday_list(db):
+    """Returns birthdays grouped by month, each month having a list of days with people."""
+    by_date = {}
+    for person in db.iter_people():
+        birth = get_event(db, person, EventType.BIRTH)
+        if not birth:
+            continue
+        date_obj = birth.get_date_object()
+        month = date_obj.get_month()
+        day = date_obj.get_day()
+        if not month or not day:
+            continue
+        pdata = person_data(db, person)
+        by_date.setdefault((month, day), []).append(pdata)
+
+    for people in by_date.values():
+        people.sort(key=lambda p: p['birth_year'] or 9999)
+
+    by_month = {}
+    for (month, day), people in sorted(by_date.items()):
+        by_month.setdefault(month, []).append({'day': day, 'people': people})
+
+    return [
+        {'month': month, 'month_name': MONTH_NAMES[month], 'days': days}
+        for month, days in sorted(by_month.items())
+    ]
 
 
 def get_photos(db, person):

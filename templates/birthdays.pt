@@ -1,0 +1,72 @@
+<div metal:use-macro="layout">
+  <div metal:fill-slot="content" tal:omit-tag="1">
+    <h1>Birthdays</h1>
+    <div id="filters" class="event-filters"></div>
+
+    <div tal:repeat="month birthday_months">
+      <h2>${month['month_name']}</h2>
+      <table class="events-table">
+        <colgroup>
+          <col style="width: 2.5rem">
+          <col>
+        </colgroup>
+        <tbody>
+          <tr tal:repeat="entry month['days']">
+            <td class="year">${entry['day']}</td>
+            <td>
+              <ul class="birthday-people">
+                <li tal:repeat="person entry['people']"
+                    tal:attributes="data-ancestor 'true' if person['gramps_id'] in ancestor_ids else None">
+                  <a href="../people/${person['gramps_id']}/"
+                     tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
+                  <span class="years" tal:condition="person['birth_year']">(${person['birth_year']})</span>
+                  <span class="ancestor-badge" tal:condition="person['gramps_id'] in ancestor_ids">ancestor</span>
+                  <span class="ancestor-badge living" tal:condition="person['is_living']">living</span>
+                  <span class="ancestor-badge deceased" tal:condition="not person['is_living']">deceased</span>
+                </li>
+              </ul>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <tal:block metal:fill-slot="scripts">
+    <script>
+    const rows = Array.from(document.querySelectorAll('.events-table tbody tr'));
+    const people = Array.from(document.querySelectorAll('.birthday-people li'));
+    people.forEach(li => { if (li.querySelector('.ancestor-badge.living')) li.dataset.living = 'true'; });
+    const hasLiving = people.some(li => li.dataset.living);
+    const hasAncestors = people.some(li => li.dataset.ancestor);
+
+    let livingOnly = false;
+    let ancestorsOnly = false;
+
+    function applyFilter() {
+      people.forEach(li => {
+        li.hidden = (livingOnly && !li.dataset.living) || (ancestorsOnly && !li.dataset.ancestor);
+      });
+      rows.forEach(r => {
+        const lis = r.querySelectorAll('li');
+        r.hidden = lis.length > 0 && Array.from(lis).every(li => li.hidden);
+      });
+    }
+
+    function makeToggle(label, activate) {
+      const btn = document.createElement('button');
+      btn.textContent = label;
+      btn.className = 'filter-btn';
+      btn.addEventListener('click', () => {
+        activate();
+        btn.classList.toggle('active');
+        applyFilter();
+      });
+      return btn;
+    }
+
+    const filtersEl = document.getElementById('filters');
+    if (hasAncestors) filtersEl.appendChild(makeToggle('Ancestors only', () => { ancestorsOnly = !ancestorsOnly; }));
+    if (hasLiving)    filtersEl.appendChild(makeToggle('Living only',    () => { livingOnly    = !livingOnly;    }));
+    </script>
+  </tal:block>
+</div>
