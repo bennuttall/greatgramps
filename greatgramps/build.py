@@ -357,6 +357,10 @@ def build():
             }])
         else:
             event_map_json = '[]'
+        photos = [
+            {**photo, 'url': process_photo(photo, media_dir, event_data['gramps_id'])}
+            for photo in event_data['photos']
+        ]
         event_out = events_dir / slug
         event_out.mkdir(exist_ok=True)
         date_str = f' {event_data["date"]}' if event_data['date'] else ''
@@ -365,6 +369,7 @@ def build():
             base='../../',
             page_title=f"{event_data['type']}{date_str} — Family Tree",
             event=event_data,
+            photos=photos,
             is_ancestor_event=is_ancestor_event,
             ancestor_ids=ancestor_ids,
             relation_map=relation_map,

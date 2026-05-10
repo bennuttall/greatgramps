@@ -18,6 +18,13 @@
       <span class="ancestor-badge" tal:condition="is_ancestor_event">ancestor event</span>
     </h1>
 
+    <div class="photos" tal:condition="photos">
+      <img tal:repeat="photo photos"
+           src="${photo['url']}"
+           alt="${photo['description']}"
+           class="person-photo">
+    </div>
+
     <table class="events">
       <tr tal:condition="event['place']">
         <th>Place</th>

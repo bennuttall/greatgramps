@@ -644,6 +644,7 @@ def build_event_pages_data(db):
             'description': event.get_description() or None,
             'notes': notes,
             'people': participants,
+            'photos': get_event_photos(db, event),
         }
     return result
 
@@ -676,20 +677,27 @@ def build_birthday_list(db):
     ]
 
 
-def get_photos(db, person):
+def _collect_photos(db, obj):
     photos = []
-    for ref in person.get_media_list():
+    for ref in obj.get_media_list():
         media = db.get_media_from_handle(ref.get_reference_handle())
         if not media.get_mime_type().startswith('image/'):
             continue
         src = _resolve_media_path(media.get_path())
         if not src.exists():
             continue
-        rect = ref.get_rectangle()
         photos.append({
             'media_id': media.get_gramps_id(),
             'src': src,
-            'rect': rect,
+            'rect': ref.get_rectangle(),
             'description': media.get_description(),
         })
     return photos
+
+
+def get_photos(db, person):
+    return _collect_photos(db, person)
+
+
+def get_event_photos(db, event):
+    return _collect_photos(db, event)
