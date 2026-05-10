@@ -136,6 +136,7 @@ def build():
 
     # Build a page for every person
     search_rows = []
+    relation_map = {}
     for gid, data in all_people.items():
         p = db.get_person_from_gramps_id(gid)
         father_p, mother_p = get_parents(db, p)
@@ -143,6 +144,7 @@ def build():
         spouses = get_spouses(db, p)
         person_ancestors = collect_ancestors(db, p)
         relation = get_relation_to_me(db, me_ancestor_distances, p, data['gender'])
+        relation_map[gid] = relation
         photos = [
             {**photo, 'url': process_photo(photo, media_dir, gid)}
             for photo in get_photos(db, p)
@@ -290,7 +292,8 @@ def build():
     events_dir.mkdir(exist_ok=True)
     ancestor_events = build_ancestor_event_list(db, set(my_ancestors) - {config.me})
     (events_dir / 'index.html').write_text(
-        render('events', base='../', page_title='Events — Family Tree', events=ancestor_events)
+        render('events', base='../', page_title='Events — Family Tree',
+               events=ancestor_events, relation_map=relation_map)
     )
     print(f'Built events/index.html ({len(ancestor_events)} events)')
 
