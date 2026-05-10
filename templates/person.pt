@@ -41,7 +41,7 @@
       <div id="map" tal:condition="event_map_json != '[]'"></div>
 
       <section class="events" tal:condition="events">
-        <h2>Life events</h2>
+        <h2>Life Events</h2>
         <table>
           <tr tal:repeat="event events">
             <th>${event['type']}</th>
@@ -65,53 +65,58 @@
         </table>
       </section>
 
-      <section class="parents" tal:condition="father or mother">
-        <h2>Parents</h2>
-        <ul>
-          <li tal:condition="father">
-            <a href="../${father['gramps_id']}/">${father['full_name']}</a>
-            <span class="years" tal:condition="father['birth_year']">(b. ${father['birth_year']})</span>
-          </li>
-          <li tal:condition="mother">
-            <a href="../${mother['gramps_id']}/">${mother['full_name']}</a>
-            <span class="years" tal:condition="mother['birth_year']">(b. ${mother['birth_year']})</span>
-          </li>
-        </ul>
-      </section>
+      <section class="family" tal:condition="father or mother or siblings or spouses or children">
+        <h2>Family</h2>
 
-      <section class="siblings" tal:condition="siblings">
-        <h2>Siblings</h2>
-        <ul>
-          <li tal:repeat="sibling siblings">
-            <a href="../${sibling['gramps_id']}/">${sibling['full_name']}</a>
-            <span class="years" tal:condition="sibling['birth_year']">(b. ${sibling['birth_year']})</span>
-            <span class="years" tal:condition="sibling['half_sibling']">half-sibling</span>
-          </li>
-        </ul>
-      </section>
+        <section class="parents" tal:condition="father or mother">
+          <h3>Parents</h3>
+          <ul>
+            <li tal:condition="father">
+              <a href="../${father['gramps_id']}/">${father['full_name']}</a>
+              <span class="years" tal:condition="father['birth_year']">(b. ${father['birth_year']})</span>
+            </li>
+            <li tal:condition="mother">
+              <a href="../${mother['gramps_id']}/">${mother['full_name']}</a>
+              <span class="years" tal:condition="mother['birth_year']">(b. ${mother['birth_year']})</span>
+            </li>
+          </ul>
+        </section>
 
-      <section class="spouses" tal:condition="spouses">
-        <h2>Relationships</h2>
-        <ul>
-          <li tal:repeat="s spouses">
-            <a tal:condition="s['person']" href="../${s['person']['gramps_id']}/">${s['person']['full_name']}</a>
-            <span tal:condition="not s['person']">Unknown</span>
-            <span class="years">${s['rel_type']}</span>
-            <span class="years" tal:condition="s['marriage'] and s['marriage']['date']">
-              ${s['marriage']['date']}<span tal:condition="s['marriage']['place']">, ${s['marriage']['place']}</span>
-            </span>
-          </li>
-        </ul>
-      </section>
+        <section class="siblings" tal:condition="siblings">
+          <h3>Siblings</h3>
+          <ul>
+            <li tal:repeat="sibling siblings">
+              <a href="../${sibling['gramps_id']}/">${sibling['full_name']}</a>
+              <span class="years" tal:condition="sibling['birth_year']">(b. ${sibling['birth_year']})</span>
+              <span class="years" tal:condition="sibling['half_sibling']">half-sibling</span>
+            </li>
+          </ul>
+        </section>
 
-      <section class="children" tal:condition="children">
-        <h2>Children</h2>
-        <ul>
-          <li tal:repeat="child children">
-            <a href="../${child['gramps_id']}/">${child['full_name']}</a>
-            <span class="years" tal:condition="child['birth_year']">(b. ${child['birth_year']})</span>
-          </li>
-        </ul>
+        <section class="spouses" tal:condition="spouses">
+          <h3>Relationships</h3>
+          <ul>
+            <li tal:repeat="s spouses">
+              <a tal:condition="s['person']" href="../${s['person']['gramps_id']}/">${s['person']['full_name']}</a>
+              <span tal:condition="not s['person']">Unknown</span>
+              <span class="years">${s['rel_type']}</span>
+              <span class="years" tal:condition="s['marriage'] and s['marriage']['date']">
+                ${s['marriage']['date']}<span tal:condition="s['marriage']['place']">, ${s['marriage']['place']}</span>
+              </span>
+            </li>
+          </ul>
+        </section>
+
+        <section class="children" tal:condition="children">
+          <h3>Children</h3>
+          <ul>
+            <li tal:repeat="child children">
+              <a href="../${child['gramps_id']}/">${child['full_name']}</a>
+              <span class="years" tal:condition="child['birth_year']">(b. ${child['birth_year']})</span>
+            </li>
+          </ul>
+        </section>
+
       </section>
 
       <section class="ancestors" tal:condition="len(generations) > 1">
