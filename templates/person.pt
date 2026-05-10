@@ -63,10 +63,23 @@
                 </td>
                 <td><a href="../../events/${event['url_slug']}/">${event['type']}</a></td>
                 <td>
-                  <tal:block tal:condition="event['type'] == 'Birth' and show_title">${full_date}</tal:block>
-                  <tal:block tal:condition="not (event['type'] == 'Birth' and show_title)">
+                  <tal:block tal:condition="event['type'] == 'Birth'">
+                    <span tal:condition="show_title">${full_date} </span>
+                    <tal:block tal:condition="father or mother">
+                      to
+                      <a tal:condition="father"
+                         href="../${father['gramps_id']}/"
+                         tal:attributes="class 'male' if father['gender'] == 1 else ('female' if father['gender'] == 0 else None)">${father['full_name']}</a>
+                      <span tal:condition="father and mother"> and </span>
+                      <a tal:condition="mother"
+                         href="../${mother['gramps_id']}/"
+                         tal:attributes="class 'male' if mother['gender'] == 1 else ('female' if mother['gender'] == 0 else None)">${mother['full_name']}</a>
+                    </tal:block>
+                  </tal:block>
+                  <tal:block tal:condition="event['type'] != 'Birth'">
                     <a tal:condition="event['description_url']"
-                       href="${event['description_url']}">${event['description']}</a>
+                       href="${event['description_url']}"
+                       tal:attributes="class 'male' if event['description_gender'] == 1 else ('female' if event['description_gender'] == 0 else None)">${event['description']}</a>
                     <span tal:condition="not event['description_url']">${event['description'] or ''}</span>
                   </tal:block>
                 </td>
