@@ -523,8 +523,8 @@ def build_place_event_index(db):
     return place_index
 
 
-def build_ancestor_event_list(db, ancestor_ids):
-    """Returns all events involving at least one ancestor, sorted by year."""
+def build_event_list(db, ancestor_ids):
+    """Returns all events with an is_ancestor_event flag, sorted by year."""
     event_parties = {}
 
     for person in db.iter_people():
@@ -550,8 +550,7 @@ def build_ancestor_event_list(db, ancestor_ids):
         people = parties['people']
         couple = parties['couple']
         all_people = list(people) + [p for p in couple if p] if couple else list(people)
-        if not any(p['gramps_id'] in ancestor_ids for p in all_people):
-            continue
+        is_ancestor_event = any(p['gramps_id'] in ancestor_ids for p in all_people)
         etype = int(event.get_type())
         place_h = event.get_place_handle()
         place_obj = db.get_place_from_handle(place_h) if place_h else None
@@ -563,6 +562,7 @@ def build_ancestor_event_list(db, ancestor_ids):
             'couple': couple,
             'place': place_obj.get_name().get_value() if place_obj else None,
             'place_id': place_obj.get_gramps_id() if place_obj else None,
+            'is_ancestor_event': is_ancestor_event,
         })
 
     events.sort(key=lambda e: e['year'] or 9999)

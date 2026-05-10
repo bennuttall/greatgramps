@@ -10,7 +10,7 @@ from .gramps_data import (
     open_db, collect_all_people, collect_ancestors,
     get_parents, get_children, get_siblings, get_spouses, get_all_events,
     ancestors_with_distances, get_relation_to_me,
-    get_photos, place_data, build_place_event_index, build_ancestor_event_list,
+    get_photos, place_data, build_place_event_index, build_event_list,
     person_data, collect_ancestor_tree, collect_descendant_tree, count_descendants,
 )
 from .settings import get_config
@@ -290,7 +290,7 @@ def build():
     # Build events page (ancestor events only)
     events_dir = config.output_dir / 'events'
     events_dir.mkdir(exist_ok=True)
-    ancestor_events = build_ancestor_event_list(db, set(my_ancestors) - {config.me})
+    ancestor_events = build_event_list(db, set(my_ancestors) - {config.me})
     (events_dir / 'index.html').write_text(
         render('events', base='../', page_title='Events — Family Tree',
                events=ancestor_events, relation_map=relation_map)

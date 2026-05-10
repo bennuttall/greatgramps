@@ -7,7 +7,9 @@
         <tr><th>Year</th><th>Event</th><th>Person</th><th>Relation</th><th>Place</th></tr>
       </thead>
       <tbody>
-        <tr tal:repeat="event events" data-type="${event['type']}">
+        <tr tal:repeat="event events"
+            data-type="${event['type']}"
+            tal:attributes="data-ancestor 'true' if event['is_ancestor_event'] else None">
           <td class="year">${event['year'] or ''}</td>
           <td>${event['type']}</td>
           <td>
@@ -36,8 +38,8 @@
                       tal:condition="rel">${rel}</span>
               </tal:block>
               <tal:block tal:condition="event['couple'][0] and event['couple'][1]"
-                         tal:define="r0 relation_map.get(event['couple'][0]['gramps_id']);
-                                     r1 relation_map.get(event['couple'][1]['gramps_id'])">
+                         tal:define="r0 relation_map.get(event['couple'][0]['gramps_id']) if event['couple'][0] else None;
+                                     r1 relation_map.get(event['couple'][1]['gramps_id']) if event['couple'][1] else None">
                 <span tal:condition="r0 and r1"> &amp; </span>
               </tal:block>
               <tal:block tal:condition="event['couple'][1]"
@@ -69,26 +71,44 @@
 
     const types = [...new Set(rows.map(r => r.dataset.type))];
 
-    let active = null;
+    let activeType = null;
+    let ancestorOnly = false;
 
-    function makeButton(label, value) {
+    function applyFilters() {
+      rows.forEach(r => {
+        const typeMatch = activeType === null || r.dataset.type === activeType;
+        const ancestorMatch = !ancestorOnly || r.dataset.ancestor === 'true';
+        r.hidden = !(typeMatch && ancestorMatch);
+      });
+    }
+
+    function makeTypeButton(label, value) {
       const btn = document.createElement('button');
       btn.textContent = label;
       btn.className = 'filter-btn';
       if (value === null) btn.classList.add('active');
       btn.addEventListener('click', () => {
-        active = value;
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        activeType = value;
+        document.querySelectorAll('.filter-btn:not(.toggle-btn)').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        rows.forEach(r => { r.hidden = active !== null && r.dataset.type !== active; });
+        applyFilters();
       });
       return btn;
     }
 
-    if (types.length > 1) {
-      filtersEl.appendChild(makeButton('All', null));
-      types.forEach(t => filtersEl.appendChild(makeButton(t, t)));
-    }
+    const ancestorBtn = document.createElement('button');
+    ancestorBtn.textContent = 'Ancestors only';
+    ancestorBtn.className = 'filter-btn toggle-btn';
+    ancestorBtn.addEventListener('click', () => {
+      ancestorOnly = !ancestorOnly;
+      ancestorBtn.classList.toggle('active', ancestorOnly);
+      applyFilters();
+    });
+
+    filtersEl.appendChild(makeTypeButton('All', null));
+    types.forEach(t => filtersEl.appendChild(makeTypeButton(t, t)));
+    filtersEl.appendChild(document.createElement('span'));
+    filtersEl.appendChild(ancestorBtn);
     </script>
   </tal:block>
 </div>
