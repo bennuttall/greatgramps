@@ -486,6 +486,7 @@ def place_data(place):
         'type': str(place.get_type()),
         'lat': place.get_latitude() or None,
         'lon': place.get_longitude() or None,
+        'parent_handles': [ref.get_reference_handle() for ref in place.get_placeref_list()],
     }
 
 

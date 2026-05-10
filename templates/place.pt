@@ -4,6 +4,12 @@
   </tal:block>
   <div metal:fill-slot="content" tal:omit-tag="1">
     <h1>${place['name']} <span class="place-type">${place['type']}</span></h1>
+    <p class="place-enclosing" tal:condition="place['enclosing']">
+      Part of
+      <tal:block tal:repeat="enc place['enclosing']">
+        <a href="../${enc['gramps_id']}/">${enc['name']}</a><tal:block tal:condition="not repeat.enc.end"> &rsaquo; </tal:block>
+      </tal:block>
+    </p>
 
     <div id="map" tal:condition="place['lat'] and place['lon']"></div>
 
@@ -12,7 +18,12 @@
       <div id="filters" class="event-filters"></div>
       <table class="events-table" id="places-events-table">
         <thead>
-          <tr><th>Year</th><th>Event</th><th>People</th></tr>
+          <tr>
+            <th>Year</th>
+            <th>Event</th>
+            <th>People</th>
+            <th tal:condition="place['sub_places']">Place</th>
+          </tr>
         </thead>
         <tbody>
           <tr tal:repeat="event events" data-type="${event['type']}">
@@ -42,9 +53,23 @@
                 </span>
               </span>
             </td>
+            <td tal:condition="place['sub_places']">
+              <a tal:condition="event['sub_place']"
+                 href="../${event['sub_place_id']}/">${event['sub_place']}</a>
+            </td>
           </tr>
         </tbody>
       </table>
+    </section>
+
+    <section tal:condition="place['sub_places']">
+      <h2>Places within ${place['name']}</h2>
+      <ul>
+        <li tal:repeat="sub place['sub_places']">
+          <a href="../${sub['gramps_id']}/">${sub['name']}</a>
+          <span class="place-type">${sub['type']}</span>
+        </li>
+      </ul>
     </section>
   </div>
   <tal:block metal:fill-slot="scripts">

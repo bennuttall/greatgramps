@@ -37,6 +37,13 @@ header a.secondary {
 header a.secondary:hover { color: #333; }
 
 /* Place pages */
+.place-enclosing {
+  margin-top: -0.75rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+
 .place-type {
   font-size: 0.6rem;
   font-family: sans-serif;

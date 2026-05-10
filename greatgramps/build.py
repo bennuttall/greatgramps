@@ -84,6 +84,40 @@ def build():
     places_dir = config.output_dir / 'places'
     places_dir.mkdir(exist_ok=True)
     all_places = {p.get_handle(): place_data(p) for p in db.iter_places()}
+
+    # Build enclosing chain and sub_places for each place
+    place_children = {}
+    place_children_handles = {}
+    for handle, pdata in all_places.items():
+        for parent_handle in pdata['parent_handles']:
+            place_children.setdefault(parent_handle, []).append(pdata)
+            place_children_handles.setdefault(parent_handle, []).append(handle)
+
+    def descendant_handles(start):
+        result, seen, queue = [], {start}, list(place_children_handles.get(start, []))
+        while queue:
+            h = queue.pop(0)
+            if h in seen:
+                continue
+            seen.add(h)
+            result.append(h)
+            queue.extend(place_children_handles.get(h, []))
+        return result
+    for handle, pdata in all_places.items():
+        enclosing = []
+        cur_handles = pdata['parent_handles']
+        seen = {handle}
+        while cur_handles:
+            ph = cur_handles[0]
+            if ph in seen or ph not in all_places:
+                break
+            seen.add(ph)
+            parent = all_places[ph]
+            enclosing.append(parent)
+            cur_handles = parent['parent_handles']
+        pdata['enclosing'] = enclosing
+        pdata['sub_places'] = sorted(place_children.get(handle, []), key=lambda p: p['name'])
+
     place_url = {d['gramps_id']: f'../../places/{d["gramps_id"]}/' for d in all_places.values()}
     place_lat_lon = {
         d['gramps_id']: (d['lat'], d['lon'])
@@ -258,7 +292,14 @@ def build():
     # Build place pages
     places_with_events = []
     for handle, pdata in all_places.items():
-        events = place_event_index.get(handle, [])
+        direct = [{**e, 'sub_place': None, 'sub_place_id': None}
+                  for e in place_event_index.get(handle, [])]
+        nested = [
+            {**e, 'sub_place': all_places[h]['name'], 'sub_place_id': all_places[h]['gramps_id']}
+            for h in descendant_handles(handle)
+            for e in place_event_index.get(h, [])
+        ]
+        events = sorted(direct + nested, key=lambda e: e['year'] or 9999)
         if events:
             places_with_events.append({**pdata, 'event_count': len(events)})
         html = render(
