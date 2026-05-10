@@ -44,25 +44,40 @@
       <section class="events" tal:condition="events">
         <h2>Life Events</h2>
         <table>
-          <tr tal:repeat="event events">
-            <th><a href="../../events/${event['url_slug']}/">${event['type']}</a></th>
-            <td tal:condition="event['description']">
-              <a tal:condition="event['description_url']"
-                 href="${event['description_url']}">${event['description']}</a>
-              <span tal:condition="not event['description_url']">${event['description']}</span>
-            </td>
-            <td tal:condition="not event['description']"></td>
-            <td>${event['date'] or ''}</td>
-            <td>
-              <a tal:condition="event['place_id']"
-                 href="${place_url.get(event['place_id'], '')}">${event['place']}</a>
-              <span tal:condition="not event['place_id']">${event['place'] or ''}</span>
-            </td>
-            <tal:block tal:define="has_age event['age'] is not None">
-              <td class="event-age" tal:condition="has_age">aged ${event['age']}</td>
-              <td tal:condition="not has_age"></td>
-            </tal:block>
-          </tr>
+          <thead>
+            <tr><th>Year</th><th>Age</th><th>Event</th><th>Detail</th><th>Location</th></tr>
+          </thead>
+          <tbody>
+            <tr tal:repeat="event events">
+              <tal:block tal:define="
+                  year event['year'];
+                  full_date event['date'];
+                  show_title year is not None and full_date and full_date != str(year)
+                ">
+                <td>
+                  <span tal:condition="show_title" title="${full_date}">${year}</span>
+                  <span tal:condition="not show_title">${year or ''}</span>
+                </td>
+                <td class="event-age" tal:define="has_age event['age'] is not None">
+                  <tal:block tal:condition="has_age">aged ${event['age']}</tal:block>
+                </td>
+                <td><a href="../../events/${event['url_slug']}/">${event['type']}</a></td>
+                <td>
+                  <tal:block tal:condition="event['type'] == 'Birth' and show_title">${full_date}</tal:block>
+                  <tal:block tal:condition="not (event['type'] == 'Birth' and show_title)">
+                    <a tal:condition="event['description_url']"
+                       href="${event['description_url']}">${event['description']}</a>
+                    <span tal:condition="not event['description_url']">${event['description'] or ''}</span>
+                  </tal:block>
+                </td>
+                <td>
+                  <a tal:condition="event['place_id']"
+                     href="${place_url.get(event['place_id'], '')}">${event['place']}</a>
+                  <span tal:condition="not event['place_id']">${event['place'] or ''}</span>
+                </td>
+              </tal:block>
+            </tr>
+          </tbody>
         </table>
       </section>
 
