@@ -300,6 +300,9 @@ a:hover { color: #222; }
   margin-top: 0;
 }
 
+a.male:not(.pedigree-cell) { color: #3a6f9a; }
+a.female:not(.pedigree-cell) { color: #9a3a6f; }
+
 .person-detail .ancestors h3 {
   font-size: 0.8rem;
   text-transform: uppercase;

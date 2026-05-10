@@ -72,21 +72,22 @@
           <h3>Parents</h3>
           <ul>
             <li tal:condition="father">
-              <a href="../${father['gramps_id']}/">${father['full_name']}</a>
+              <a class="male" href="../${father['gramps_id']}/">${father['full_name']}</a>
               <span class="years" tal:condition="father['birth_year']">(b. ${father['birth_year']})</span>
             </li>
             <li tal:condition="mother">
-              <a href="../${mother['gramps_id']}/">${mother['full_name']}</a>
+              <a class="female" href="../${mother['gramps_id']}/">${mother['full_name']}</a>
               <span class="years" tal:condition="mother['birth_year']">(b. ${mother['birth_year']})</span>
             </li>
           </ul>
         </section>
 
         <section class="siblings" tal:condition="siblings">
-          <h3>Siblings</h3>
+          <h3>Siblings (${format(len(siblings), ',')})</h3>
           <ul>
             <li tal:repeat="sibling siblings">
-              <a href="../${sibling['gramps_id']}/">${sibling['full_name']}</a>
+              <a href="../${sibling['gramps_id']}/"
+                 tal:attributes="class 'male' if sibling['gender'] == 1 else ('female' if sibling['gender'] == 0 else None)">${sibling['full_name']}</a>
               <span class="years" tal:condition="sibling['birth_year']">(b. ${sibling['birth_year']})</span>
               <span class="years" tal:condition="sibling['half_sibling']">half-sibling</span>
             </li>
@@ -97,7 +98,8 @@
           <h3>Relationships</h3>
           <ul>
             <li tal:repeat="s spouses">
-              <a tal:condition="s['person']" href="../${s['person']['gramps_id']}/">${s['person']['full_name']}</a>
+              <a tal:condition="s['person']" href="../${s['person']['gramps_id']}/"
+                 tal:attributes="class 'male' if s['person']['gender'] == 1 else ('female' if s['person']['gender'] == 0 else None)">${s['person']['full_name']}</a>
               <span tal:condition="not s['person']">Unknown</span>
               <span class="years">${s['rel_type']}</span>
               <span class="years" tal:condition="s['marriage'] and s['marriage']['date']">
@@ -108,10 +110,11 @@
         </section>
 
         <section class="children" tal:condition="children">
-          <h3>Children</h3>
+          <h3>Children (${format(len(children), ',')})</h3>
           <ul>
             <li tal:repeat="child children">
-              <a href="../${child['gramps_id']}/">${child['full_name']}</a>
+              <a href="../${child['gramps_id']}/"
+                 tal:attributes="class 'male' if child['gender'] == 1 else ('female' if child['gender'] == 0 else None)">${child['full_name']}</a>
               <span class="years" tal:condition="child['birth_year']">(b. ${child['birth_year']})</span>
             </li>
           </ul>
@@ -139,7 +142,8 @@
             <ul>
               <li tal:repeat="couple gen_group['couples']">
                 <tal:block tal:repeat="person couple">
-                  <a href="../${person['gramps_id']}/">${person['full_name']}</a>
+                  <a href="../${person['gramps_id']}/"
+                     tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
                   <span class="years" tal:condition="person['birth_year'] or person['death_year']">
                     (${person['birth_year'] or '?'}–${person['death_year'] or ''})
                   </span>
