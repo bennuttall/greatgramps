@@ -12,6 +12,10 @@
         <span class="stat-label">ancestors</span>
       </div>
       <div class="stat">
+        <span class="stat-value">${format(summary['total_events'], ',')}</span>
+        <span class="stat-label">events</span>
+      </div>
+      <div class="stat">
         <span class="stat-value">${format(summary['total_places'], ',')}</span>
         <span class="stat-label">places</span>
       </div>

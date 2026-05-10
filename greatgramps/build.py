@@ -112,6 +112,7 @@ def build():
         'total_people': len(all_people),
         'total_ancestors': sum(1 for gid in my_ancestors if gid != config.me),
         'total_places': len(all_places),
+        'total_events': sum(1 for _ in db.iter_events()),
         'year_from': min(all_years) if all_years else None,
         'year_to': max(all_years) if all_years else None,
         'top_surnames': [(s, c, surname_slug(s)) for s, c in surnames.most_common(15)],
