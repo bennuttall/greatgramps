@@ -523,6 +523,52 @@ def build_place_event_index(db):
     return place_index
 
 
+def build_ancestor_event_list(db, ancestor_ids):
+    """Returns all events involving at least one ancestor, sorted by year."""
+    event_parties = {}
+
+    for person in db.iter_people():
+        pdata = person_data(db, person)
+        for eref in person.get_event_ref_list():
+            h = eref.get_reference_handle()
+            event_parties.setdefault(h, {'people': [], 'couple': None})
+            event_parties[h]['people'].append(pdata)
+
+    for family in db.iter_families():
+        fh = family.get_father_handle()
+        mh = family.get_mother_handle()
+        father = person_data(db, db.get_person_from_handle(fh)) if fh else None
+        mother = person_data(db, db.get_person_from_handle(mh)) if mh else None
+        for eref in family.get_event_ref_list():
+            h = eref.get_reference_handle()
+            event_parties.setdefault(h, {'people': [], 'couple': None})
+            event_parties[h]['couple'] = (father, mother)
+
+    events = []
+    for event in db.iter_events():
+        parties = event_parties.get(event.get_handle(), {'people': [], 'couple': None})
+        people = parties['people']
+        couple = parties['couple']
+        all_people = list(people) + [p for p in couple if p] if couple else list(people)
+        if not any(p['gramps_id'] in ancestor_ids for p in all_people):
+            continue
+        etype = int(event.get_type())
+        place_h = event.get_place_handle()
+        place_obj = db.get_place_from_handle(place_h) if place_h else None
+        events.append({
+            'type': EVENT_TYPE_LABELS.get(etype, str(event.get_type())),
+            'date': format_date(event.get_date_object()),
+            'year': event.get_date_object().get_year() or None,
+            'people': people,
+            'couple': couple,
+            'place': place_obj.get_name().get_value() if place_obj else None,
+            'place_id': place_obj.get_gramps_id() if place_obj else None,
+        })
+
+    events.sort(key=lambda e: e['year'] or 9999)
+    return events
+
+
 def get_photos(db, person):
     photos = []
     for ref in person.get_media_list():

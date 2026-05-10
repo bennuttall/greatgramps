@@ -14,6 +14,7 @@
       <a class="secondary" href="${base}people/${me_id}/">Me</a>
       <a class="secondary" href="${base}people/">People</a>
       <a class="secondary" href="${base}places/">Places</a>
+      <a class="secondary" href="${base}events/">Events</a>
       <a class="secondary" href="${base}surnames/">Surnames</a>
     </nav>
   </header>
