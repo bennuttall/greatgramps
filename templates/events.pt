@@ -4,7 +4,7 @@
     <div id="filters" class="event-filters"></div>
     <table class="events-table" id="events-table">
       <thead>
-        <tr><th>Year</th><th>Event</th><th>Person</th><th>Relation</th><th>Place</th></tr>
+        <tr><th>Year</th><th>Event</th><th>Person</th><th>Place</th></tr>
       </thead>
       <tbody>
         <tr tal:repeat="event events"
@@ -31,31 +31,6 @@
                 <a href="../people/${person['gramps_id']}/"
                    tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
               </span>
-            </span>
-          </td>
-          <td>
-            <span tal:condition="event['couple']">
-              <tal:block tal:condition="event['couple'][0]"
-                         tal:define="person event['couple'][0]">
-                <span tal:define="rel relation_map.get(person['gramps_id'])"
-                      tal:condition="rel">${rel}</span>
-              </tal:block>
-              <tal:block tal:condition="event['couple'][0] and event['couple'][1]"
-                         tal:define="r0 relation_map.get(event['couple'][0]['gramps_id']) if event['couple'][0] else None;
-                                     r1 relation_map.get(event['couple'][1]['gramps_id']) if event['couple'][1] else None">
-                <span tal:condition="r0 and r1"> &amp; </span>
-              </tal:block>
-              <tal:block tal:condition="event['couple'][1]"
-                         tal:define="person event['couple'][1]">
-                <span tal:define="rel relation_map.get(person['gramps_id'])"
-                      tal:condition="rel">${rel}</span>
-              </tal:block>
-            </span>
-            <span tal:condition="not event['couple']">
-              <tal:block tal:repeat="person event['people']">
-                <span tal:define="rel relation_map.get(person['gramps_id'])"
-                      tal:condition="rel">${rel}</span>
-              </tal:block>
             </span>
           </td>
           <td>
