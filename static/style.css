@@ -282,6 +282,24 @@ a:hover { color: #222; }
 }
 
 /* Person detail */
+.person-detail .events,
+.person-detail .family,
+.person-detail .ancestors {
+  padding: 1.25rem 1.5rem;
+  border-radius: 8px;
+  margin-top: 1.5rem;
+}
+
+.person-detail .events { background: #fdf8f3; }
+.person-detail .family { background: #f0f5fb; }
+.person-detail .ancestors { background: #f0f7f2; }
+
+.person-detail .events h2,
+.person-detail .family h2,
+.person-detail .ancestors h2 {
+  margin-top: 0;
+}
+
 .person-detail .ancestors h3 {
   font-size: 0.8rem;
   text-transform: uppercase;
