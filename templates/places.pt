@@ -21,7 +21,7 @@
         <tr tal:repeat="place places">
           <td><a href="${place['gramps_id']}/">${place['name']}</a></td>
           <td class="year">${place['type']}</td>
-          <td class="year" data-val="${place['event_count']}">${place['event_count']}</td>
+          <td class="year" data-val="${place['event_count']}">${format(place['event_count'], ',')}</td>
         </tr>
       </tbody>
     </table>
@@ -54,7 +54,7 @@
     const total = rows.length;
 
     function updateCount(visible) {
-      countEl.textContent = visible === total ? `$${total} places` : `$${visible} of $${total} places`;
+      countEl.textContent = visible === total ? `$${total.toLocaleString()} places` : `$${visible.toLocaleString()} of $${total.toLocaleString()} places`;
     }
     updateCount(total);
 

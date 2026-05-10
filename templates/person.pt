@@ -27,8 +27,8 @@
       <p class="relation" tal:condition="relation and not is_me">your ${relation}</p>
       <nav class="person-tabs">
         <span class="active">Profile</span>
-        <a href="ancestors/">Ancestors <span class="tab-count">(${num_ancestors})</span></a>
-        <a href="descendants/">Descendants <span class="tab-count">(${num_descendants})</span></a>
+        <a href="ancestors/">Ancestors <span class="tab-count">(${format(num_ancestors, ',')})</span></a>
+        <a href="descendants/">Descendants <span class="tab-count">(${format(num_descendants, ',')})</span></a>
       </nav>
 
       <div class="photos" tal:condition="photos">
@@ -115,7 +115,7 @@
       </section>
 
       <section class="ancestors" tal:condition="len(generations) > 1">
-        <h2>Ancestors (${sum(len(g['people']) for g in generations[1:])})</h2>
+        <h2>Ancestors (${format(sum(len(g['people']) for g in generations[1:]), ',')})</h2>
         <div class="tree">
           <div tal:repeat="gen_group generations[1:]" class="generation">
             <h3>
@@ -124,7 +124,7 @@
               <span tal:condition="gen_group['gen'] == 3">Great-grandparents</span>
               <span tal:condition="gen_group['gen'] == 4">2nd great-grandparents</span>
               <span tal:condition="gen_group['gen'] &gt; 4">${gen_group['gen'] - 1}th great-grandparents</span>
-              <span class="years">(${len(gen_group['people'])} / ${2 ** gen_group['gen']}
+              <span class="years">(${format(len(gen_group['people']), ',')} / ${format(2 ** gen_group['gen'], ',')}
                 <span tal:define="pct len(gen_group['people']) * 100 // (2 ** gen_group['gen'])"
                       tal:attributes="class 'pct-high' if pct >= 75 else ('pct-mid' if pct >= 50 else 'pct-low')">
                   ${pct}%

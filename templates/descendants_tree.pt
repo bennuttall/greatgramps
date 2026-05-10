@@ -23,8 +23,8 @@
     <p class="relation" tal:condition="relation and not is_me">your ${relation}</p>
     <nav class="person-tabs">
       <a href="../">Profile</a>
-      <a href="../ancestors/">Ancestors <span class="tab-count">(${num_ancestors})</span></a>
-      <span class="active">Descendants <span class="tab-count">(${num_descendants})</span></span>
+      <a href="../ancestors/">Ancestors <span class="tab-count">(${format(num_ancestors, ',')})</span></a>
+      <span class="active">Descendants <span class="tab-count">(${format(num_descendants, ',')})</span></span>
     </nav>
     <div class="pedigree-wrap">
       <div class="pedigree-chart" tal:attributes="style tree_grid_style">
@@ -39,7 +39,7 @@
             ${node['birth_year'] or '?'}–${node['death_year'] or ''}
           </span>
           <span class="pedigree-children" tal:condition="node['num_children']">
-            ${node['num_children']} child${'' if node['num_children'] == 1 else 'ren'}
+            ${format(node['num_children'], ',')} child${'' if node['num_children'] == 1 else 'ren'}
           </span>
         </a>
       </div>

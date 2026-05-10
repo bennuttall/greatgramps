@@ -1,6 +1,6 @@
 <div metal:use-macro="layout">
   <div metal:fill-slot="content" tal:omit-tag="1">
-    <h1>Events <span class="years">(${len(events)})</span></h1>
+    <h1>Events <span class="years">(${format(len(events), ',')})</span></h1>
     <div id="filters" class="event-filters"></div>
     <table class="events-table" id="events-table">
       <thead>

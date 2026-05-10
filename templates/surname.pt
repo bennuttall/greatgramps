@@ -1,6 +1,6 @@
 <div metal:use-macro="layout">
   <div metal:fill-slot="content" tal:omit-tag="1">
-    <h1>${surname} <span class="years">(${len(people)})</span></h1>
+    <h1>${surname} <span class="years">(${format(len(people), ',')})</span></h1>
     <input type="search" id="search" placeholder="Search…">
     <p id="count"></p>
     <table id="people-table">
@@ -32,7 +32,7 @@
     const total = rows.length;
 
     function updateCount(visible) {
-      countEl.textContent = visible === total ? `$${total} people` : `$${visible} of $${total} people`;
+      countEl.textContent = visible === total ? `$${total.toLocaleString()} people` : `$${visible.toLocaleString()} of $${total.toLocaleString()} people`;
     }
     updateCount(total);
 

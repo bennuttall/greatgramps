@@ -8,7 +8,7 @@
     <div id="map" tal:condition="place['lat'] and place['lon']"></div>
 
     <section tal:condition="events">
-      <h2>Events (${len(events)})</h2>
+      <h2>Events (${format(len(events), ',')})</h2>
       <div id="filters" class="event-filters"></div>
       <table class="events-table" id="places-events-table">
         <thead>

@@ -26,8 +26,8 @@
               tal:content="label"></td>
           <td data-val="${row['birth_year'] or ''}">${row['birth_year'] or ''}</td>
           <td data-val="${row['death_year'] or ''}">${row['death_year'] or ''}</td>
-          <td data-val="${row['num_children']}">${row['num_children']}</td>
-          <td data-val="${row['num_spouses']}">${row['num_spouses']}</td>
+          <td data-val="${row['num_children']}">${format(row['num_children'], ',')}</td>
+          <td data-val="${row['num_spouses']}">${format(row['num_spouses'], ',')}</td>
         </tr>
       </tbody>
     </table>
@@ -40,7 +40,7 @@
     const total = rows.length;
 
     function updateCount(visible) {
-      countEl.textContent = visible === total ? `$${total} people` : `$${visible} of $${total} people`;
+      countEl.textContent = visible === total ? `$${total.toLocaleString()} people` : `$${visible.toLocaleString()} of $${total.toLocaleString()} people`;
     }
     updateCount(total);
 

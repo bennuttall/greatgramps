@@ -23,8 +23,8 @@
     <p class="relation" tal:condition="relation and not is_me">your ${relation}</p>
     <nav class="person-tabs">
       <a href="../">Profile</a>
-      <span class="active">Ancestors <span class="tab-count">(${num_ancestors})</span></span>
-      <a href="../descendants/">Descendants <span class="tab-count">(${num_descendants})</span></a>
+      <span class="active">Ancestors <span class="tab-count">(${format(num_ancestors, ',')})</span></span>
+      <a href="../descendants/">Descendants <span class="tab-count">(${format(num_descendants, ',')})</span></a>
     </nav>
     <div class="pedigree-wrap">
       <div class="pedigree-chart" tal:attributes="style tree_grid_style">
