@@ -59,26 +59,37 @@
     const filtersEl = document.getElementById('filters');
 
     const types = [...new Set(rows.map(r => r.dataset.type))];
+    rows.forEach(r => { if (r.querySelector('.ancestor-badge')) r.dataset.ancestor = 'true'; });
+    const hasAncestors = rows.some(r => r.dataset.ancestor);
 
     let active = null;
 
-    function makeButton(label) {
+    function applyFilter() {
+      rows.forEach(r => {
+        if (active === null) r.hidden = false;
+        else if (active === 'ancestors') r.hidden = !r.dataset.ancestor;
+        else r.hidden = r.dataset.type !== active;
+      });
+    }
+
+    function makeButton(label, value) {
       const btn = document.createElement('button');
       btn.textContent = label;
       btn.className = 'filter-btn';
-      if (label === null) btn.classList.add('active');
+      if (value === null) btn.classList.add('active');
       btn.addEventListener('click', () => {
-        active = label === 'All' ? null : label;
+        active = value;
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        rows.forEach(r => { r.hidden = active !== null && r.dataset.type !== active; });
+        applyFilter();
       });
       return btn;
     }
 
-    if (types.length > 1) {
-      filtersEl.appendChild(makeButton('All'));
-      types.forEach(t => filtersEl.appendChild(makeButton(t)));
+    if (types.length > 1 || hasAncestors) {
+      filtersEl.appendChild(makeButton('All', null));
+      types.forEach(t => filtersEl.appendChild(makeButton(t, t)));
+      if (hasAncestors) filtersEl.appendChild(makeButton('Ancestors', 'ancestors'));
     }
     </script>
   </tal:block>

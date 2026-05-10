@@ -8,7 +8,6 @@
         birth_year person['birth_year'];
         death_year person['death_year'];
         is_living person['is_living'];
-        died_age max(0, death_year - birth_year - 1) if (death_year and birth_year) else None;
         living_age max(0, current_year - birth_year - 1) if birth_year else None;
       ">
         <tal:block tal:condition="not surname_url">${person['full_name']}</tal:block>
@@ -23,8 +22,7 @@
         <span class="ancestor-badge me" tal:condition="is_me">me</span>
         <span class="ancestor-badge" tal:condition="is_ancestor">ancestor</span>
         <span class="ancestor-badge living" tal:condition="is_living">living</span>
-        <span class="ancestor-badge deceased" tal:condition="not is_living and died_age">died aged ${died_age}</span>
-        <span class="ancestor-badge deceased" tal:condition="not is_living and not died_age">deceased</span>
+        <span class="ancestor-badge deceased" tal:condition="not is_living">deceased</span>
       </h1>
       <p class="relation" tal:condition="relation and not is_me">your ${relation}</p>
       <nav class="person-tabs">
