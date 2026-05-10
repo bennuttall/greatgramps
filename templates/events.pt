@@ -11,7 +11,7 @@
             data-type="${event['type']}"
             tal:attributes="data-ancestor 'true' if event['is_ancestor_event'] else None">
           <td class="year">${event['year'] or ''}</td>
-          <td>${event['type']}</td>
+          <td><a href="${event['url_slug']}/">${event['type']}</a></td>
           <td>
             <span tal:condition="event['couple']">
               <span tal:condition="event['couple'][0]"

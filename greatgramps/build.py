@@ -11,8 +11,8 @@ from .gramps_data import (
     get_parents, get_children, get_siblings, get_spouses, get_all_events,
     ancestors_with_distances, get_relation_to_me,
     get_photos, place_data, build_place_event_index, build_event_list,
-    build_birthday_list, person_data, collect_ancestor_tree, collect_descendant_tree,
-    count_descendants,
+    build_event_pages_data, build_birthday_list, person_data,
+    collect_ancestor_tree, collect_descendant_tree, count_descendants,
 )
 from .settings import get_config
 
@@ -298,6 +298,38 @@ def build():
                events=ancestor_events, relation_map=relation_map)
     )
     print(f'Built events/index.html ({len(ancestor_events)} events)')
+
+    # Build individual event pages
+    ancestor_ids = set(my_ancestors) - {config.me}
+    all_event_data = build_event_pages_data(db)
+    for slug, event_data in all_event_data.items():
+        if not slug:
+            continue
+        is_ancestor_event = any(p['gramps_id'] in ancestor_ids for p in event_data['people'])
+        pid = event_data['place_id']
+        if pid and pid in place_lat_lon:
+            lat, lon = place_lat_lon[pid]
+            event_map_json = json.dumps([{
+                'lat': lat, 'lon': lon,
+                'name': event_data['place'],
+                'url': f'../../places/{pid}/',
+            }])
+        else:
+            event_map_json = '[]'
+        event_out = events_dir / slug
+        event_out.mkdir(exist_ok=True)
+        date_str = f' {event_data["date"]}' if event_data['date'] else ''
+        (event_out / 'index.html').write_text(render(
+            'event',
+            base='../../',
+            page_title=f"{event_data['type']}{date_str} — Family Tree",
+            event=event_data,
+            is_ancestor_event=is_ancestor_event,
+            ancestor_ids=ancestor_ids,
+            relation_map=relation_map,
+            event_map_json=event_map_json,
+        ))
+    print(f'Built {len(all_event_data)} event pages')
 
     # Build birthdays page
     birthdays_dir = config.output_dir / 'birthdays'

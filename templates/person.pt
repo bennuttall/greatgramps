@@ -44,7 +44,7 @@
         <h2>Life Events</h2>
         <table>
           <tr tal:repeat="event events">
-            <th>${event['type']}</th>
+            <th><a href="../../events/${event['url_slug']}/">${event['type']}</a></th>
             <td tal:condition="event['description']">
               <a tal:condition="event['description_url']"
                  href="${event['description_url']}">${event['description']}</a>

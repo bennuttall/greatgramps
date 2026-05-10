@@ -1,0 +1,84 @@
+<div metal:use-macro="layout">
+  <tal:block metal:fill-slot="head_extra">
+    <link tal:condition="event_map_json != '[]'" rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  </tal:block>
+  <div metal:fill-slot="content" tal:omit-tag="1">
+    <p><a href="../">← Events</a></p>
+
+    <tal:block tal:define="single len(event['people']) == 1;
+                            single_person event['people'][0] if len(event['people']) == 1 else None">
+
+    <h1>
+      ${event['type']}
+      <tal:block tal:condition="single"> of
+        <a href="../../people/${single_person['gramps_id']}/"
+           tal:attributes="class 'male' if single_person['gender'] == 1 else ('female' if single_person['gender'] == 0 else None)">${single_person['full_name']}</a>
+      </tal:block>
+      <span class="years" tal:condition="event['date']">${event['date']}</span>
+      <span class="ancestor-badge" tal:condition="is_ancestor_event">ancestor event</span>
+    </h1>
+
+    <table class="events">
+      <tr tal:condition="event['place']">
+        <th>Place</th>
+        <td>
+          <a tal:condition="event['place_id']" href="../../places/${event['place_id']}/">${event['place']}</a>
+          <span tal:condition="not event['place_id']">${event['place']}</span>
+        </td>
+      </tr>
+      <tr tal:condition="event['description']">
+        <th>Description</th>
+        <td>${event['description']}</td>
+      </tr>
+      <tr tal:condition="single and relation_map.get(single_person['gramps_id'])">
+        <th>Relation</th>
+        <td>${relation_map.get(single_person['gramps_id'])}</td>
+      </tr>
+      <tr tal:condition="single and event['type'] in ('Burial', 'Death') and single_person['grave_url']">
+        <th>Find a Grave</th>
+        <td><a href="${single_person['grave_url']}">${single_person['full_name']} on findagrave.com</a></td>
+      </tr>
+    </table>
+
+    <div id="map" tal:condition="event_map_json != '[]'"></div>
+
+    <tal:block tal:condition="event['notes']">
+      <h2>Notes</h2>
+      <pre class="event-note" tal:repeat="note event['notes']">${note}</pre>
+    </tal:block>
+
+    <tal:block tal:condition="not single and event['people']">
+      <h2>People</h2>
+      <ul>
+        <li tal:repeat="person event['people']">
+          <a href="../../people/${person['gramps_id']}/"
+             tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
+          <span class="years" tal:condition="person['birth_year'] or person['death_year']">
+            (${person['birth_year'] or '?'}–${person['death_year'] or ''})
+          </span>
+          <span class="ancestor-badge" tal:condition="person['gramps_id'] in ancestor_ids">ancestor</span>
+          <span tal:define="rel relation_map.get(person['gramps_id'])" tal:condition="rel" class="years">${rel}</span>
+        </li>
+      </ul>
+    </tal:block>
+
+    </tal:block>
+  </div>
+  <tal:block metal:fill-slot="scripts">
+    <script tal:condition="event_map_json != '[]'"
+            src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script tal:condition="event_map_json != '[]'">
+    var points = ${structure: event_map_json};
+    var map = L.map('map');
+    var bounds = points.map(p => [p.lat, p.lon]);
+    map.fitBounds(bounds, {padding: [20, 20], maxZoom: 10});
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+    points.forEach(function(p) {
+      L.marker([p.lat, p.lon]).addTo(map)
+        .bindPopup('<a href="' + p.url + '">' + p.name + '</a>');
+    });
+    </script>
+  </tal:block>
+</div>

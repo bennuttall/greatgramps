@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 from gramps.plugins.db.dbapi.sqlite import SQLite
@@ -6,6 +7,11 @@ from gramps.gen.lib.eventtype import EventType
 from gramps.gen.utils.alive import probably_alive
 
 from .settings import get_config
+
+
+def event_url_slug(gramps_id):
+    """Convert event gramps_id to a URL/filesystem-safe slug."""
+    return re.sub(r'[^\w-]', '_', gramps_id).strip('_') or gramps_id
 
 
 def _resolve_media_path(path):
@@ -129,7 +135,10 @@ def _event_dict(db, event, birth_year, desc=None, desc_url=None, label=None, sho
     place_obj = db.get_place_from_handle(place_h) if place_h else None
     event_year = event.get_date_object().get_year() or None
     age = max(0, event_year - birth_year - 1) if (show_age and event_year and birth_year) else None
+    gid = event.get_gramps_id()
     return {
+        'gramps_id': gid,
+        'url_slug': event_url_slug(gid),
         'type': label or EVENT_TYPE_LABELS.get(etype, str(event.get_type())),
         'sort': EVENT_SORT_ORDER.index(etype) if etype in EVENT_SORT_ORDER else 99,
         'date': format_date(event.get_date_object()),
@@ -560,7 +569,10 @@ def build_event_list(db, ancestor_ids):
         etype = int(event.get_type())
         place_h = event.get_place_handle()
         place_obj = db.get_place_from_handle(place_h) if place_h else None
+        gid = event.get_gramps_id()
         events.append({
+            'gramps_id': gid,
+            'url_slug': event_url_slug(gid),
             'type': EVENT_TYPE_LABELS.get(etype, str(event.get_type())),
             'date': format_date(event.get_date_object()),
             'year': year,
@@ -573,6 +585,66 @@ def build_event_list(db, ancestor_ids):
 
     events.sort(key=lambda e: e['year'] or 9999)
     return events
+
+
+def build_event_pages_data(db):
+    """Returns {gramps_id: event_detail} for all events, with deduplicated participants."""
+    event_parties = {}
+    for person in db.iter_people():
+        pdata = person_data(db, person)
+        for eref in person.get_event_ref_list():
+            h = eref.get_reference_handle()
+            event_parties.setdefault(h, {'people': [], 'couple': None})
+            event_parties[h]['people'].append(pdata)
+    for family in db.iter_families():
+        fh = family.get_father_handle()
+        mh = family.get_mother_handle()
+        father = person_data(db, db.get_person_from_handle(fh)) if fh else None
+        mother = person_data(db, db.get_person_from_handle(mh)) if mh else None
+        for eref in family.get_event_ref_list():
+            h = eref.get_reference_handle()
+            event_parties.setdefault(h, {'people': [], 'couple': None})
+            event_parties[h]['couple'] = (father, mother)
+
+    result = {}
+    for event in db.iter_events():
+        handle = event.get_handle()
+        parties = event_parties.get(handle, {'people': [], 'couple': None})
+        etype = int(event.get_type())
+        place_h = event.get_place_handle()
+        place_obj = db.get_place_from_handle(place_h) if place_h else None
+        notes = []
+        for note_handle in event.get_note_list():
+            note = db.get_note_from_handle(note_handle)
+            text = str(note.get()).strip()
+            if text:
+                notes.append(text)
+        seen = set()
+        participants = []
+        couple = parties['couple']
+        if couple:
+            for p in couple:
+                if p and p['gramps_id'] not in seen:
+                    seen.add(p['gramps_id'])
+                    participants.append(p)
+        for p in parties['people']:
+            if p['gramps_id'] not in seen:
+                seen.add(p['gramps_id'])
+                participants.append(p)
+        gid = event.get_gramps_id()
+        result[event_url_slug(gid)] = {
+            'gramps_id': gid,
+            'url_slug': event_url_slug(gid),
+            'type': EVENT_TYPE_LABELS.get(etype, str(event.get_type())),
+            'date': format_date(event.get_date_object()),
+            'year': event.get_date_object().get_year() or None,
+            'place': place_obj.get_name().get_value() if place_obj else None,
+            'place_id': place_obj.get_gramps_id() if place_obj else None,
+            'description': event.get_description() or None,
+            'notes': notes,
+            'people': participants,
+        }
+    return result
 
 
 def build_birthday_list(db):
