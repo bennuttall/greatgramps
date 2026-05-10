@@ -19,10 +19,11 @@
     </h1>
 
     <div class="photos" tal:condition="photos">
-      <img tal:repeat="photo photos"
-           src="${photo['url']}"
-           alt="${photo['description']}"
-           class="person-photo">
+      <a tal:repeat="photo photos" href="${photo['url']}">
+        <img src="${photo['url']}"
+             alt="${photo['description']}"
+             class="person-photo">
+      </a>
     </div>
 
     <table class="events">
@@ -63,6 +64,9 @@
           <span class="years" tal:condition="person['birth_year'] or person['death_year']">
             (${person['birth_year'] or '?'}–${person['death_year'] or ''})
           </span>
+          <tal:block tal:condition="event['year'] and person['birth_year']">
+            <span class="years" tal:define="age max(0, event['year'] - person['birth_year'] - 1)">aged ${age}</span>
+          </tal:block>
           <span class="ancestor-badge" tal:condition="person['gramps_id'] in ancestor_ids">ancestor</span>
           <span tal:define="rel relation_map.get(person['gramps_id'])" tal:condition="rel" class="years">${rel}</span>
         </li>
