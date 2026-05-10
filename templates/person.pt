@@ -75,13 +75,13 @@
             <div>
               <tal:block tal:condition="father">
                 <a class="male" href="../${father['gramps_id']}/">${father['full_name']}</a>
-                <span class="years" tal:condition="father['birth_year']">(b. ${father['birth_year']})</span>
+                <span class="years" tal:condition="father['birth_year'] or father['death_year']">(${father['birth_year'] or '?'}–${father['death_year'] or ''})</span>
               </tal:block>
             </div>
             <div>
               <tal:block tal:condition="mother">
                 <a class="female" href="../${mother['gramps_id']}/">${mother['full_name']}</a>
-                <span class="years" tal:condition="mother['birth_year']">(b. ${mother['birth_year']})</span>
+                <span class="years" tal:condition="mother['birth_year'] or mother['death_year']">(${mother['birth_year'] or '?'}–${mother['death_year'] or ''})</span>
               </tal:block>
             </div>
           </div>
@@ -93,7 +93,7 @@
             <li tal:repeat="sibling siblings">
               <a href="../${sibling['gramps_id']}/"
                  tal:attributes="class 'male' if sibling['gender'] == 1 else ('female' if sibling['gender'] == 0 else None)">${sibling['full_name']}</a>
-              <span class="years" tal:condition="sibling['birth_year']">(b. ${sibling['birth_year']})</span>
+              <span class="years" tal:condition="sibling['birth_year'] or sibling['death_year']">(${sibling['birth_year'] or '?'}–${sibling['death_year'] or ''})</span>
               <span class="years" tal:condition="sibling['half_sibling']">half-sibling</span>
             </li>
           </ul>
@@ -120,7 +120,7 @@
             <li tal:repeat="child children">
               <a href="../${child['gramps_id']}/"
                  tal:attributes="class 'male' if child['gender'] == 1 else ('female' if child['gender'] == 0 else None)">${child['full_name']}</a>
-              <span class="years" tal:condition="child['birth_year']">(b. ${child['birth_year']})</span>
+              <span class="years" tal:condition="child['birth_year'] or child['death_year']">(${child['birth_year'] or '?'}–${child['death_year'] or ''})</span>
             </li>
           </ul>
         </section>
