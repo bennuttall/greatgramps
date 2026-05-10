@@ -22,20 +22,23 @@
     <p class="relation" tal:condition="relation and not is_me">your ${relation}</p>
     <nav class="person-tabs">
       <a href="../">Profile</a>
-      <span class="active">Ancestors <span class="tab-count">(${num_ancestors})</span></span>
-      <a href="../descendants/">Descendants <span class="tab-count">(${num_descendants})</span></a>
+      <a href="../ancestors/">Ancestors <span class="tab-count">(${num_ancestors})</span></a>
+      <span class="active">Descendants <span class="tab-count">(${num_descendants})</span></span>
     </nav>
     <div class="pedigree-wrap">
       <div class="pedigree-chart" tal:attributes="style tree_grid_style">
         <a tal:repeat="node nodes"
            tal:attributes="
-             href '../' if node['gen'] == 0 else '../../' + node['gramps_id'] + '/ancestors/';
-             class 'pedigree-cell gen-' + str(node['gen']) + (' has-further' if node['has_further'] else '') + (' male' if node['gender'] == 1 else (' female' if node['gender'] == 0 else ''));
+             href '../' if node['gen'] == 0 else '../../' + node['gramps_id'] + '/descendants/';
+             class 'pedigree-cell gen-' + str(node['gen']) + (' has-further-down' if node['has_further'] else '') + (' male' if node['gender'] == 1 else (' female' if node['gender'] == 0 else ''));
              style node['grid_style']
            ">
           <span class="pedigree-name">${node['full_name']}</span>
           <span class="pedigree-years" tal:condition="node['birth_year'] or node['death_year']">
             ${node['birth_year'] or '?'}–${node['death_year'] or ''}
+          </span>
+          <span class="pedigree-children" tal:condition="node['num_children']">
+            ${node['num_children']} child${'' if node['num_children'] == 1 else 'ren'}
           </span>
         </a>
       </div>

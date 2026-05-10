@@ -160,6 +160,40 @@ a:hover { color: #222; }
   margin-top: -0.5rem;
 }
 
+.person-tabs {
+  display: flex;
+  gap: 0;
+  margin: 0.5rem 0 1.5rem;
+  border-bottom: 2px solid #ddd;
+}
+
+.person-tabs a,
+.person-tabs span {
+  padding: 0.4rem 1rem;
+  text-decoration: none;
+  color: #888;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.person-tabs a:hover {
+  color: #5a3e28;
+  border-bottom-color: #c4a882;
+}
+
+.person-tabs span.active {
+  color: #5a3e28;
+  border-bottom-color: #5a3e28;
+  font-weight: bold;
+}
+
+.tab-count {
+  color: #aaa;
+  font-size: 0.9em;
+}
+
 .ancestor-badge.me {
   background: #2a5a3e;
 }
@@ -386,6 +420,12 @@ a:hover { color: #222; }
   white-space: nowrap;
 }
 
+.pedigree-children {
+  font-size: 0.75em;
+  color: #aaa;
+  white-space: nowrap;
+}
+
 .pedigree-cell.has-further {
   position: relative;
   padding-right: 1.4rem;
@@ -397,6 +437,22 @@ a:hover { color: #222; }
   right: 0.4rem;
   top: 50%;
   transform: translateY(-50%);
+  color: #c4a882;
+  font-size: 1.2em;
+  line-height: 1;
+}
+
+.pedigree-cell.has-further-down {
+  position: relative;
+  padding-bottom: 1.4rem;
+}
+
+.pedigree-cell.has-further-down::after {
+  content: '↓';
+  position: absolute;
+  bottom: 0.3rem;
+  left: 50%;
+  transform: translateX(-50%);
   color: #c4a882;
   font-size: 1.2em;
   line-height: 1;

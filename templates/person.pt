@@ -24,7 +24,11 @@
         <span class="ancestor-badge deceased" tal:condition="not is_living and not died_age">deceased</span>
       </h1>
       <p class="relation" tal:condition="relation and not is_me">your ${relation}</p>
-      <p class="tree-link" tal:condition="len(generations) > 1"><a href="tree/">View ancestor tree →</a></p>
+      <nav class="person-tabs">
+        <span class="active">Profile</span>
+        <a href="ancestors/">Ancestors <span class="tab-count">(${num_ancestors})</span></a>
+        <a href="descendants/">Descendants <span class="tab-count">(${num_descendants})</span></a>
+      </nav>
 
       <div class="photos" tal:condition="photos">
         <img tal:repeat="photo photos"
@@ -32,10 +36,6 @@
              alt="${photo['description']}"
              class="person-photo">
       </div>
-
-      <p class="grave-link" tal:condition="person['grave_url']">
-        <a href="${person['grave_url']}">View on FindAGrave</a>
-      </p>
 
       <div id="map" tal:condition="event_map_json != '[]'"></div>
 
@@ -113,7 +113,7 @@
       </section>
 
       <section class="ancestors" tal:condition="len(generations) > 1">
-        <h2>Ancestors (${sum(len(g['people']) for g in generations[1:])}) — <a href="tree/">tree view</a></h2>
+        <h2>Ancestors (${sum(len(g['people']) for g in generations[1:])})</h2>
         <div class="tree">
           <div tal:repeat="gen_group generations[1:]" class="generation">
             <h3>

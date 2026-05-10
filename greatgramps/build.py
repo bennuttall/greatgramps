@@ -11,7 +11,7 @@ from .gramps_data import (
     get_parents, get_children, get_siblings, get_spouses, get_all_events,
     ancestors_with_distances, get_relation_to_me,
     get_photos, place_data, build_place_event_index, person_data,
-    collect_ancestor_tree,
+    collect_ancestor_tree, collect_descendant_tree, count_descendants,
 )
 from .settings import get_config
 
@@ -162,6 +162,8 @@ def build():
                     }
                 map_points[pid]['types'].append(event['type'])
         event_map_json = json.dumps(list(map_points.values()))
+        num_ancestors = len(person_ancestors) - 1
+        num_descendants = count_descendants(db, p)
         html = render(
             'person',
             base='../../',
@@ -182,27 +184,60 @@ def build():
             event_map_json=event_map_json,
             surname_url=surname_page_url.get(data['surname']),
             current_year=date.today().year,
+            num_ancestors=num_ancestors,
+            num_descendants=num_descendants,
         )
         person_out = people_dir / gid
         person_out.mkdir(exist_ok=True)
         (person_out / 'index.html').write_text(html)
 
-        if father_p or mother_p:
-            tree_nodes, tree_rows, tree_cols = collect_ancestor_tree(db, p)
-            tree_grid_style = (
-                f'grid-template-rows:repeat({tree_rows},minmax(2.5rem,auto));'
-                f'grid-template-columns:repeat({tree_cols},minmax(140px,1fr))'
-            )
-            tree_dir = person_out / 'tree'
-            tree_dir.mkdir(exist_ok=True)
-            (tree_dir / 'index.html').write_text(render(
-                'tree',
-                base='../../../',
-                page_title=f"{data['full_name']} — Ancestor Tree",
-                person=data,
-                nodes=tree_nodes,
-                tree_grid_style=tree_grid_style,
-            ))
+        tree_nodes, tree_rows, tree_cols = collect_ancestor_tree(db, p)
+        tree_grid_style = (
+            f'grid-template-rows:repeat({tree_rows},minmax(2.5rem,auto));'
+            f'grid-template-columns:repeat({tree_cols},minmax(140px,1fr))'
+        )
+        tree_surname_url = f'../../../surnames/{surname_slug(data["surname"])}/' if data['surname'] else None
+        ancestors_dir = person_out / 'ancestors'
+        ancestors_dir.mkdir(exist_ok=True)
+        (ancestors_dir / 'index.html').write_text(render(
+            'tree',
+            base='../../../',
+            page_title=f"{data['full_name']} — Ancestor Tree",
+            person=data,
+            nodes=tree_nodes,
+            tree_grid_style=tree_grid_style,
+            num_ancestors=num_ancestors,
+            num_descendants=num_descendants,
+            is_ancestor=gid in my_ancestors and gid != config.me,
+            is_me=gid == config.me,
+            relation=relation,
+            surname_url=tree_surname_url,
+            current_year=date.today().year,
+        ))
+
+        desc_nodes, desc_rows, desc_cols = collect_descendant_tree(db, p)
+        desc_grid_style = (
+            f'grid-template-columns:repeat({desc_cols},minmax(140px,1fr));'
+            f'grid-template-rows:repeat({desc_rows},minmax(2.5rem,auto))'
+        )
+        desc_surname_url = f'../../../surnames/{surname_slug(data["surname"])}/' if data['surname'] else None
+        descendants_dir = person_out / 'descendants'
+        descendants_dir.mkdir(exist_ok=True)
+        (descendants_dir / 'index.html').write_text(render(
+            'descendants_tree',
+            base='../../../',
+            page_title=f"{data['full_name']} — Descendant Tree",
+            person=data,
+            nodes=desc_nodes,
+            tree_grid_style=desc_grid_style,
+            num_ancestors=num_ancestors,
+            num_descendants=num_descendants,
+            is_ancestor=gid in my_ancestors and gid != config.me,
+            is_me=gid == config.me,
+            relation=relation,
+            surname_url=desc_surname_url,
+            current_year=date.today().year,
+        ))
 
         search_rows.append({**data, 'num_children': len(children_p), 'num_spouses': len(spouses),
                             'is_ancestor': gid in my_ancestors and gid != config.me})

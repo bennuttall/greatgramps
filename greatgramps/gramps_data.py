@@ -389,6 +389,58 @@ def collect_ancestor_tree(db, person, max_gen=4):
     return nodes, leaves, max_gen + 1
 
 
+def count_descendants(db, person):
+    count = 0
+    seen = set()
+    queue = [person]
+    while queue:
+        p = queue.pop(0)
+        gid = p.get_gramps_id()
+        if gid in seen:
+            continue
+        seen.add(gid)
+        children = get_children(db, p)
+        count += len(children)
+        queue.extend(children)
+    return count
+
+
+def collect_descendant_tree(db, person, max_gen=4):
+    """Return (nodes, grid_rows, grid_cols) for a descendants chart.
+
+    Grid: row = generation (1-indexed), column = leaf position (1-indexed).
+    """
+    def count_leaves(p, gen):
+        if gen >= max_gen:
+            return 1
+        children = get_children(db, p)
+        if not children:
+            return 1
+        return sum(count_leaves(c, gen + 1) for c in children)
+
+    nodes = []
+
+    def place_nodes(p, gen, col_start):
+        data = person_data(db, p)
+        all_children = get_children(db, p)
+        visible_children = all_children if gen < max_gen else []
+        leaf_count = count_leaves(p, gen)
+        data['gen'] = gen
+        data['grid_style'] = f'grid-row:{gen + 1};grid-column:{col_start + 1}/{col_start + leaf_count + 1}'
+        data['num_children'] = len(all_children)
+        data['has_children'] = bool(all_children)
+        data['has_further'] = gen == max_gen and bool(all_children)
+        nodes.append(data)
+        cursor = col_start
+        for child in visible_children:
+            place_nodes(child, gen + 1, cursor)
+            cursor += count_leaves(child, gen + 1)
+
+    place_nodes(person, 0, 0)
+    total_leaves = count_leaves(person, 0)
+    return nodes, max_gen + 1, total_leaves
+
+
 def place_data(place):
     return {
         'gramps_id': place.get_gramps_id(),
