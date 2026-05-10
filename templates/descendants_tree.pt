@@ -11,8 +11,11 @@
       <tal:block tal:condition="surname_url">
         <span tal:condition="person['given']">${person['given']} </span><a href="${surname_url}">${person['surname']}</a>
       </tal:block>
-      <span class="years" tal:condition="is_living and living_age">(aged ${living_age})</span>
+      <span class="years" tal:condition="is_living and birth_year">(${birth_year}–)</span>
+      <span class="years" tal:condition="is_living and living_age">aged ${living_age}</span>
       <span class="years" tal:condition="not is_living and (birth_year or death_year)">(${birth_year or '?'}–${death_year or ''})</span>
+      <span class="ancestor-badge male" tal:condition="person['gender'] == 1">male</span>
+      <span class="ancestor-badge female" tal:condition="person['gender'] == 0">female</span>
       <span class="ancestor-badge me" tal:condition="is_me">me</span>
       <span class="ancestor-badge" tal:condition="is_ancestor">ancestor</span>
       <span class="ancestor-badge living" tal:condition="is_living">living</span>

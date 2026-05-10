@@ -219,14 +219,40 @@ def get_spouses(db, person):
 
 
 def get_siblings(db, person):
-    siblings = []
-    for pfh in person.get_parent_family_handle_list():
+    gid = person.get_gramps_id()
+    my_family_handles = set(person.get_parent_family_handle_list())
+    seen = {gid}
+    result = []
+
+    for pfh in my_family_handles:
         family = db.get_family_from_handle(pfh)
         for cref in family.get_child_ref_list():
             child = db.get_person_from_handle(cref.get_reference_handle())
-            if child and child.get_gramps_id() != person.get_gramps_id():
-                siblings.append(person_data(db, child))
-    return siblings
+            if child and child.get_gramps_id() not in seen:
+                seen.add(child.get_gramps_id())
+                result.append({**person_data(db, child), 'half_sibling': False})
+
+    my_parent_handles = set()
+    for pfh in my_family_handles:
+        family = db.get_family_from_handle(pfh)
+        if family.get_father_handle():
+            my_parent_handles.add(family.get_father_handle())
+        if family.get_mother_handle():
+            my_parent_handles.add(family.get_mother_handle())
+
+    for parent_handle in my_parent_handles:
+        parent = db.get_person_from_handle(parent_handle)
+        for fam_handle in parent.get_family_handle_list():
+            if fam_handle in my_family_handles:
+                continue
+            family = db.get_family_from_handle(fam_handle)
+            for cref in family.get_child_ref_list():
+                child = db.get_person_from_handle(cref.get_reference_handle())
+                if child and child.get_gramps_id() not in seen:
+                    seen.add(child.get_gramps_id())
+                    result.append({**person_data(db, child), 'half_sibling': True})
+
+    return result
 
 
 def ancestors_with_distances(db, person):
