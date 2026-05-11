@@ -1,0 +1,403 @@
+from __future__ import annotations
+
+import json
+import mimetypes
+import urllib.parse
+import urllib.request
+from pathlib import Path
+from typing import List
+
+import typer
+from rich.console import Console
+from rich.table import Table
+
+from gramps.gen.db import DBMODE_R, DBMODE_W, DbTxn
+from gramps.gen.lib import (
+    Date, Event, EventRef, EventRoleType, EventType,
+    Media, MediaRef, Place, PlaceName, PlaceType,
+)
+from gramps.plugins.db.dbapi.sqlite import SQLite
+
+from .settings import get_config
+
+
+app = typer.Typer(help="Greatgramps — manage your Gramps family tree database.", no_args_is_help=True)
+console = Console()
+
+NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
+USER_AGENT = "greatgramps/0.1 (family tree tool)"
+
+NOMINATIM_TYPE_MAP = {
+    'city': PlaceType.CITY,
+    'town': PlaceType.TOWN,
+    'village': PlaceType.VILLAGE,
+    'hamlet': PlaceType.HAMLET,
+    'county': PlaceType.COUNTY,
+    'state': PlaceType.STATE,
+    'country': PlaceType.COUNTRY,
+    'parish': PlaceType.PARISH,
+    'municipality': PlaceType.MUNICIPALITY,
+    'borough': PlaceType.BOROUGH,
+    'district': PlaceType.DISTRICT,
+    'region': PlaceType.REGION,
+    'province': PlaceType.PROVINCE,
+    'locality': PlaceType.LOCALITY,
+    'neighbourhood': PlaceType.NEIGHBORHOOD,
+    'suburb': PlaceType.NEIGHBORHOOD,
+    'farm': PlaceType.FARM,
+}
+
+
+def _open_db(write=False):
+    config = get_config()
+    db = SQLite()
+    db.load(str(config.validated_db_path), mode=DBMODE_W if write else DBMODE_R)
+    return db
+
+
+def _geocode(query: str):
+    params = urllib.parse.urlencode({'q': query, 'format': 'json', 'limit': 5})
+    req = urllib.request.Request(
+        f"{NOMINATIM_URL}?{params}", headers={'User-Agent': USER_AGENT}
+    )
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        return json.loads(resp.read().decode())
+
+
+def _person_name(person) -> str:
+    n = person.get_primary_name()
+    return f"{n.get_first_name()} {n.get_surname()}".strip()
+
+
+def _event_label(event) -> str:
+    desc = event.get_description() or str(event.get_type())
+    year = event.get_date_object().get_year()
+    return f"{desc} ({year})" if year else desc
+
+
+def _stem_to_description(stem: str) -> str:
+    parts = stem.split('_')
+    year = parts[0]
+    record_type = 'register' if year == '1939' else 'census'
+    if len(parts) >= 4 and parts[-2] == 'page':
+        name = ' '.join(p.capitalize() for p in parts[1:-2])
+        return f"{year} {record_type} - {name} household (page {parts[-1]})"
+    name = ' '.join(p.capitalize() for p in parts[1:])
+    return f"{year} {record_type} - {name} household"
+
+
+def _confirm():
+    try:
+        input("Press Enter to confirm (Ctrl+C to cancel) ")
+    except KeyboardInterrupt:
+        console.print("\nCancelled.")
+        raise typer.Exit(0)
+
+
+def _place_table(places) -> Table:
+    table = Table()
+    table.add_column("ID")
+    table.add_column("Name")
+    table.add_column("Type")
+    table.add_column("Lat")
+    table.add_column("Lon")
+    for place in places:
+        table.add_row(
+            place.get_gramps_id(),
+            place.get_name().get_value(),
+            str(place.get_type()),
+            place.get_latitude() or "—",
+            place.get_longitude() or "—",
+        )
+    return table
+
+
+def _people_table(people: list[tuple]) -> Table:
+    table = Table()
+    table.add_column("ID")
+    table.add_column("Name")
+    for person, name in people:
+        table.add_row(person.get_gramps_id(), name)
+    return table
+
+
+@app.command("add-place", no_args_is_help=True)
+def add_place(query: str = typer.Argument(..., help="Location to geocode and add")):
+    """Geocode a location and add it as a Place in the database."""
+    console.print(f"Geocoding: [bold]{query}[/bold]")
+    results = _geocode(query)
+    if not results:
+        console.print(f"[red]No results found for {query!r}[/red]")
+        raise typer.Exit(1)
+
+    result = results[0]
+    lat, lon = result['lat'], result['lon']
+    display_name = result['display_name']
+    addresstype = result.get('addresstype', result.get('type', ''))
+    place_type_int = NOMINATIM_TYPE_MAP.get(addresstype, PlaceType.UNKNOWN)
+    name = display_name.split(',')[0].strip()
+
+    console.print(f"Found: {display_name}")
+
+    db = _open_db(write=True)
+    try:
+        place = Place()
+        pn = PlaceName()
+        pn.set_value(name)
+        place.set_name(pn)
+        place.set_latitude(str(lat))
+        place.set_longitude(str(lon))
+        place.set_type(PlaceType(place_type_int))
+        with DbTxn('Add place', db) as trans:
+            db.add_place(place, trans)
+        console.print("\n[green]Place added:[/green]")
+        console.print(_place_table([place]))
+    finally:
+        db.close()
+
+
+@app.command("search-place", no_args_is_help=True)
+def search_place(query: str = typer.Argument(..., help="Name to search for")):
+    """Search for places in the database by name."""
+    db = _open_db()
+    try:
+        q = query.lower()
+        all_places = [db.get_place_from_handle(h) for h in db.get_place_handles()]
+        matches = sorted(
+            [p for p in all_places if q in p.get_name().get_value().lower()],
+            key=lambda p: p.get_name().get_value().lower(),
+        )
+        if not matches:
+            console.print(f"No places found matching [bold]{query!r}[/bold]")
+            return
+        console.print(f"{len(matches)} place(s) matching [bold]{query!r}[/bold]:")
+        console.print(_place_table(matches))
+    finally:
+        db.close()
+
+
+@app.command("add-census", no_args_is_help=True)
+def add_census(
+    filepath: Path = typer.Argument(..., help="Path to census image file"),
+    person_ids: List[str] = typer.Argument(..., help="Person IDs to link to this event"),
+):
+    """Add a census event from an image file and link people to it."""
+    filepath = filepath.resolve()
+    if not filepath.exists():
+        console.print(f"[red]File not found: {filepath}[/red]")
+        raise typer.Exit(1)
+
+    parts = filepath.stem.split('_')
+    if not parts[0].isdigit():
+        console.print("[red]Filename must start with a year (e.g. 1921_jarvis_nuttall.jpg)[/red]")
+        raise typer.Exit(1)
+
+    year = int(parts[0])
+    description = _stem_to_description(filepath.stem)
+
+    db = _open_db(write=True)
+    try:
+        people = []
+        for pid in person_ids:
+            person = db.get_person_from_gramps_id(pid)
+            if not person:
+                console.print(f"[red]Person {pid!r} not found[/red]")
+                raise typer.Exit(1)
+            people.append((person, _person_name(person)))
+
+        summary = Table(show_header=False)
+        summary.add_column("Field", style="bold")
+        summary.add_column("Value")
+        summary.add_row("File", str(filepath))
+        summary.add_row("Year", str(year))
+        summary.add_row("Description", description)
+        console.print(summary)
+        console.print("\n[bold]People:[/bold]")
+        console.print(_people_table(people))
+
+        _confirm()
+
+        existing_media_paths = {
+            db.get_media_from_handle(h).get_path(): h
+            for h in db.get_media_handles()
+        }
+
+        with DbTxn('Add census event', db) as trans:
+            event = Event()
+            event.set_type(EventType(EventType.CENSUS))
+            date = Date()
+            date.set_yr_mon_day(year, 0, 0)
+            event.set_date_object(date)
+            event.set_description(description)
+
+            path_str = str(filepath)
+            if path_str in existing_media_paths:
+                media_handle = existing_media_paths[path_str]
+            else:
+                mime = mimetypes.guess_type(path_str)[0] or 'image/jpeg'
+                media = Media()
+                media.set_path(path_str)
+                media.set_mime_type(mime)
+                media.set_description(filepath.stem)
+                media_handle = db.add_media(media, trans)
+
+            mref = MediaRef()
+            mref.set_reference_handle(media_handle)
+            event.add_media_reference(mref)
+
+            db.add_event(event, trans)
+
+            for person, _ in people:
+                eref = EventRef()
+                eref.set_reference_handle(event.get_handle())
+                eref.set_role(EventRoleType(EventRoleType.PRIMARY))
+                person.add_event_ref(eref)
+                db.commit_person(person, trans)
+
+        result = Table(show_header=False)
+        result.add_column("Field", style="bold")
+        result.add_column("Value")
+        result.add_row("Event ID", event.get_gramps_id())
+        result.add_row("Description", event.get_description())
+        result.add_row("Year", str(year))
+        result.add_row("Image", filepath.name)
+        console.print(f"\n[green]Event created:[/green]")
+        console.print(result)
+    finally:
+        db.close()
+
+
+@app.command("add-event-people", no_args_is_help=True)
+def add_event_people(
+    event_id: str = typer.Argument(..., help="Event ID"),
+    person_ids: List[str] = typer.Argument(..., help="Person IDs to link"),
+):
+    """Link people to an existing event."""
+    db = _open_db(write=True)
+    try:
+        event = db.get_event_from_gramps_id(event_id)
+        if not event:
+            console.print(f"[red]Event {event_id!r} not found[/red]")
+            raise typer.Exit(1)
+
+        to_add, skipped = [], []
+        for pid in person_ids:
+            person = db.get_person_from_gramps_id(pid)
+            if not person:
+                console.print(f"[red]Person {pid!r} not found[/red]")
+                raise typer.Exit(1)
+            if any(e.get_reference_handle() == event.get_handle() for e in person.get_event_ref_list()):
+                skipped.append((person, _person_name(person)))
+            else:
+                to_add.append((person, _person_name(person)))
+
+        console.print(f"[bold]Event:[/bold] {event.get_gramps_id()} — {_event_label(event)}")
+
+        if skipped:
+            console.print("\n[yellow]Already linked (skipping):[/yellow]")
+            console.print(_people_table(skipped))
+
+        if not to_add:
+            console.print("No new people to add.")
+            return
+
+        console.print("\n[bold]To add:[/bold]")
+        console.print(_people_table(to_add))
+
+        _confirm()
+
+        with DbTxn('Add people to event', db) as trans:
+            for person, _ in to_add:
+                eref = EventRef()
+                eref.set_reference_handle(event.get_handle())
+                eref.set_role(EventRoleType(EventRoleType.PRIMARY))
+                person.add_event_ref(eref)
+                db.commit_person(person, trans)
+
+        console.print(f"[green]Added {len(to_add)} person(s) to {event_id}[/green]")
+    finally:
+        db.close()
+
+
+@app.command("add-event-place", no_args_is_help=True)
+def add_event_place(
+    event_id: str = typer.Argument(..., help="Event ID"),
+    place_query: str = typer.Argument(..., help="Place ID or name to search for"),
+):
+    """Set the place on an existing event."""
+    db = _open_db(write=True)
+    try:
+        event = db.get_event_from_gramps_id(event_id)
+        if not event:
+            console.print(f"[red]Event {event_id!r} not found[/red]")
+            raise typer.Exit(1)
+
+        place = db.get_place_from_gramps_id(place_query)
+        if not place:
+            all_places = [db.get_place_from_handle(h) for h in db.get_place_handles()]
+            matches = [p for p in all_places if place_query.lower() in p.get_name().get_value().lower()]
+            if not matches:
+                console.print(f"[red]No place found matching {place_query!r}[/red]")
+                raise typer.Exit(1)
+            if len(matches) > 1:
+                console.print(f"[yellow]Ambiguous — {len(matches)} places match {place_query!r}:[/yellow]")
+                console.print(_place_table(sorted(matches, key=lambda p: p.get_name().get_value().lower())))
+                raise typer.Exit(1)
+            place = matches[0]
+
+        current_handle = event.get_place_handle()
+        if current_handle:
+            current = db.get_place_from_handle(current_handle)
+            console.print(f"[yellow]Replacing existing place: {current.get_gramps_id()} — {current.get_name().get_value()}[/yellow]")
+
+        with DbTxn('Set event place', db) as trans:
+            event.set_place_handle(place.get_handle())
+            db.commit_event(event, trans)
+
+        console.print(f"[green]Place set:[/green] {event_id} → {place.get_name().get_value()} ({place.get_gramps_id()})")
+    finally:
+        db.close()
+
+
+@app.command("person-events", no_args_is_help=True)
+def person_events(
+    person_id: str = typer.Argument(..., help="Person ID"),
+):
+    """List all events for a person."""
+    db = _open_db()
+    try:
+        person = db.get_person_from_gramps_id(person_id)
+        if not person:
+            console.print(f"[red]Person {person_id!r} not found[/red]")
+            raise typer.Exit(1)
+
+        console.print(f"[bold]{person_id}: {_person_name(person)}[/bold]\n")
+
+        erefs = person.get_event_ref_list()
+        if not erefs:
+            console.print("No events.")
+            return
+
+        table = Table()
+        table.add_column("ID")
+        table.add_column("Type")
+        table.add_column("Date")
+        table.add_column("Description")
+        table.add_column("Place")
+
+        for eref in erefs:
+            event = db.get_event_from_handle(eref.get_reference_handle())
+            year = str(event.get_date_object().get_year()) if event.get_date_object().get_year() else ""
+            place_handle = event.get_place_handle()
+            place_name = db.get_place_from_handle(place_handle).get_name().get_value() if place_handle else ""
+            table.add_row(
+                event.get_gramps_id(),
+                str(event.get_type()),
+                year,
+                event.get_description() or "",
+                place_name,
+            )
+
+        console.print(table)
+    finally:
+        db.close()
