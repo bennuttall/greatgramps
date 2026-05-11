@@ -45,26 +45,21 @@
         <h2>Life Events</h2>
         <table>
           <thead>
-            <tr><th>Year</th><th>Age</th><th>Event</th><th>Detail</th><th>Location</th></tr>
+            <tr><th>Date</th><th>Age</th><th>Event</th><th>Detail</th><th>Location</th></tr>
           </thead>
           <tbody>
             <tr tal:repeat="event events">
               <tal:block tal:define="
                   year event['year'];
-                  full_date event['date'];
-                  show_title year is not None and full_date and full_date != str(year)
+                  full_date event['date']
                 ">
-                <td>
-                  <span tal:condition="show_title" title="${full_date}">${year}</span>
-                  <span tal:condition="not show_title">${year or ''}</span>
-                </td>
+                <td>${full_date or year or ''}</td>
                 <td class="event-age" tal:define="has_age event['age'] is not None">
                   <tal:block tal:condition="has_age">aged ${event['age']}</tal:block>
                 </td>
                 <td><a href="../../events/${event['url_slug']}/">${event['type']}</a></td>
                 <td>
                   <tal:block tal:condition="event['type'] == 'Birth'">
-                    <span tal:condition="show_title">${full_date} </span>
                     <tal:block tal:condition="father or mother">
                       to
                       <a tal:condition="father"
