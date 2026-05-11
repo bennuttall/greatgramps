@@ -119,10 +119,12 @@
           <h3>Siblings (${format(len(siblings), ',')})</h3>
           <ul>
             <li tal:repeat="sibling siblings">
-              <a href="../${sibling['gramps_id']}/"
-                 tal:attributes="class 'male' if sibling['gender'] == 1 else ('female' if sibling['gender'] == 0 else None)">${sibling['full_name']}</a>
-              <span class="years" tal:condition="sibling['birth_year'] or sibling['death_year']">(${sibling['birth_year'] or '?'}–${sibling['death_year'] or ''})</span>
-              <span class="years" tal:condition="sibling['half_sibling']">half-sibling</span>
+              <tal:block tal:define="rel ('half-' if sibling['half_sibling'] else '') + ('brother' if sibling['gender'] == 1 else ('sister' if sibling['gender'] == 0 else 'sibling'))">
+                <a href="../${sibling['gramps_id']}/"
+                   tal:attributes="class 'male' if sibling['gender'] == 1 else ('female' if sibling['gender'] == 0 else None)">${sibling['full_name']}</a>
+                <span class="years" tal:condition="sibling['birth_year'] or sibling['death_year']">(${sibling['birth_year'] or '?'}–${sibling['death_year'] or ''})</span>
+                <span class="years">${rel}</span>
+              </tal:block>
             </li>
           </ul>
         </section>
