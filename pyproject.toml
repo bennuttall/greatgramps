@@ -13,6 +13,10 @@ dependencies = [
     "pillow (>=12.2.0,<13.0.0)"
 ]
 
+[project.scripts]
+gg-add-place = "greatgramps.cli_places:add_place"
+gg-search-place = "greatgramps.cli_places:search_places"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
