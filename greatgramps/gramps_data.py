@@ -3,6 +3,7 @@ from pathlib import Path
 
 from gramps.plugins.db.dbapi.sqlite import SQLite
 from gramps.gen.db import DBMODE_R
+from gramps.gen.lib import AttributeType
 from gramps.gen.lib.eventtype import EventType
 from gramps.gen.utils.alive import probably_alive
 
@@ -736,6 +737,18 @@ def _collect_photos(db, obj):
             'description': media.get_description(),
         })
     return photos
+
+
+def get_occupations(person) -> list[dict]:
+    occupations = []
+    for attr in person.get_attribute_list():
+        if attr.get_type() == AttributeType(AttributeType.OCCUPATION):
+            value = attr.get_value()
+            m = re.search(r'\((\d{4})\)\s*$', value)
+            year = int(m.group(1)) if m else None
+            label = value[:m.start()].strip() if m else value
+            occupations.append({'label': label, 'year': year})
+    return sorted(occupations, key=lambda o: o['year'] or 0)
 
 
 def get_photos(db, person):

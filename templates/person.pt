@@ -32,12 +32,23 @@
         <a href="descendants/">Descendants <span class="tab-count">(${format(num_descendants, ',')})</span></a>
       </nav>
 
-      <div class="photos" tal:condition="photos">
-        <a tal:repeat="photo photos" href="${photo['url']}">
-          <img src="${photo['url']}"
-               alt="${photo['description']}"
-               class="person-photo">
-        </a>
+      <div class="profile-media" tal:condition="photos or occupations">
+        <div class="photos" tal:condition="photos">
+          <a tal:repeat="photo photos" href="${photo['url']}">
+            <img src="${photo['url']}"
+                 alt="${photo['description']}"
+                 class="person-photo">
+          </a>
+        </div>
+        <div class="occupations" tal:condition="occupations">
+          <h3>Occupations</h3>
+          <ul>
+            <li tal:repeat="occ occupations">
+              ${occ['label']}
+              <span class="years" tal:condition="occ['year']">(${occ['year']})</span>
+            </li>
+          </ul>
+        </div>
       </div>
 
       <div id="map" tal:condition="event_map_json != '[]'"></div>

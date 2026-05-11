@@ -10,7 +10,7 @@ from .gramps_data import (
     open_db, collect_all_people, collect_ancestors,
     get_parents, get_children, get_siblings, get_spouses, get_all_events,
     ancestors_with_distances, get_relation_to_me,
-    get_photos, place_data, build_place_event_index, build_event_list,
+    get_photos, get_occupations, place_data, build_place_event_index, build_event_list,
     build_event_pages_data, build_birthday_list, person_data,
     collect_ancestor_tree, collect_descendant_tree, count_descendants,
     collect_all_descendants, group_descendants_by_generation,
@@ -230,9 +230,12 @@ def build():
             {**photo, 'url': process_photo(photo, media_dir, gid)}
             for photo in get_photos(db, p)
         ]
+        occupations = get_occupations(p)
         events = get_all_events(db, p)
         map_points = {}
         for event in events:
+            if event.get('type') == 'Probate':
+                continue
             pid = event.get('place_id')
             if pid and pid in place_lat_lon:
                 if pid not in map_points:
@@ -264,6 +267,7 @@ def build():
             is_me=gid == config.me,
             relation=relation,
             photos=photos,
+            occupations=occupations,
             place_url=place_url,
             generations=group_by_generation(person_ancestors),
             descendant_generations=descendant_generations,
