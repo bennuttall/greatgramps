@@ -55,7 +55,7 @@
                 ">
                 <td>${full_date or year or ''}</td>
                 <td class="event-age" tal:define="has_age event['age'] is not None">
-                  <tal:block tal:condition="has_age">aged ${event['age']}</tal:block>
+                  <tal:block tal:condition="has_age">${event['age']}</tal:block>
                 </td>
                 <td><a href="../../events/${event['url_slug']}/">${event['type']}</a></td>
                 <td>
