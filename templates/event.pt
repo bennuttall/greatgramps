@@ -26,6 +26,14 @@
       </a>
     </div>
 
+    <div class="photos" tal:condition="couple_photos">
+      <a tal:repeat="photo couple_photos" href="${photo['url']}">
+        <img src="${photo['url']}"
+             alt="${photo['description']}"
+             class="person-photo">
+      </a>
+    </div>
+
     <table class="events">
       <tr tal:condition="event['place']">
         <th>Place</th>
@@ -69,6 +77,19 @@
           </tal:block>
           <span class="ancestor-badge" tal:condition="person['gramps_id'] in ancestor_ids">ancestor</span>
           <span tal:define="rel relation_map.get(person['gramps_id'])" tal:condition="rel" class="years">${rel}</span>
+        </li>
+      </ul>
+    </tal:block>
+
+    <tal:block tal:condition="children">
+      <h2>Children</h2>
+      <ul>
+        <li tal:repeat="child children">
+          <a href="../../people/${child['gramps_id']}/"
+             tal:attributes="class 'male' if child['gender'] == 1 else ('female' if child['gender'] == 0 else None)">${child['full_name']}</a>
+          <span class="years" tal:condition="child['birth_year'] or child['death_year']">
+            (${child['birth_year'] or '?'}–${child['death_year'] or ''})
+          </span>
         </li>
       </ul>
     </tal:block>

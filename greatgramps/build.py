@@ -361,6 +361,12 @@ def build():
             {**photo, 'url': process_photo(photo, media_dir, event_data['gramps_id'])}
             for photo in event_data['photos']
         ]
+        couple_photos = []
+        for pd in filter(None, event_data.get('couple') or []):
+            person_obj = db.get_person_from_gramps_id(pd['gramps_id'])
+            if person_obj:
+                for photo in get_photos(db, person_obj):
+                    couple_photos.append({**photo, 'url': process_photo(photo, media_dir, pd['gramps_id'])})
         event_out = events_dir / slug
         event_out.mkdir(exist_ok=True)
         date_str = f' {event_data["date"]}' if event_data['date'] else ''
@@ -370,6 +376,8 @@ def build():
             page_title=f"{event_data['type']}{date_str} — Family Tree",
             event=event_data,
             photos=photos,
+            couple_photos=couple_photos,
+            children=event_data.get('children', []),
             is_ancestor_event=is_ancestor_event,
             ancestor_ids=ancestor_ids,
             relation_map=relation_map,

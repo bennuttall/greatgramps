@@ -606,15 +606,21 @@ def build_event_pages_data(db):
         mh = family.get_mother_handle()
         father = person_data(db, db.get_person_from_handle(fh)) if fh else None
         mother = person_data(db, db.get_person_from_handle(mh)) if mh else None
+        children = sorted(
+            [person_data(db, db.get_person_from_handle(cr.get_reference_handle()))
+             for cr in family.get_child_ref_list()],
+            key=lambda p: p['birth_year'] or 9999,
+        )
         for eref in family.get_event_ref_list():
             h = eref.get_reference_handle()
-            event_parties.setdefault(h, {'people': [], 'couple': None})
+            event_parties.setdefault(h, {'people': [], 'couple': None, 'children': []})
             event_parties[h]['couple'] = (father, mother)
+            event_parties[h]['children'] = children
 
     result = {}
     for event in db.iter_events():
         handle = event.get_handle()
-        parties = event_parties.get(handle, {'people': [], 'couple': None})
+        parties = event_parties.get(handle, {'people': [], 'couple': None, 'children': []})
         etype = int(event.get_type())
         place_h = event.get_place_handle()
         place_obj = db.get_place_from_handle(place_h) if place_h else None
@@ -648,6 +654,8 @@ def build_event_pages_data(db):
             'description': event.get_description() or None,
             'notes': notes,
             'people': participants,
+            'couple': couple,
+            'children': parties.get('children', []),
             'photos': get_event_photos(db, event),
         }
     return result
