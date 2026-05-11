@@ -133,7 +133,10 @@ def _event_dict(db, event, birth_year, desc=None, desc_url=None, desc_gender=Non
     etype = int(event.get_type())
     place_h = event.get_place_handle()
     place_obj = db.get_place_from_handle(place_h) if place_h else None
-    event_year = event.get_date_object().get_year() or None
+    date_obj = event.get_date_object()
+    event_year = date_obj.get_year() or None
+    event_month = date_obj.get_month() or 0
+    event_day = date_obj.get_day() or 0
     age = max(0, event_year - birth_year - 1) if (show_age and event_year and birth_year) else None
     gid = event.get_gramps_id()
     return {
@@ -141,8 +144,10 @@ def _event_dict(db, event, birth_year, desc=None, desc_url=None, desc_gender=Non
         'url_slug': event_url_slug(gid),
         'type': label or EVENT_TYPE_LABELS.get(etype, str(event.get_type())),
         'sort': EVENT_SORT_ORDER.index(etype) if etype in EVENT_SORT_ORDER else 99,
-        'date': format_date(event.get_date_object()),
+        'date': format_date(date_obj),
         'year': event_year,
+        'month': event_month,
+        'day': event_day,
         'place': place_obj.get_name().get_value() if place_obj else None,
         'place_id': place_obj.get_gramps_id() if place_obj else None,
         'description': desc if desc is not None else (event.get_description() or None),
@@ -194,7 +199,7 @@ def get_all_events(db, person):
                     desc_gender=child.get_gender(),
                 ))
 
-    events.sort(key=lambda e: (e['year'] or 9999, e['sort']))
+    events.sort(key=lambda e: (e['year'] or 9999, e['month'], e['day'], e['sort']))
     return events
 
 
