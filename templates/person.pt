@@ -61,7 +61,6 @@
                 <td>
                   <tal:block tal:condition="event['type'] == 'Birth'">
                     <tal:block tal:condition="father or mother">
-                      to
                       <a tal:condition="father"
                          href="../${father['gramps_id']}/"
                          tal:attributes="class 'male' if father['gender'] == 1 else ('female' if father['gender'] == 0 else None)">${father['full_name']}</a>
