@@ -23,6 +23,7 @@
         <span class="ancestor-badge" tal:condition="is_ancestor">ancestor</span>
         <span class="ancestor-badge living" tal:condition="is_living">living</span>
         <span class="ancestor-badge deceased" tal:condition="not is_living">deceased</span>
+        <a class="profile-link ancestry" tal:condition="person['ancestry_url']" href="${person['ancestry_url']}" >Ancestry</a>
       </h1>
       <p class="relation" tal:condition="relation and not is_me">your ${relation}</p>
       <nav class="person-tabs">

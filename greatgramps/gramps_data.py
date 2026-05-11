@@ -58,10 +58,7 @@ def person_data(db, person):
     birth = get_event(db, person, EventType.BIRTH)
     death = get_event(db, person, EventType.DEATH)
     name = person.get_primary_name()
-    grave_url = next(
-        (url.get_path() for url in person.get_url_list() if str(url.get_type()) == 'Find a Grave'),
-        None
-    )
+    urls = {str(u.get_type()): u.get_path() for u in person.get_url_list()}
     return {
         'gramps_id': person.get_gramps_id(),
         'given': name.get_first_name(),
@@ -72,7 +69,8 @@ def person_data(db, person):
         'death_year': get_year(death),
         'death_place': get_place_name(db, death),
         'gender': person.get_gender(),
-        'grave_url': grave_url,
+        'grave_url': urls.get('Find a Grave'),
+        'ancestry_url': urls.get('Ancestry'),
         'is_living': probably_alive(person, db),
     }
 

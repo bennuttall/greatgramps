@@ -14,7 +14,7 @@ from rich.table import Table
 from gramps.gen.db import DBMODE_R, DBMODE_W, DbTxn
 from gramps.gen.lib import (
     Date, Event, EventRef, EventRoleType, EventType,
-    Media, MediaRef, Place, PlaceName, PlaceType,
+    Media, MediaRef, Place, PlaceName, PlaceType, Url, UrlType,
 )
 from gramps.plugins.db.dbapi.sqlite import SQLite
 
@@ -399,5 +399,42 @@ def person_events(
             )
 
         console.print(table)
+    finally:
+        db.close()
+
+
+@app.command("add-ancestry-link", no_args_is_help=True)
+def add_ancestry_link(
+    person_id: str = typer.Argument(..., help="Person ID"),
+    url: str = typer.Argument(..., help="Full Ancestry URL"),
+):
+    """Add an Ancestry URL to a person."""
+    db = _open_db(write=True)
+    try:
+        person = db.get_person_from_gramps_id(person_id)
+        if not person:
+            console.print(f"[red]Person {person_id!r} not found[/red]")
+            raise typer.Exit(1)
+
+        existing = [u for u in person.get_url_list() if str(u.get_type()) == 'Ancestry']
+        if existing:
+            console.print(f"[yellow]Already has Ancestry link: {existing[0].get_path()}[/yellow]")
+
+        console.print(f"[bold]{person_id}:[/bold] {_person_name(person)}")
+        console.print(f"[bold]URL:[/bold]       {url}")
+
+        _confirm()
+
+        url_obj = Url()
+        url_type = UrlType()
+        url_type.set((UrlType.CUSTOM, 'Ancestry'))
+        url_obj.set_type(url_type)
+        url_obj.set_path(url)
+
+        with DbTxn('Add Ancestry link', db) as trans:
+            person.add_url(url_obj)
+            db.commit_person(person, trans)
+
+        console.print(f"[green]Ancestry link added to {person_id}[/green]")
     finally:
         db.close()
