@@ -13,6 +13,7 @@ from .gramps_data import (
     get_photos, place_data, build_place_event_index, build_event_list,
     build_event_pages_data, build_birthday_list, person_data,
     collect_ancestor_tree, collect_descendant_tree, count_descendants,
+    collect_all_descendants,
 )
 from .settings import get_config
 
@@ -57,6 +58,40 @@ def group_by_generation(ancestors):
         couples = [by_slot[s] for s in sorted(by_slot, key=lambda x: -1 if x is None else x)]
         result.append({'gen': g, 'people': people, 'couples': couples})
     return result
+
+
+def _make_map_json(person_place_events, people, place_lat_lon, base):
+    map_points = {}
+    for pgid, pdata in people.items():
+        for pe in person_place_events.get(pgid, []):
+            pid = pe['place_id']
+            if pid not in map_points:
+                lat, lon = place_lat_lon[pid]
+                map_points[pid] = {
+                    'lat': lat, 'lon': lon,
+                    'name': pe['place'],
+                    'url': f'{base}places/{pid}/',
+                    'people': {},
+                }
+            ppl = map_points[pid]['people']
+            if pgid not in ppl:
+                ppl[pgid] = {
+                    'name': pdata['full_name'],
+                    'url': f'{base}people/{pgid}/',
+                    'types': [],
+                }
+            ppl[pgid]['types'].append(pe['type'])
+    return json.dumps([
+        {
+            'lat': pt['lat'], 'lon': pt['lon'],
+            'name': pt['name'], 'url': pt['url'],
+            'people': [
+                {'name': p['name'], 'url': p['url'], 'types': list(dict.fromkeys(p['types']))}
+                for p in pt['people'].values()
+            ],
+        }
+        for pt in map_points.values()
+    ])
 
 
 def build():
@@ -124,6 +159,16 @@ def build():
         for d in all_places.values()
         if d['lat'] and d['lon']
     }
+
+    # Precompute geocoded event places per person (for ancestor maps)
+    person_place_events = {}
+    for _gid, _pdata in all_people.items():
+        _p = db.get_person_from_gramps_id(_gid)
+        person_place_events[_gid] = [
+            {'place_id': e['place_id'], 'place': e['place'], 'type': e['type']}
+            for e in get_all_events(db, _p)
+            if e.get('place_id') and e['place_id'] in place_lat_lon
+        ]
 
     me_id = config.me
 
@@ -235,11 +280,13 @@ def build():
             f'grid-template-columns:repeat({tree_cols},minmax(140px,1fr))'
         )
         tree_surname_url = f'../../../surnames/{surname_slug(data["surname"])}/' if data['surname'] else None
+        tree_base = '../../../'
+        ancestors_map_json = _make_map_json(person_place_events, person_ancestors, place_lat_lon, tree_base)
         ancestors_dir = person_out / 'ancestors'
         ancestors_dir.mkdir(exist_ok=True)
         (ancestors_dir / 'index.html').write_text(render(
             'tree',
-            base='../../../',
+            base=tree_base,
             page_title=f"{data['full_name']} — Ancestor Tree",
             person=data,
             nodes=tree_nodes,
@@ -251,6 +298,7 @@ def build():
             relation=relation,
             surname_url=tree_surname_url,
             current_year=date.today().year,
+            ancestors_map_json=ancestors_map_json,
         ))
 
         desc_nodes, desc_rows, desc_cols = collect_descendant_tree(db, p)
@@ -259,11 +307,13 @@ def build():
             f'grid-template-rows:repeat({desc_rows},minmax(2.5rem,auto))'
         )
         desc_surname_url = f'../../../surnames/{surname_slug(data["surname"])}/' if data['surname'] else None
+        all_descendants = collect_all_descendants(db, p)
+        descendants_map_json = _make_map_json(person_place_events, all_descendants, place_lat_lon, tree_base)
         descendants_dir = person_out / 'descendants'
         descendants_dir.mkdir(exist_ok=True)
         (descendants_dir / 'index.html').write_text(render(
             'descendants_tree',
-            base='../../../',
+            base=tree_base,
             page_title=f"{data['full_name']} — Descendant Tree",
             person=data,
             nodes=desc_nodes,
@@ -275,6 +325,7 @@ def build():
             relation=relation,
             surname_url=desc_surname_url,
             current_year=date.today().year,
+            descendants_map_json=descendants_map_json,
         ))
 
         search_rows.append({**data, 'num_children': len(children_p), 'num_spouses': len(spouses),

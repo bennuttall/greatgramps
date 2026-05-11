@@ -1,4 +1,7 @@
 <div metal:use-macro="layout">
+  <tal:block metal:fill-slot="head_extra" tal:condition="ancestors_map_json != '[]'">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  </tal:block>
   <div metal:fill-slot="content" tal:omit-tag="1">
     <h1 tal:define="
       birth_year person['birth_year'];
@@ -41,5 +44,32 @@
         </a>
       </div>
     </div>
+    <div id="map" tal:condition="ancestors_map_json != '[]'"></div>
   </div>
+  <tal:block metal:fill-slot="scripts">
+    <script tal:condition="ancestors_map_json != '[]'"
+            src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script tal:condition="ancestors_map_json != '[]'">
+    var points = ${structure: ancestors_map_json};
+    var map = L.map('map');
+    var bounds = points.map(p => [parseFloat(p.lat), parseFloat(p.lon)]);
+    map.fitBounds(bounds, {padding: [20, 20], maxZoom: 10});
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+    points.forEach(function(p) {
+      var peopleHtml = p.people.map(function(person) {
+        return '<a href="' + person.url + '">' + person.name + '</a>: ' + person.types.join(', ');
+      }).join('<br>');
+      L.circleMarker([parseFloat(p.lat), parseFloat(p.lon)], {
+        radius: Math.max(4, Math.min(14, 3 + p.people.length * 2)),
+        color: '#5a3e28',
+        fillColor: '#5a3e28',
+        fillOpacity: 0.6,
+        weight: 1,
+      }).addTo(map)
+        .bindPopup('<strong><a href="' + p.url + '">' + p.name + '</a></strong><br>' + peopleHtml);
+    });
+    </script>
+  </tal:block>
 </div>

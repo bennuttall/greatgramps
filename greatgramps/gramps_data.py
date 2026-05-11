@@ -431,6 +431,22 @@ def collect_ancestor_tree(db, person, max_gen=4):
     return nodes, leaves, max_gen + 1
 
 
+def collect_all_descendants(db, person):
+    """Returns {gramps_id: person_data} for all descendants, excluding the person themselves."""
+    result = {}
+    seen = {person.get_gramps_id()}
+    queue = get_children(db, person)
+    while queue:
+        p = queue.pop(0)
+        gid = p.get_gramps_id()
+        if gid in seen:
+            continue
+        seen.add(gid)
+        result[gid] = person_data(db, p)
+        queue.extend(get_children(db, p))
+    return result
+
+
 def count_descendants(db, person):
     count = 0
     seen = set()
