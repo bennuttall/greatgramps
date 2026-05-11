@@ -437,19 +437,31 @@ def collect_ancestor_tree(db, person, max_gen=4):
 
 
 def collect_all_descendants(db, person):
-    """Returns {gramps_id: person_data} for all descendants, excluding the person themselves."""
+    """Returns {gramps_id: person_data} for all descendants, each with a 'generation' key."""
     result = {}
     seen = {person.get_gramps_id()}
-    queue = get_children(db, person)
+    queue = [(child, 1) for child in get_children(db, person)]
     while queue:
-        p = queue.pop(0)
+        p, gen = queue.pop(0)
         gid = p.get_gramps_id()
         if gid in seen:
             continue
         seen.add(gid)
-        result[gid] = person_data(db, p)
-        queue.extend(get_children(db, p))
+        data = person_data(db, p)
+        data['generation'] = gen
+        result[gid] = data
+        queue.extend((child, gen + 1) for child in get_children(db, p))
     return result
+
+
+def group_descendants_by_generation(descendants):
+    by_gen = {}
+    for data in descendants.values():
+        by_gen.setdefault(data['generation'], []).append(data)
+    return [
+        {'gen': g, 'people': sorted(people, key=lambda p: p['birth_year'] or 9999)}
+        for g, people in sorted(by_gen.items())
+    ]
 
 
 def count_descendants(db, person):

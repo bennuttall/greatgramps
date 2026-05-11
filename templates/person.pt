@@ -195,6 +195,31 @@
           </div>
         </div>
       </section>
+
+      <section class="descendants" tal:condition="descendant_generations">
+        <h2>Descendants (${format(sum(len(g['people']) for g in descendant_generations), ',')})</h2>
+        <div class="tree">
+          <div tal:repeat="gen_group descendant_generations" class="generation">
+            <h3>
+              <span tal:condition="gen_group['gen'] == 1">Children</span>
+              <span tal:condition="gen_group['gen'] == 2">Grandchildren</span>
+              <span tal:condition="gen_group['gen'] == 3">Great-grandchildren</span>
+              <span tal:condition="gen_group['gen'] == 4">2nd great-grandchildren</span>
+              <span tal:condition="gen_group['gen'] &gt; 4">${gen_group['gen'] - 2}th great-grandchildren</span>
+              <span class="years">(${format(len(gen_group['people']), ',')})</span>
+            </h3>
+            <ul>
+              <li tal:repeat="person gen_group['people']">
+                <a href="../${person['gramps_id']}/"
+                   tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
+                <span class="years" tal:condition="person['birth_year'] or person['death_year']">
+                  (${person['birth_year'] or '?'}–${person['death_year'] or ''})
+                </span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
     </article>
   </div>
   <tal:block metal:fill-slot="scripts">

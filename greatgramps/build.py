@@ -13,7 +13,7 @@ from .gramps_data import (
     get_photos, place_data, build_place_event_index, build_event_list,
     build_event_pages_data, build_birthday_list, person_data,
     collect_ancestor_tree, collect_descendant_tree, count_descendants,
-    collect_all_descendants,
+    collect_all_descendants, group_descendants_by_generation,
 )
 from .settings import get_config
 
@@ -246,7 +246,9 @@ def build():
                 map_points[pid]['types'].append(event['type'])
         event_map_json = json.dumps(list(map_points.values()))
         num_ancestors = len(person_ancestors) - 1
-        num_descendants = count_descendants(db, p)
+        all_descendants = collect_all_descendants(db, p)
+        num_descendants = len(all_descendants)
+        descendant_generations = group_descendants_by_generation(all_descendants)
         html = render(
             'person',
             base='../../',
@@ -264,6 +266,7 @@ def build():
             photos=photos,
             place_url=place_url,
             generations=group_by_generation(person_ancestors),
+            descendant_generations=descendant_generations,
             event_map_json=event_map_json,
             surname_url=surname_page_url.get(data['surname']),
             current_year=date.today().year,
@@ -307,7 +310,6 @@ def build():
             f'grid-template-rows:repeat({desc_rows},minmax(2.5rem,auto))'
         )
         desc_surname_url = f'../../../surnames/{surname_slug(data["surname"])}/' if data['surname'] else None
-        all_descendants = collect_all_descendants(db, p)
         descendants_map_json = _make_map_json(person_place_events, all_descendants, place_lat_lon, tree_base)
         descendants_dir = person_out / 'descendants'
         descendants_dir.mkdir(exist_ok=True)

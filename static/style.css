@@ -317,7 +317,8 @@ pre.event-note {
 /* Person detail */
 .person-detail .events,
 .person-detail .family,
-.person-detail .ancestors {
+.person-detail .ancestors,
+.person-detail .descendants {
   padding: 1.25rem 1.5rem;
   border-radius: 8px;
   margin-top: 1.5rem;
@@ -333,17 +334,20 @@ pre.event-note {
 .person-detail .events { background: #fdf8f3; }
 .person-detail .family { background: #f0f5fb; }
 .person-detail .ancestors { background: #f0f7f2; }
+.person-detail .descendants { background: #f7f0fb; }
 
 .person-detail .events h2,
 .person-detail .family h2,
-.person-detail .ancestors h2 {
+.person-detail .ancestors h2,
+.person-detail .descendants h2 {
   margin-top: 0;
 }
 
 a.male:not(.pedigree-cell) { color: #3a6f9a; }
 a.female:not(.pedigree-cell) { color: #9a3a6f; }
 
-.person-detail .ancestors h3 {
+.person-detail .ancestors h3,
+.person-detail .descendants h3 {
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
