@@ -5,7 +5,8 @@ import mimetypes
 import urllib.parse
 import urllib.request
 from pathlib import Path
-from typing import List
+import re
+from typing import List, Optional
 
 import typer
 from rich.console import Console
@@ -315,6 +316,169 @@ def add_event_people(
                 db.commit_person(person, trans)
 
         console.print(f"[green]Added {len(to_add)} person(s) to {event_id}[/green]")
+    finally:
+        db.close()
+
+
+EVENT_TYPE_MAP = {
+    'birth': EventType.BIRTH,
+    'death': EventType.DEATH,
+    'burial': EventType.BURIAL,
+    'baptism': EventType.BAPTISM,
+    'confirmation': EventType.CONFIRMATION,
+    'marriage': EventType.MARRIAGE,
+    'divorce': EventType.DIVORCE,
+    'occupation': EventType.OCCUPATION,
+    'residence': EventType.RESIDENCE,
+    'census': EventType.CENSUS,
+    'military': EventType.MILITARY_SERV,
+    'education': EventType.EDUCATION,
+    'graduation': EventType.GRADUATION,
+    'retirement': EventType.RETIREMENT,
+}
+
+_MONTH_MAP = {
+    'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+    'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
+    'january': 1, 'february': 2, 'march': 3, 'april': 4, 'june': 6,
+    'july': 7, 'august': 8, 'september': 9, 'october': 10,
+    'november': 11, 'december': 12,
+}
+
+
+def _parse_date(date_str: str) -> tuple[int, int, int] | None:
+    """Parse 'YYYY', 'YYYY-MM-DD', 'Mon YYYY', or 'DD Mon YYYY' into (year, month, day)."""
+    s = date_str.strip()
+    if re.match(r'^\d{4}-\d{2}-\d{2}$', s):
+        y, m, d = s.split('-')
+        return int(y), int(m), int(d)
+    s = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', s)
+    parts = s.split()
+    if len(parts) == 3:
+        try:
+            return int(parts[2]), _MONTH_MAP.get(parts[1].lower(), 0), int(parts[0])
+        except (ValueError, KeyError):
+            pass
+    if len(parts) == 2:
+        try:
+            return int(parts[1]), _MONTH_MAP.get(parts[0].lower(), 0), 0
+        except (ValueError, KeyError):
+            pass
+    if len(parts) == 1:
+        try:
+            return int(parts[0]), 0, 0
+        except ValueError:
+            pass
+    return None
+
+
+def _resolve_place(db, query: str):
+    """Return a place by ID or name search. Prints options and exits if ambiguous."""
+    place = db.get_place_from_gramps_id(query)
+    if place:
+        return place
+    all_places = [db.get_place_from_handle(h) for h in db.get_place_handles()]
+    matches = sorted(
+        [p for p in all_places if query.lower() in p.get_name().get_value().lower()],
+        key=lambda p: p.get_name().get_value().lower(),
+    )
+    if not matches:
+        console.print(f"[red]No place found matching {query!r}[/red]")
+        raise typer.Exit(1)
+    if len(matches) == 1:
+        return matches[0]
+    console.print(f"[yellow]{len(matches)} places match {query!r} — be more specific:[/yellow]")
+    console.print(_place_table(matches))
+    raise typer.Exit(1)
+
+
+@app.command("add-event", no_args_is_help=True)
+def add_event(
+    event_type_str: str = typer.Argument(..., help=f"Event type: {', '.join(EVENT_TYPE_MAP)}"),
+    person_id: str = typer.Argument(..., help="Person ID"),
+    date: Optional[str] = typer.Option(None, "--date", help="Date: year or 'DD Mon YYYY'"),
+    place_query: Optional[str] = typer.Option(None, "--place", help="Place name or ID"),
+    gallery: Optional[Path] = typer.Option(None, "--gallery", help="Media file to attach"),
+):
+    """Add a single-person event and link it to a person."""
+    event_type_int = EVENT_TYPE_MAP.get(event_type_str.lower())
+    if event_type_int is None:
+        console.print(f"[red]Unknown event type {event_type_str!r}. Choose from: {', '.join(EVENT_TYPE_MAP)}[/red]")
+        raise typer.Exit(1)
+
+    parsed_date = None
+    if date:
+        parsed_date = _parse_date(date)
+        if parsed_date is None:
+            console.print(f"[red]Could not parse date {date!r}[/red]")
+            raise typer.Exit(1)
+
+    if gallery and not gallery.exists():
+        console.print(f"[red]File not found: {gallery}[/red]")
+        raise typer.Exit(1)
+
+    db = _open_db(write=True)
+    try:
+        person = db.get_person_from_gramps_id(person_id)
+        if not person:
+            console.print(f"[red]Person {person_id!r} not found[/red]")
+            raise typer.Exit(1)
+
+        place = _resolve_place(db, place_query) if place_query else None
+
+        summary = Table(show_header=False)
+        summary.add_column("Field", style="bold")
+        summary.add_column("Value")
+        summary.add_row("Person", f"{person_id} — {_person_name(person)}")
+        summary.add_row("Type", event_type_str)
+        if parsed_date:
+            summary.add_row("Date", date)
+        if place:
+            summary.add_row("Place", f"{place.get_name().get_value()} ({place.get_gramps_id()})")
+        if gallery:
+            summary.add_row("Gallery", str(gallery))
+        console.print(summary)
+
+        _confirm()
+
+        with DbTxn(f'Add {event_type_str} event', db) as trans:
+            event = Event()
+            event.set_type(EventType(event_type_int))
+
+            if parsed_date:
+                y, m, d = parsed_date
+                dt = Date()
+                dt.set_yr_mon_day(y, m, d)
+                event.set_date_object(dt)
+
+            if place:
+                event.set_place_handle(place.get_handle())
+
+            if gallery:
+                path_str = str(gallery.resolve())
+                existing = {db.get_media_from_handle(h).get_path(): h for h in db.get_media_handles()}
+                if path_str in existing:
+                    media_handle = existing[path_str]
+                else:
+                    mime = mimetypes.guess_type(path_str)[0] or 'image/jpeg'
+                    media = Media()
+                    media.set_path(path_str)
+                    media.set_mime_type(mime)
+                    media.set_description(gallery.stem)
+                    media_handle = db.add_media(media, trans)
+                mref = MediaRef()
+                mref.set_reference_handle(media_handle)
+                event.add_media_reference(mref)
+
+            db.add_event(event, trans)
+
+            eref = EventRef()
+            eref.set_reference_handle(event.get_handle())
+            eref.set_role(EventRoleType(EventRoleType.PRIMARY))
+            person.add_event_ref(eref)
+            db.commit_person(person, trans)
+
+        console.print(f"[green]Event {event.get_gramps_id()} created and linked to {person_id}[/green]")
     finally:
         db.close()
 
