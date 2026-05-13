@@ -429,20 +429,22 @@ def build():
                     couple_photos.append({**photo, 'url': process_photo(photo, media_dir, pd['gramps_id'])})
         event_out = events_dir / slug
         event_out.mkdir(exist_ok=True)
-        date_str = f' {event_data["date"]}' if event_data['date'] else ''
         couple = event_data.get('couple')
         people = event_data.get('people', [])
-        if couple:
+        if event_data['type'] == 'Census' and event_data.get('description'):
+            page_title = f"{event_data['description']} — Family Tree"
+        elif couple:
             names = ' and '.join(p['full_name'] for p in couple if p)
             person_str = f' of {names}' if names else ''
+            page_title = f"{event_data['type']}{person_str} — Family Tree"
         elif len(people) == 1:
-            person_str = f' of {people[0]["full_name"]}'
+            page_title = f"{event_data['type']} of {people[0]['full_name']} — Family Tree"
         else:
-            person_str = ''
+            page_title = f"{event_data['type']} — Family Tree"
         (event_out / 'index.html').write_text(render(
             'event',
             base='../../',
-            page_title=f"{event_data['type']}{person_str} — Family Tree",
+            page_title=page_title,
             event=event_data,
             photos=photos,
             couple_photos=couple_photos,
