@@ -3,19 +3,28 @@
     <link tal:condition="event_map_json != '[]'" rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   </tal:block>
   <div metal:fill-slot="content" tal:omit-tag="1">
-    <p><a href="../">← Events</a></p>
-
-    <tal:block tal:define="single len(event['people']) == 1;
-                            single_person event['people'][0] if len(event['people']) == 1 else None">
+<tal:block tal:define="single len(event['people']) == 1;
+                            single_person event['people'][0] if len(event['people']) == 1 else None;
+                            couple event['couple']">
 
     <h1>
       ${event['type']}
-      <tal:block tal:condition="single"> of
+      <tal:block tal:condition="couple"> of
+        <tal:block tal:condition="couple[0]">
+          <a href="../../people/${couple[0]['gramps_id']}/"
+             tal:attributes="class 'male' if couple[0]['gender'] == 1 else ('female' if couple[0]['gender'] == 0 else None)">${couple[0]['full_name']}</a>
+        </tal:block>
+        <tal:block tal:condition="couple[0] and couple[1]"> and </tal:block>
+        <tal:block tal:condition="couple[1]">
+          <a href="../../people/${couple[1]['gramps_id']}/"
+             tal:attributes="class 'male' if couple[1]['gender'] == 1 else ('female' if couple[1]['gender'] == 0 else None)">${couple[1]['full_name']}</a>
+        </tal:block>
+      </tal:block>
+      <tal:block tal:condition="not couple and single"> of
         <a href="../../people/${single_person['gramps_id']}/"
            tal:attributes="class 'male' if single_person['gender'] == 1 else ('female' if single_person['gender'] == 0 else None)">${single_person['full_name']}</a>
       </tal:block>
-      <span class="years" tal:condition="event['date']">${event['date']}</span>
-      <span class="ancestor-badge" tal:condition="is_ancestor_event">ancestor event</span>
+      <span class="ancestor-badge" tal:condition="is_ancestor_event and not couple">ancestor</span>
     </h1>
 
     <div class="photos" tal:condition="photos">
@@ -35,6 +44,10 @@
     </div>
 
     <table class="events">
+      <tr tal:condition="event['date']">
+        <th>Date</th>
+        <td>${event['date']}</td>
+      </tr>
       <tr tal:condition="event['place']">
         <th>Place</th>
         <td>

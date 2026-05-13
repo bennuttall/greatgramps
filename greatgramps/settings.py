@@ -37,10 +37,7 @@ class Config(BaseModel):
 @cache
 def get_config() -> Config:
     settings = Settings()
-    print(f"Loading config: {settings.config}")
     with open(settings.config) as f:
         data = yaml.safe_load(f)
     data['root_path'] = settings.config.parent.absolute()
-    config = Config.model_validate(data)
-    print(f"  db_path: {config.db_path}")
-    return config
+    return Config.model_validate(data)

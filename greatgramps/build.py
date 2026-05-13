@@ -430,15 +430,19 @@ def build():
         event_out = events_dir / slug
         event_out.mkdir(exist_ok=True)
         date_str = f' {event_data["date"]}' if event_data['date'] else ''
+        couple = event_data.get('couple')
         people = event_data.get('people', [])
-        if len(people) == 1:
+        if couple:
+            names = ' and '.join(p['full_name'] for p in couple if p)
+            person_str = f' of {names}' if names else ''
+        elif len(people) == 1:
             person_str = f' of {people[0]["full_name"]}'
         else:
             person_str = ''
         (event_out / 'index.html').write_text(render(
             'event',
             base='../../',
-            page_title=f"{event_data['type']}{person_str}{date_str} — Family Tree",
+            page_title=f"{event_data['type']}{person_str} — Family Tree",
             event=event_data,
             photos=photos,
             couple_photos=couple_photos,

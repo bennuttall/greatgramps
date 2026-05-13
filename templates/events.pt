@@ -1,6 +1,7 @@
 <div metal:use-macro="layout">
   <div metal:fill-slot="content" tal:omit-tag="1">
     <h1>Events <span class="years">(${format(len(events), ',')})</span></h1>
+    <input type="search" id="name-search" placeholder="Search names…">
     <div id="filters" class="event-filters"></div>
     <table class="events-table" id="events-table">
       <thead>
@@ -60,10 +61,13 @@
     let ancestorOnly = false;
 
     function applyFilters() {
+      const words = document.getElementById('name-search').value.toLowerCase().split(/\s+/).filter(Boolean);
       rows.forEach(r => {
         const typeMatch = activeType === null || r.dataset.type === activeType;
         const ancestorMatch = !ancestorOnly || r.dataset.ancestor === 'true';
-        r.hidden = !(typeMatch && ancestorMatch);
+        const name = r.cells[2].textContent.toLowerCase();
+        const nameMatch = words.every(w => name.includes(w));
+        r.hidden = !(typeMatch && ancestorMatch && nameMatch);
       });
     }
 
@@ -94,6 +98,8 @@
     types.forEach(t => filtersEl.appendChild(makeTypeButton(t, t)));
     filtersEl.appendChild(document.createElement('span'));
     filtersEl.appendChild(ancestorBtn);
+
+    document.getElementById('name-search').addEventListener('input', applyFilters);
     </script>
   </tal:block>
 </div>

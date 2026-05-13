@@ -18,7 +18,7 @@ def event_url_slug(gramps_id):
 def _resolve_media_path(path):
     p = Path(path)
     if not p.is_absolute():
-        p = Path.home() / p
+        p = get_config().validated_db_path / p
     return p
 
 

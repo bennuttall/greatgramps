@@ -46,12 +46,12 @@
     updateCount(total);
 
     function applyFilters() {
-      const q = document.getElementById('search').value.toLowerCase();
+      const words = document.getElementById('search').value.toLowerCase().split(/\s+/).filter(Boolean);
       const ancestorsOnly = document.getElementById('ancestors-only').checked;
       let visible = 0;
       rows.forEach(row => {
         const name = (row.cells[0].dataset.name || row.cells[0].textContent).toLowerCase();
-        const show = name.includes(q) && (!ancestorsOnly || row.dataset.ancestor);
+        const show = words.every(w => name.includes(w)) && (!ancestorsOnly || row.dataset.ancestor);
         row.hidden = !show;
         if (show) visible++;
       });

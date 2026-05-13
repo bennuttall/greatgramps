@@ -120,7 +120,7 @@ header a.secondary:hover { color: #333; }
 }
 
 /* Search page */
-#search {
+#search, #name-search {
   font-size: 1rem;
   font-family: inherit;
   padding: 0.4rem 0.6rem;

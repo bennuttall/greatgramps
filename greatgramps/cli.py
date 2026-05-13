@@ -321,20 +321,23 @@ def add_event_people(
 
 
 EVENT_TYPE_MAP = {
-    'birth': EventType.BIRTH,
-    'death': EventType.DEATH,
-    'burial': EventType.BURIAL,
-    'baptism': EventType.BAPTISM,
-    'confirmation': EventType.CONFIRMATION,
-    'marriage': EventType.MARRIAGE,
-    'divorce': EventType.DIVORCE,
-    'occupation': EventType.OCCUPATION,
-    'residence': EventType.RESIDENCE,
-    'census': EventType.CENSUS,
-    'military': EventType.MILITARY_SERV,
-    'education': EventType.EDUCATION,
-    'graduation': EventType.GRADUATION,
-    'retirement': EventType.RETIREMENT,
+    'birth': EventType(EventType.BIRTH),
+    'death': EventType(EventType.DEATH),
+    'burial': EventType(EventType.BURIAL),
+    'baptism': EventType(EventType.BAPTISM),
+    'confirmation': EventType(EventType.CONFIRMATION),
+    'marriage': EventType(EventType.MARRIAGE),
+    'divorce': EventType(EventType.DIVORCE),
+    'occupation': EventType(EventType.OCCUPATION),
+    'residence': EventType(EventType.RESIDENCE),
+    'census': EventType(EventType.CENSUS),
+    'military': EventType(EventType.MILITARY_SERV),
+    'education': EventType(EventType.EDUCATION),
+    'graduation': EventType(EventType.GRADUATION),
+    'retirement': EventType(EventType.RETIREMENT),
+    'probate': EventType((EventType.CUSTOM, 'Probate')),
+    'conviction': EventType((EventType.CUSTOM, 'Conviction')),
+    'sentencing': EventType((EventType.CUSTOM, 'Sentencing')),
 }
 
 _MONTH_MAP = {
@@ -401,8 +404,8 @@ def add_event(
     gallery: Optional[Path] = typer.Option(None, "--gallery", help="Media file to attach"),
 ):
     """Add a single-person event and link it to a person."""
-    event_type_int = EVENT_TYPE_MAP.get(event_type_str.lower())
-    if event_type_int is None:
+    event_type = EVENT_TYPE_MAP.get(event_type_str.lower())
+    if event_type is None:
         console.print(f"[red]Unknown event type {event_type_str!r}. Choose from: {', '.join(EVENT_TYPE_MAP)}[/red]")
         raise typer.Exit(1)
 
@@ -443,7 +446,7 @@ def add_event(
 
         with DbTxn(f'Add {event_type_str} event', db) as trans:
             event = Event()
-            event.set_type(EventType(event_type_int))
+            event.set_type(event_type)
 
             if parsed_date:
                 y, m, d = parsed_date
