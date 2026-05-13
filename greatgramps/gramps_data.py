@@ -616,6 +616,8 @@ def build_event_list(db, ancestor_ids):
             db.get_media_from_handle(ref.get_reference_handle()).get_mime_type().startswith('image/')
             for ref in event.get_media_list()
         )
+        lat = float(place_obj.get_latitude()) if place_obj and place_obj.get_latitude() else None
+        lon = float(place_obj.get_longitude()) if place_obj and place_obj.get_longitude() else None
         events.append({
             'gramps_id': gid,
             'url_slug': event_url_slug(gid),
@@ -626,6 +628,8 @@ def build_event_list(db, ancestor_ids):
             'couple': couple,
             'place': place_obj.get_name().get_value() if place_obj else None,
             'place_id': place_obj.get_gramps_id() if place_obj else None,
+            'lat': lat,
+            'lon': lon,
             'is_ancestor_event': is_ancestor_event,
             'has_photo': has_photo,
         })

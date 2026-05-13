@@ -1,4 +1,7 @@
 <div metal:use-macro="layout">
+  <tal:block metal:fill-slot="head_extra">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  </tal:block>
   <div metal:fill-slot="content" tal:omit-tag="1">
     <h1>Events <span class="years">(${format(len(events), ',')})</span></h1>
     <input type="search" id="name-search" placeholder="Search names…">
@@ -10,7 +13,10 @@
       <tbody>
         <tr tal:repeat="event events"
             data-type="${event['type']}"
-            tal:attributes="data-ancestor 'true' if event['is_ancestor_event'] else None">
+            tal:attributes="data-ancestor 'true' if event['is_ancestor_event'] else None;
+                            data-lat event['lat'] if event['lat'] else None;
+                            data-lon event['lon'] if event['lon'] else None;
+                            data-url event['url_slug'] + '/' if event['lat'] else None">
           <td class="year">${event['year'] or ''}</td>
           <td>
             <a href="${event['url_slug']}/">${event['type']}</a>
@@ -49,8 +55,10 @@
         </tr>
       </tbody>
     </table>
+    <div id="events-map"></div>
   </div>
   <tal:block metal:fill-slot="scripts">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
     const rows = Array.from(document.querySelectorAll('#events-table tbody tr'));
     const filtersEl = document.getElementById('filters');
@@ -69,6 +77,7 @@
         const nameMatch = words.every(w => name.includes(w));
         r.hidden = !(typeMatch && ancestorMatch && nameMatch);
       });
+      updateMap();
     }
 
     function makeTypeButton(label, value) {
@@ -100,6 +109,36 @@
     filtersEl.appendChild(ancestorBtn);
 
     document.getElementById('name-search').addEventListener('input', applyFilters);
+
+    const eventsMap = L.map('events-map');
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(eventsMap);
+    const markersLayer = L.layerGroup().addTo(eventsMap);
+
+    function updateMap() {
+      markersLayer.clearLayers();
+      const groups = {};
+      rows.filter(r => !r.hidden && r.dataset.lat).forEach(r => {
+        const key = r.dataset.lat + ',' + r.dataset.lon;
+        if (!groups[key]) groups[key] = { lat: +r.dataset.lat, lon: +r.dataset.lon, place: r.cells[3].textContent.trim(), items: [] };
+        const link = r.cells[1].querySelector('a');
+        groups[key].items.push({
+          label: link ? link.textContent : r.cells[1].textContent.trim(),
+          person: r.cells[2].textContent.trim(),
+          url: r.dataset.url,
+        });
+      });
+      const pts = Object.values(groups);
+      if (!pts.length) return;
+      pts.forEach(g => {
+        const lines = g.items.map(i => '<a href="' + i.url + '">' + i.label + '</a>' + (i.person ? ' — ' + i.person : '')).join('<br>');
+        L.marker([g.lat, g.lon]).addTo(markersLayer).bindPopup('<strong>' + g.place + '</strong><br>' + lines);
+      });
+      eventsMap.fitBounds(pts.map(g => [g.lat, g.lon]), { padding: [20, 20], maxZoom: 10 });
+    }
+
+    updateMap();
     </script>
   </tal:block>
 </div>
