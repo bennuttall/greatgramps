@@ -108,6 +108,17 @@ header a.secondary:hover { color: #333; }
   white-space: nowrap;
 }
 
+.photo-icon {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 0.3em;
+  opacity: 0.4;
+}
+
+.photo-icon svg {
+  fill: currentColor;
+}
+
 /* Search page */
 #search {
   font-size: 1rem;

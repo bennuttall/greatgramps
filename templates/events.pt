@@ -11,7 +11,14 @@
             data-type="${event['type']}"
             tal:attributes="data-ancestor 'true' if event['is_ancestor_event'] else None">
           <td class="year">${event['year'] or ''}</td>
-          <td><a href="${event['url_slug']}/">${event['type']}</a></td>
+          <td>
+            <a href="${event['url_slug']}/">${event['type']}</a>
+            <span tal:condition="event['has_photo']" class="photo-icon" title="Has image">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+                <path d="M6 2l1.5-2h1L10 2h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h3zm2 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+              </svg>
+            </span>
+          </td>
           <td>
             <span tal:condition="event['couple']">
               <span tal:condition="event['couple'][0]"

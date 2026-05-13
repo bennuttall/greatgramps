@@ -138,6 +138,10 @@ def _event_dict(db, event, birth_year, desc=None, desc_url=None, desc_gender=Non
     event_day = date_obj.get_day() or 0
     age = max(0, event_year - birth_year - 1) if (show_age and event_year and birth_year) else None
     gid = event.get_gramps_id()
+    has_photo = any(
+        db.get_media_from_handle(ref.get_reference_handle()).get_mime_type().startswith('image/')
+        for ref in event.get_media_list()
+    )
     return {
         'gramps_id': gid,
         'url_slug': event_url_slug(gid),
@@ -153,6 +157,7 @@ def _event_dict(db, event, birth_year, desc=None, desc_url=None, desc_gender=Non
         'description_url': desc_url,
         'description_gender': desc_gender,
         'age': age,
+        'has_photo': has_photo,
     }
 
 
@@ -607,6 +612,10 @@ def build_event_list(db, ancestor_ids):
         place_h = event.get_place_handle()
         place_obj = db.get_place_from_handle(place_h) if place_h else None
         gid = event.get_gramps_id()
+        has_photo = any(
+            db.get_media_from_handle(ref.get_reference_handle()).get_mime_type().startswith('image/')
+            for ref in event.get_media_list()
+        )
         events.append({
             'gramps_id': gid,
             'url_slug': event_url_slug(gid),
@@ -618,6 +627,7 @@ def build_event_list(db, ancestor_ids):
             'place': place_obj.get_name().get_value() if place_obj else None,
             'place_id': place_obj.get_gramps_id() if place_obj else None,
             'is_ancestor_event': is_ancestor_event,
+            'has_photo': has_photo,
         })
 
     events.sort(key=lambda e: e['year'] or 9999)
@@ -725,11 +735,14 @@ def _collect_photos(db, obj):
     photos = []
     for ref in obj.get_media_list():
         media = db.get_media_from_handle(ref.get_reference_handle())
-        if not media.get_mime_type().startswith('image/'):
+        mime = media.get_mime_type()
+        if not mime:
+            raise ValueError(f"Media has no MIME type: {media.get_gramps_id()} ({media.get_path()})")
+        if not mime.startswith('image/'):
             continue
         src = _resolve_media_path(media.get_path())
         if not src.exists():
-            continue
+            raise FileNotFoundError(f"Media file not found: {src} ({media.get_gramps_id()})")
         photos.append({
             'media_id': media.get_gramps_id(),
             'src': src,

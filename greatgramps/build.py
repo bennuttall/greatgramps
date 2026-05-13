@@ -250,6 +250,9 @@ def build():
         event_map_json = json.dumps(list(map_points.values()))
         num_ancestors = len(person_ancestors) - 1
         all_descendants = collect_all_descendants(db, p)
+        for desc_gid, desc_data in all_descendants.items():
+            desc_data['is_ancestor'] = desc_gid in my_ancestors and desc_gid != config.me
+            desc_data['is_me'] = desc_gid == config.me
         num_descendants = len(all_descendants)
         descendant_generations = group_descendants_by_generation(all_descendants)
         html = render(
@@ -259,7 +262,7 @@ def build():
             person=data,
             father=person_data(db, father_p) if father_p else None,
             mother=person_data(db, mother_p) if mother_p else None,
-            children=[person_data(db, c) for c in children_p],
+            children=[{**person_data(db, c), 'is_ancestor': c.get_gramps_id() in my_ancestors} for c in children_p],
             siblings=get_siblings(db, p),
             spouses=spouses,
             events=events,
@@ -427,10 +430,15 @@ def build():
         event_out = events_dir / slug
         event_out.mkdir(exist_ok=True)
         date_str = f' {event_data["date"]}' if event_data['date'] else ''
+        people = event_data.get('people', [])
+        if len(people) == 1:
+            person_str = f' of {people[0]["full_name"]}'
+        else:
+            person_str = ''
         (event_out / 'index.html').write_text(render(
             'event',
             base='../../',
-            page_title=f"{event_data['type']}{date_str} — Family Tree",
+            page_title=f"{event_data['type']}{person_str}{date_str} — Family Tree",
             event=event_data,
             photos=photos,
             couple_photos=couple_photos,
