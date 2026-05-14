@@ -6,8 +6,8 @@
     <table id="surnames-table">
       <thead>
         <tr>
-          <th data-col="0">Surname</th>
-          <th data-col="1">People</th>
+          <th data-col="0" class="sortable sort-asc">Surname</th>
+          <th data-col="1" class="sortable">People</th>
         </tr>
       </thead>
       <tbody>

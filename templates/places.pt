@@ -12,9 +12,9 @@
     <table id="places-table" class="events-table">
       <thead>
         <tr>
-          <th data-col="0">Place</th>
-          <th data-col="1">Type</th>
-          <th data-col="2">Events</th>
+          <th data-col="0" class="sortable sort-asc">Place</th>
+          <th data-col="1" class="sortable">Type</th>
+          <th data-col="2" class="sortable">Events</th>
         </tr>
       </thead>
       <tbody>

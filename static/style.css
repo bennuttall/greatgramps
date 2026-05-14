@@ -159,8 +159,10 @@ header a.secondary:hover { color: #333; }
   cursor: pointer;
 }
 
-#people-table th.sort-asc::after, #places-table th.sort-asc::after, #surnames-table th.sort-asc::after { content: ' ↑'; }
-#people-table th.sort-desc::after, #places-table th.sort-desc::after, #surnames-table th.sort-desc::after { content: ' ↓'; }
+th.sortable { white-space: nowrap; cursor: pointer; }
+th.sortable::after { content: ' ↕'; opacity: 0.3; }
+th.sort-asc::after { content: ' ↓'; opacity: 1; }
+th.sort-desc::after { content: ' ↑'; opacity: 1; }
 
 #people-table td:nth-child(n+2) { color: #666; font-size: 0.9em; }
 

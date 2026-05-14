@@ -7,12 +7,12 @@
     <table id="people-table">
       <thead>
         <tr>
-          <th data-col="0">Name</th>
-          <th data-col="1">Gender</th>
-          <th data-col="2">Born</th>
-          <th data-col="3">Died</th>
-          <th data-col="4">Children</th>
-          <th data-col="5">Spouses</th>
+          <th data-col="0" class="sortable sort-asc">Name</th>
+          <th data-col="1" class="sortable">Gender</th>
+          <th data-col="2" class="sortable">Born</th>
+          <th data-col="3" class="sortable">Died</th>
+          <th data-col="4" class="sortable">Children</th>
+          <th data-col="5" class="sortable">Spouses</th>
         </tr>
       </thead>
       <tbody>

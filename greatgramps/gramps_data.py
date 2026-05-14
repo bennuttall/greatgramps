@@ -711,6 +711,9 @@ def build_event_list(db, ancestor_ids):
         )
         lat = float(place_obj.get_latitude()) if place_obj and place_obj.get_latitude() else None
         lon = float(place_obj.get_longitude()) if place_obj and place_obj.get_longitude() else None
+        grave_url = None
+        if etype == int(EventType.BURIAL):
+            grave_url = next((p['grave_url'] for p in all_people if p.get('grave_url')), None)
         events.append({
             'gramps_id': gid,
             'url_slug': event_url_slug(gid),
@@ -725,6 +728,7 @@ def build_event_list(db, ancestor_ids):
             'lon': lon,
             'is_ancestor_event': is_ancestor_event,
             'has_photo': has_photo,
+            'grave_url': grave_url,
         })
 
     events.sort(key=lambda e: e['year'] or 9999)
