@@ -7,8 +7,7 @@
                             single_person event['people'][0] if len(event['people']) == 1 else None;
                             couple event['couple']">
 
-    <h1 tal:condition="event['type'] == 'Census' and event['description']">${event['description']}</h1>
-    <h1 tal:condition="not (event['type'] == 'Census' and event['description'])">
+    <h1>
       ${event['type']}
       <tal:block tal:condition="couple"> of
         <tal:block tal:condition="couple[0]">

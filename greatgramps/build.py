@@ -441,13 +441,30 @@ def build():
             page_title = f"{event_data['type']} of {people[0]['full_name']} — Family Tree"
         else:
             page_title = f"{event_data['type']} — Family Tree"
+        if event_data['type'] == 'Census':
+            template = 'census'
+        elif event_data['type'] == 'Marriage':
+            template = 'marriage'
+        else:
+            template = 'event'
+        couple_details = []
+        if template == 'marriage':
+            for pd in filter(None, event_data.get('couple') or []):
+                p_obj = db.get_person_from_gramps_id(pd['gramps_id'])
+                father_obj, mother_obj = get_parents(db, p_obj) if p_obj else (None, None)
+                couple_details.append({
+                    **pd,
+                    'father': person_data(db, father_obj) if father_obj else None,
+                    'mother': person_data(db, mother_obj) if mother_obj else None,
+                })
         (event_out / 'index.html').write_text(render(
-            'event',
+            template,
             base='../../',
             page_title=page_title,
             event=event_data,
             photos=photos,
             couple_photos=couple_photos,
+            couple_details=couple_details,
             children=event_data.get('children', []),
             is_ancestor_event=is_ancestor_event,
             ancestor_ids=ancestor_ids,

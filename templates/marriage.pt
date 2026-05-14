@@ -1,0 +1,133 @@
+<div metal:use-macro="layout">
+  <tal:block metal:fill-slot="head_extra" tal:condition="event_map_json != '[]'">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  </tal:block>
+  <div metal:fill-slot="content" tal:omit-tag="1">
+<tal:block tal:define="couple event['couple']">
+
+    <h1>
+      Marriage
+      <tal:block tal:condition="couple[0]"> of
+        <a href="../../people/${couple[0]['gramps_id']}/"
+           tal:attributes="class 'male' if couple[0]['gender'] == 1 else ('female' if couple[0]['gender'] == 0 else None)">${couple[0]['full_name']}</a>
+      </tal:block>
+      <tal:block tal:condition="couple[0] and couple[1]"> and </tal:block>
+      <tal:block tal:condition="couple[1]">
+        <a href="../../people/${couple[1]['gramps_id']}/"
+           tal:attributes="class 'male' if couple[1]['gender'] == 1 else ('female' if couple[1]['gender'] == 0 else None)">${couple[1]['full_name']}</a>
+      </tal:block>
+      <span class="ancestor-badge" tal:condition="is_ancestor_event">ancestor</span>
+    </h1>
+
+    <div class="photos" tal:condition="couple_photos">
+      <a tal:repeat="photo couple_photos" href="${photo['url']}">
+        <img src="${photo['url']}"
+             alt="${photo['description']}"
+             class="person-photo">
+      </a>
+    </div>
+
+    <table class="events">
+      <tr tal:condition="event['date']">
+        <th>Date</th>
+        <td>${event['date']}</td>
+      </tr>
+      <tr tal:condition="event['place']">
+        <th>Place</th>
+        <td>
+          <a tal:condition="event['place_id']" href="../../places/${event['place_id']}/">${event['place']}</a>
+          <span tal:condition="not event['place_id']">${event['place']}</span>
+        </td>
+      </tr>
+      <tr tal:condition="event['description']">
+        <th>Description</th>
+        <td>${event['description']}</td>
+      </tr>
+    </table>
+
+    <div class="couple-details" tal:condition="couple_details">
+      <div tal:repeat="spouse couple_details" class="spouse-detail">
+        <h2>
+          <a href="../../people/${spouse['gramps_id']}/"
+             tal:attributes="class 'male' if spouse['gender'] == 1 else ('female' if spouse['gender'] == 0 else None)">${spouse['full_name']}</a>
+        </h2>
+        <table class="events">
+          <tr tal:condition="event['year'] and spouse['birth_year']">
+            <th>Age at marriage</th>
+            <td>${event['year'] - spouse['birth_year']}</td>
+          </tr>
+          <tr tal:condition="spouse['birth_year']">
+            <th>Born</th>
+            <td>
+              ${spouse['birth_year']}
+              <tal:block tal:condition="spouse['birth_place']"> in ${spouse['birth_place']}</tal:block>
+            </td>
+          </tr>
+          <tr tal:condition="spouse['father']">
+            <th>Father</th>
+            <td>
+              <a href="../../people/${spouse['father']['gramps_id']}/"
+                 tal:attributes="class 'male' if spouse['father']['gender'] == 1 else ('female' if spouse['father']['gender'] == 0 else None)">${spouse['father']['full_name']}</a>
+            </td>
+          </tr>
+          <tr tal:condition="spouse['mother']">
+            <th>Mother</th>
+            <td>
+              <a href="../../people/${spouse['mother']['gramps_id']}/"
+                 tal:attributes="class 'male' if spouse['mother']['gender'] == 1 else ('female' if spouse['mother']['gender'] == 0 else None)">${spouse['mother']['full_name']}</a>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <div id="map" tal:condition="event_map_json != '[]'"></div>
+
+    <tal:block tal:condition="event['notes']">
+      <h2>Notes</h2>
+      <pre class="event-note" tal:repeat="note event['notes']">${note}</pre>
+    </tal:block>
+
+    <tal:block tal:condition="children">
+      <h2>Children</h2>
+      <table class="events-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Born</th>
+            <th>Died</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr tal:repeat="child children">
+            <td>
+              <a href="../../people/${child['gramps_id']}/"
+                 tal:attributes="class 'male' if child['gender'] == 1 else ('female' if child['gender'] == 0 else None)">${child['full_name']}</a>
+            </td>
+            <td class="year">${child['birth_year'] or ''}</td>
+            <td class="year">${child['death_year'] or ''}</td>
+          </tr>
+        </tbody>
+      </table>
+    </tal:block>
+
+</tal:block>
+  </div>
+  <tal:block metal:fill-slot="scripts">
+    <script tal:condition="event_map_json != '[]'"
+            src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script tal:condition="event_map_json != '[]'">
+    var points = ${structure: event_map_json};
+    var map = L.map('map');
+    var bounds = points.map(p => [p.lat, p.lon]);
+    map.fitBounds(bounds, {padding: [20, 20], maxZoom: 10});
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+    points.forEach(function(p) {
+      L.marker([p.lat, p.lon]).addTo(map)
+        .bindPopup('<a href="' + p.url + '">' + p.name + '</a>');
+    });
+    </script>
+  </tal:block>
+</div>

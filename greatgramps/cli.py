@@ -14,11 +14,13 @@ from rich.table import Table
 
 from gramps.gen.db import DBMODE_R, DBMODE_W, DbTxn
 from gramps.gen.lib import (
-    Date, Event, EventRef, EventRoleType, EventType,
-    Media, MediaRef, Place, PlaceName, PlaceType, Url, UrlType,
+    ChildRef, Date, Event, EventRef, EventRoleType, EventType,
+    Family, Media, MediaRef, Name, NameType, Person, Place, PlaceName,
+    PlaceType, Surname, Url, UrlType,
 )
 from gramps.plugins.db.dbapi.sqlite import SQLite
 
+from .gramps_data import get_event, get_year
 from .settings import get_config
 
 
@@ -138,7 +140,17 @@ def add_place(query: str = typer.Argument(..., help="Location to geocode and add
     place_type_int = NOMINATIM_TYPE_MAP.get(addresstype, PlaceType.UNKNOWN)
     name = display_name.split(',')[0].strip()
 
-    console.print(f"Found: {display_name}")
+    summary = Table(show_header=False)
+    summary.add_column("Field", style="bold")
+    summary.add_column("Value")
+    summary.add_row("Name", name)
+    summary.add_row("Full", display_name)
+    summary.add_row("Type", addresstype)
+    summary.add_row("Lat", str(lat))
+    summary.add_row("Lon", str(lon))
+    console.print(summary)
+
+    _confirm()
 
     db = _open_db(write=True)
     try:
@@ -281,6 +293,24 @@ def add_event_people(
             console.print(f"[red]Event {event_id!r} not found[/red]")
             raise typer.Exit(1)
 
+        event_year = event.get_date_object().get_year() or None
+
+        def _person_row(person):
+            birth = get_event(db, person, EventType.BIRTH)
+            birth_year = get_year(birth)
+            age = str(event_year - birth_year) if event_year and birth_year else ""
+            return (person, _person_name(person), str(birth_year) if birth_year else "", age)
+
+        def _people_age_table(rows):
+            table = Table()
+            table.add_column("ID")
+            table.add_column("Name")
+            table.add_column("Born")
+            table.add_column("Age")
+            for person, name, born, age in rows:
+                table.add_row(person.get_gramps_id(), name, born, age)
+            return table
+
         to_add, skipped = [], []
         for pid in person_ids:
             person = db.get_person_from_gramps_id(pid)
@@ -288,34 +318,54 @@ def add_event_people(
                 console.print(f"[red]Person {pid!r} not found[/red]")
                 raise typer.Exit(1)
             if any(e.get_reference_handle() == event.get_handle() for e in person.get_event_ref_list()):
-                skipped.append((person, _person_name(person)))
+                skipped.append(_person_row(person))
             else:
-                to_add.append((person, _person_name(person)))
+                to_add.append(_person_row(person))
 
         console.print(f"[bold]Event:[/bold] {event.get_gramps_id()} — {_event_label(event)}")
 
         if skipped:
             console.print("\n[yellow]Already linked (skipping):[/yellow]")
-            console.print(_people_table(skipped))
+            console.print(_people_age_table(skipped))
 
         if not to_add:
             console.print("No new people to add.")
             return
 
         console.print("\n[bold]To add:[/bold]")
-        console.print(_people_table(to_add))
+        console.print(_people_age_table(to_add))
 
         _confirm()
 
         with DbTxn('Add people to event', db) as trans:
-            for person, _ in to_add:
+            for person, _, _, _ in to_add:
                 eref = EventRef()
                 eref.set_reference_handle(event.get_handle())
                 eref.set_role(EventRoleType(EventRoleType.PRIMARY))
                 person.add_event_ref(eref)
                 db.commit_person(person, trans)
 
-        console.print(f"[green]Added {len(to_add)} person(s) to {event_id}[/green]")
+        console.print(f"[green]Added {len(to_add)} person(s) to {event_id}[/green]\n")
+
+        all_people = []
+        for handle in db.get_person_handles():
+            p = db.get_person_from_handle(handle)
+            for eref in p.get_event_ref_list():
+                if eref.get_reference_handle() == event.get_handle():
+                    birth = get_event(db, p, EventType.BIRTH)
+                    all_people.append((p, _person_name(p), get_year(birth)))
+                    break
+        event_year = event.get_date_object().get_year() or None
+        all_people.sort(key=lambda x: x[2] or 9999)
+        table = Table()
+        table.add_column("ID")
+        table.add_column("Name")
+        table.add_column("Born")
+        table.add_column("Age")
+        for p, name, birth_year in all_people:
+            age = str(event_year - birth_year) if event_year and birth_year else ""
+            table.add_row(p.get_gramps_id(), name, str(birth_year) if birth_year else "", age)
+        console.print(table)
     finally:
         db.close()
 
@@ -398,12 +448,12 @@ def _resolve_place(db, query: str):
 @app.command("add-event", no_args_is_help=True)
 def add_event(
     event_type_str: str = typer.Argument(..., help=f"Event type: {', '.join(EVENT_TYPE_MAP)}"),
-    person_id: str = typer.Argument(..., help="Person ID"),
+    person_ids: List[str] = typer.Argument(..., help="One or more person IDs"),
     date: Optional[str] = typer.Option(None, "--date", help="Date: year or 'DD Mon YYYY'"),
     place_query: Optional[str] = typer.Option(None, "--place", help="Place name or ID"),
     gallery: Optional[Path] = typer.Option(None, "--gallery", help="Media file to attach"),
 ):
-    """Add a single-person event and link it to a person."""
+    """Add an event and link it to one or more people."""
     event_type = EVENT_TYPE_MAP.get(event_type_str.lower())
     if event_type is None:
         console.print(f"[red]Unknown event type {event_type_str!r}. Choose from: {', '.join(EVENT_TYPE_MAP)}[/red]")
@@ -422,17 +472,19 @@ def add_event(
 
     db = _open_db(write=True)
     try:
-        person = db.get_person_from_gramps_id(person_id)
-        if not person:
-            console.print(f"[red]Person {person_id!r} not found[/red]")
-            raise typer.Exit(1)
+        people = []
+        for pid in person_ids:
+            person = db.get_person_from_gramps_id(pid)
+            if not person:
+                console.print(f"[red]Person {pid!r} not found[/red]")
+                raise typer.Exit(1)
+            people.append((person, _person_name(person)))
 
         place = _resolve_place(db, place_query) if place_query else None
 
         summary = Table(show_header=False)
         summary.add_column("Field", style="bold")
         summary.add_column("Value")
-        summary.add_row("Person", f"{person_id} — {_person_name(person)}")
         summary.add_row("Type", event_type_str)
         if parsed_date:
             summary.add_row("Date", date)
@@ -441,6 +493,8 @@ def add_event(
         if gallery:
             summary.add_row("Gallery", str(gallery))
         console.print(summary)
+        console.print("\n[bold]People:[/bold]")
+        console.print(_people_table(people))
 
         _confirm()
 
@@ -475,13 +529,15 @@ def add_event(
 
             db.add_event(event, trans)
 
-            eref = EventRef()
-            eref.set_reference_handle(event.get_handle())
-            eref.set_role(EventRoleType(EventRoleType.PRIMARY))
-            person.add_event_ref(eref)
-            db.commit_person(person, trans)
+            for person, _ in people:
+                eref = EventRef()
+                eref.set_reference_handle(event.get_handle())
+                eref.set_role(EventRoleType(EventRoleType.PRIMARY))
+                person.add_event_ref(eref)
+                db.commit_person(person, trans)
 
-        console.print(f"[green]Event {event.get_gramps_id()} created and linked to {person_id}[/green]")
+        ids = ', '.join(person_ids)
+        console.print(f"[green]Event {event.get_gramps_id()} created and linked to {ids}[/green]")
     finally:
         db.close()
 
@@ -570,6 +626,156 @@ def person_events(
         db.close()
 
 
+@app.command("list-parents", no_args_is_help=True)
+def list_parents(
+    person_id: str = typer.Argument(..., help="Person ID"),
+):
+    """List a person's parents."""
+    db = _open_db()
+    try:
+        person = db.get_person_from_gramps_id(person_id)
+        if not person:
+            console.print(f"[red]Person {person_id!r} not found[/red]")
+            raise typer.Exit(1)
+
+        console.print(f"[bold]{person_id}: {_person_name(person)}[/bold]")
+
+        handles = person.get_parent_family_handle_list()
+        if not handles:
+            console.print("No parents.")
+            return
+
+        family = db.get_family_from_handle(handles[0])
+        parents = []
+        for handle in (family.get_father_handle(), family.get_mother_handle()):
+            if handle:
+                p = db.get_person_from_handle(handle)
+                parents.append((p, _person_name(p)))
+
+        console.print(_people_table(parents))
+    finally:
+        db.close()
+
+
+@app.command("list-children", no_args_is_help=True)
+def list_children(
+    person_id: str = typer.Argument(..., help="Person ID"),
+):
+    """List a person's children."""
+    db = _open_db()
+    try:
+        person = db.get_person_from_gramps_id(person_id)
+        if not person:
+            console.print(f"[red]Person {person_id!r} not found[/red]")
+            raise typer.Exit(1)
+
+        children = []
+        for fam_handle in person.get_family_handle_list():
+            family = db.get_family_from_handle(fam_handle)
+            for cref in family.get_child_ref_list():
+                child = db.get_person_from_handle(cref.get_reference_handle())
+                birth = get_event(db, child, EventType.BIRTH)
+                birth_year = get_year(birth)
+                children.append((child, _person_name(child), birth_year))
+
+        children.sort(key=lambda c: c[2] or 9999)
+
+        console.print(f"[bold]{person_id}: {_person_name(person)}[/bold]")
+        if not children:
+            console.print("No children.")
+            return
+
+        table = Table()
+        table.add_column("ID")
+        table.add_column("Name")
+        table.add_column("Born")
+        for child, name, birth_year in children:
+            table.add_row(child.get_gramps_id(), name, str(birth_year) if birth_year else "")
+        console.print(table)
+    finally:
+        db.close()
+
+
+@app.command("list-event-people", no_args_is_help=True)
+def list_event_people(
+    event_id: str = typer.Argument(..., help="Event ID"),
+):
+    """List people attached to an event."""
+    db = _open_db()
+    try:
+        event = db.get_event_from_gramps_id(event_id)
+        if not event:
+            console.print(f"[red]Event {event_id!r} not found[/red]")
+            raise typer.Exit(1)
+
+        console.print(f"[bold]{event_id}: {_event_label(event)}[/bold]\n")
+
+        event_year = event.get_date_object().get_year() or None
+        people = []
+        for handle in db.get_person_handles():
+            person = db.get_person_from_handle(handle)
+            for eref in person.get_event_ref_list():
+                if eref.get_reference_handle() == event.get_handle():
+                    birth = get_event(db, person, EventType.BIRTH)
+                    birth_year = get_year(birth)
+                    people.append((person, _person_name(person), birth_year))
+                    break
+
+        if not people:
+            console.print("No people linked to this event.")
+            return
+
+        people.sort(key=lambda p: p[2] or 9999)
+        table = Table()
+        table.add_column("ID")
+        table.add_column("Name")
+        table.add_column("Born")
+        table.add_column("Age")
+        for person, name, birth_year in people:
+            age = str(event_year - birth_year) if event_year and birth_year else ""
+            table.add_row(person.get_gramps_id(), name, str(birth_year) if birth_year else "", age)
+        console.print(table)
+    finally:
+        db.close()
+
+
+@app.command("rm-event-person", no_args_is_help=True)
+def rm_event_person(
+    event_id: str = typer.Argument(..., help="Event ID"),
+    person_id: str = typer.Argument(..., help="Person ID to remove"),
+):
+    """Remove a person from an event."""
+    db = _open_db(write=True)
+    try:
+        event = db.get_event_from_gramps_id(event_id)
+        if not event:
+            console.print(f"[red]Event {event_id!r} not found[/red]")
+            raise typer.Exit(1)
+
+        person = db.get_person_from_gramps_id(person_id)
+        if not person:
+            console.print(f"[red]Person {person_id!r} not found[/red]")
+            raise typer.Exit(1)
+
+        erefs = person.get_event_ref_list()
+        new_erefs = [e for e in erefs if e.get_reference_handle() != event.get_handle()]
+        if len(new_erefs) == len(erefs):
+            console.print(f"[yellow]{person_id} is not linked to {event_id}[/yellow]")
+            raise typer.Exit(1)
+
+        console.print(f"[bold]Event:[/bold] {event_id} — {_event_label(event)}")
+        console.print(f"[bold]Remove:[/bold] {person_id} — {_person_name(person)}")
+        _confirm()
+
+        with DbTxn('Remove person from event', db) as trans:
+            person.set_event_ref_list(new_erefs)
+            db.commit_person(person, trans)
+
+        console.print(f"[green]Removed {person_id} from {event_id}[/green]")
+    finally:
+        db.close()
+
+
 @app.command("add-ancestry-link", no_args_is_help=True)
 def add_ancestry_link(
     person_id: str = typer.Argument(..., help="Person ID"),
@@ -603,5 +809,105 @@ def add_ancestry_link(
             db.commit_person(person, trans)
 
         console.print(f"[green]Ancestry link added to {person_id}[/green]")
+    finally:
+        db.close()
+
+
+@app.command("add-child", no_args_is_help=True)
+def add_child(
+    father_id: str = typer.Argument(..., help="Father's person ID"),
+    mother_id: str = typer.Argument(..., help="Mother's person ID"),
+    child_name: str = typer.Argument(..., help="Child's given name (surname taken from father)"),
+    dob: Optional[str] = typer.Option(None, "--dob", help="Date of birth (e.g. '1 Jan 1950' or 1950)"),
+):
+    """Add a child to a family (surname from father), creating the family if it doesn't exist."""
+    parsed_dob = None
+    if dob:
+        parsed_dob = _parse_date(dob)
+        if parsed_dob is None:
+            console.print(f"[red]Could not parse date {dob!r}[/red]")
+            raise typer.Exit(1)
+
+    db = _open_db(write=True)
+    try:
+        father = db.get_person_from_gramps_id(father_id)
+        if not father:
+            console.print(f"[red]Father {father_id!r} not found[/red]")
+            raise typer.Exit(1)
+        mother = db.get_person_from_gramps_id(mother_id)
+        if not mother:
+            console.print(f"[red]Mother {mother_id!r} not found[/red]")
+            raise typer.Exit(1)
+
+        given = child_name
+        surname = father.get_primary_name().get_surname()
+
+        existing_family = None
+        for fam_handle in father.get_family_handle_list():
+            fam = db.get_family_from_handle(fam_handle)
+            if fam.get_mother_handle() == mother.get_handle():
+                existing_family = fam
+                break
+
+        summary = Table(show_header=False)
+        summary.add_column("Field", style="bold")
+        summary.add_column("Value")
+        summary.add_row("Father", f"{father_id} — {_person_name(father)}")
+        summary.add_row("Mother", f"{mother_id} — {_person_name(mother)}")
+        summary.add_row("Child", f"{given} {surname}")
+        if parsed_dob:
+            summary.add_row("Date of birth", dob)
+        summary.add_row("Family", f"{existing_family.get_gramps_id()} (existing)" if existing_family else "new family will be created")
+        console.print(summary)
+
+        _confirm()
+
+        with DbTxn('Add child', db) as trans:
+            child = Person()
+            pname = Name()
+            pname.set_first_name(given)
+            surn = Surname()
+            surn.set_surname(surname)
+            pname.set_surname_list([surn])
+            pname.set_type(NameType(NameType.BIRTH))
+            child.set_primary_name(pname)
+            db.add_person(child, trans)
+
+            if parsed_dob:
+                birth = Event()
+                birth.set_type(EventType(EventType.BIRTH))
+                y, m, d = parsed_dob
+                dt = Date()
+                dt.set_yr_mon_day(y, m, d)
+                birth.set_date_object(dt)
+                db.add_event(birth, trans)
+                eref = EventRef()
+                eref.set_reference_handle(birth.get_handle())
+                eref.set_role(EventRoleType(EventRoleType.PRIMARY))
+                child.add_event_ref(eref)
+
+            if existing_family:
+                family = existing_family
+            else:
+                family = Family()
+                family.set_father_handle(father.get_handle())
+                family.set_mother_handle(mother.get_handle())
+                db.add_family(family, trans)
+                father.add_family_handle(family.get_handle())
+                db.commit_person(father, trans)
+                mother.add_family_handle(family.get_handle())
+                db.commit_person(mother, trans)
+
+            cref = ChildRef()
+            cref.set_reference_handle(child.get_handle())
+            family.add_child_ref(cref)
+            db.commit_family(family, trans)
+
+            child.add_parent_family_handle(family.get_handle())
+            db.commit_person(child, trans)
+
+        console.print(f"\n[green]Child {child.get_gramps_id()} ({given} {surname}) added to family {family.get_gramps_id()}[/green]")
+        if parsed_dob:
+            console.print(f"[green]Birth event {birth.get_gramps_id()} created[/green]")
     finally:
         db.close()

@@ -268,6 +268,22 @@ a:hover { color: #222; }
   margin-left: 0.5rem;
 }
 
+/* Marriage event — spouse details side by side */
+.couple-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 2rem;
+  margin: 1.5rem 0;
+}
+
+.spouse-detail h2 {
+  margin-top: 0;
+}
+
+@media (max-width: 580px) {
+  .couple-details { grid-template-columns: 1fr; }
+}
+
 /* Event detail page */
 pre.event-note {
   font-family: Georgia, serif;

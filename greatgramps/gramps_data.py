@@ -688,6 +688,8 @@ def build_event_pages_data(db):
             if p['gramps_id'] not in seen:
                 seen.add(p['gramps_id'])
                 participants.append(p)
+        if not couple:
+            participants.sort(key=lambda p: p['birth_year'] or 9999)
         gid = event.get_gramps_id()
         result[event_url_slug(gid)] = {
             'gramps_id': gid,
