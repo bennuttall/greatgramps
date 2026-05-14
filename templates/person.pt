@@ -9,6 +9,7 @@
         <span class="active">Profile</span>
         <a href="/people/${person['gramps_id']}/ancestors/">Ancestors <span class="tab-count">(${format(num_ancestors, ',')})</span></a>
         <a href="/people/${person['gramps_id']}/descendants/">Descendants <span class="tab-count">(${format(num_descendants, ',')})</span></a>
+        <a tal:condition="num_pictures" href="/people/${person['gramps_id']}/pictures/">Pictures <span class="tab-count">(${format(num_pictures, ',')})</span></a>
       </nav>
 
       <div class="profile-overview">

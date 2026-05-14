@@ -873,3 +873,41 @@ def get_photos(db, person):
 
 def get_event_photos(db, event):
     return _collect_photos(db, event)
+
+
+def get_all_person_pictures(db, person):
+    """Return all photos attached to a person or their events, with source metadata."""
+    pictures = []
+    seen_media_ids = set()
+
+    def _add(photos, page_url, page_label, year=None):
+        for p in photos:
+            if p['media_id'] in seen_media_ids:
+                continue
+            seen_media_ids.add(p['media_id'])
+            pictures.append({**p, 'page_url': page_url, 'page_label': page_label, 'year': year})
+
+    _add(_collect_photos(db, person), f'/people/{person.get_gramps_id()}/', 'Profile', year=None)
+
+    birth_year = get_year(get_event(db, person, EventType.BIRTH))
+
+    for eref in person.get_event_ref_list():
+        event = db.get_event_from_handle(eref.get_reference_handle())
+        etype = int(event.get_type())
+        label = EVENT_TYPE_LABELS.get(etype, str(event.get_type()))
+        year = event.get_date_object().get_year() or None
+        slug = event_url_slug(event.get_gramps_id())
+        _add(_collect_photos(db, event), f'/events/{slug}/', label, year=year)
+
+    for fam_handle in person.get_family_handle_list():
+        family = db.get_family_from_handle(fam_handle)
+        for eref in family.get_event_ref_list():
+            event = db.get_event_from_handle(eref.get_reference_handle())
+            etype = int(event.get_type())
+            label = EVENT_TYPE_LABELS.get(etype, str(event.get_type()))
+            year = event.get_date_object().get_year() or None
+            slug = event_url_slug(event.get_gramps_id())
+            _add(_collect_photos(db, event), f'/events/{slug}/', label, year=year)
+
+    pictures.sort(key=lambda p: p['year'] or 9999)
+    return pictures

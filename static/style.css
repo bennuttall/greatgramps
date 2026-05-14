@@ -666,3 +666,45 @@ a.female:not(.pedigree-cell) { color: #9a3a6f; }
   font-size: 1.2em;
   line-height: 1;
 }
+
+.pictures-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.picture-item {
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #eee;
+}
+
+.picture-item img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+}
+
+.picture-item:hover img {
+  opacity: 0.85;
+}
+
+.picture-caption {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8rem;
+  color: #555;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.picture-year {
+  color: #999;
+  flex-shrink: 0;
+}

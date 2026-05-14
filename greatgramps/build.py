@@ -10,7 +10,7 @@ from .gramps_data import (
     open_db, collect_all_people, collect_ancestors,
     get_parents, get_children, get_siblings, get_spouses, get_all_events,
     ancestors_with_distances, get_relation_to_me, is_related_by_marriage, get_by_marriage_relation,
-    get_photos, get_occupations, place_data, build_place_event_index, build_event_list,
+    get_photos, get_occupations, get_all_person_pictures, place_data, build_place_event_index, build_event_list,
     build_event_pages_data, build_birthday_list, person_data,
     collect_ancestor_tree, collect_descendant_tree, count_descendants,
     collect_all_descendants, group_descendants_by_generation,
@@ -228,6 +228,10 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         {**photo, 'url': process_photo(photo, media_dir, gid)}
         for photo in get_photos(db, p)
     ]
+    all_pictures = [
+        {**pic, 'url': process_photo(pic, media_dir, gid)}
+        for pic in get_all_person_pictures(db, p)
+    ]
     occupations = get_occupations(p)
     events = get_all_events(db, p)
     map_points = {}
@@ -279,6 +283,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         current_year=date.today().year,
         num_ancestors=num_ancestors,
         num_descendants=num_descendants,
+        num_pictures=len(all_pictures),
     )
     person_out = people_dir / gid
     person_out.mkdir(exist_ok=True)
@@ -311,6 +316,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         surname_url=surname_url,
         current_year=date.today().year,
         ancestors_map_json=ancestors_map_json,
+        num_pictures=len(all_pictures),
     ))
 
     desc_nodes, desc_rows, desc_cols = collect_descendant_tree(db, p)
@@ -339,6 +345,28 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         surname_url=surname_url,
         current_year=date.today().year,
         descendants_map_json=descendants_map_json,
+        num_pictures=len(all_pictures),
+    ))
+
+    pictures_dir = person_out / 'pictures'
+    pictures_dir.mkdir(exist_ok=True)
+    (pictures_dir / 'index.html').write_text(render(
+        'pictures',
+        base='/',
+        page_title=f"{data['full_name']} — Pictures",
+        person=data,
+        pictures=all_pictures,
+        num_ancestors=num_ancestors,
+        num_descendants=num_descendants,
+        is_ancestor=gid in my_ancestors and gid != config.me,
+        is_me=gid == config.me,
+        relation=relation,
+        by_marriage=by_marriage,
+        marriage_relation=marriage_relation,
+        photos=photos,
+        surname_url=surname_url,
+        current_year=date.today().year,
+        num_pictures=len(all_pictures),
     ))
 
     return {**data, 'num_children': len(children_p), 'num_spouses': len(spouses),

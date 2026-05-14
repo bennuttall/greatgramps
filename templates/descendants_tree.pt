@@ -8,6 +8,7 @@
       <a href="/people/${person['gramps_id']}/">Profile</a>
       <a href="/people/${person['gramps_id']}/ancestors/">Ancestors <span class="tab-count">(${format(num_ancestors, ',')})</span></a>
       <span class="active">Descendants <span class="tab-count">(${format(num_descendants, ',')})</span></span>
+      <a tal:condition="num_pictures" href="/people/${person['gramps_id']}/pictures/">Pictures <span class="tab-count">(${format(num_pictures, ',')})</span></a>
     </nav>
     <div class="pedigree-wrap">
       <div class="pedigree-chart" tal:attributes="style tree_grid_style">
