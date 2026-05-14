@@ -20,6 +20,7 @@ from gramps.gen.lib import (
 )
 from gramps.plugins.db.dbapi.sqlite import SQLite
 
+from .build import rebuild_pages
 from .gramps_data import get_event, get_year
 from .settings import get_config
 
@@ -89,7 +90,9 @@ def _stem_to_description(stem: str) -> str:
     return f"{year} {record_type} - {name} household"
 
 
-def _confirm():
+def _confirm(yes: bool = False):
+    if yes:
+        return
     try:
         input("Press Enter to confirm (Ctrl+C to cancel) ")
     except KeyboardInterrupt:
@@ -124,8 +127,19 @@ def _people_table(people: list[tuple]) -> Table:
     return table
 
 
+@app.command("rebuild-page", no_args_is_help=True)
+def rebuild_page(
+    ids: List[str] = typer.Argument(..., help="Person or event IDs to rebuild (e.g. I0061 E0315)"),
+):
+    """Copy static files and rebuild specific person or event pages."""
+    rebuild_pages(ids)
+
+
 @app.command("add-place", no_args_is_help=True)
-def add_place(query: str = typer.Argument(..., help="Location to geocode and add")):
+def add_place(
+    query: str = typer.Argument(..., help="Location to geocode and add"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
+):
     """Geocode a location and add it as a Place in the database."""
     console.print(f"Geocoding: [bold]{query}[/bold]")
     results = _geocode(query)
@@ -150,7 +164,7 @@ def add_place(query: str = typer.Argument(..., help="Location to geocode and add
     summary.add_row("Lon", str(lon))
     console.print(summary)
 
-    _confirm()
+    _confirm(yes)
 
     db = _open_db(write=True)
     try:
@@ -193,6 +207,7 @@ def search_place(query: str = typer.Argument(..., help="Name to search for")):
 def add_census(
     filepath: Path = typer.Argument(..., help="Path to census image file"),
     person_ids: List[str] = typer.Argument(..., help="Person IDs to link to this event"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
 ):
     """Add a census event from an image file and link people to it."""
     filepath = filepath.resolve()
@@ -228,7 +243,7 @@ def add_census(
         console.print("\n[bold]People:[/bold]")
         console.print(_people_table(people))
 
-        _confirm()
+        _confirm(yes)
 
         existing_media_paths = {
             db.get_media_from_handle(h).get_path(): h
@@ -284,6 +299,7 @@ def add_census(
 def add_event_people(
     event_id: str = typer.Argument(..., help="Event ID"),
     person_ids: List[str] = typer.Argument(..., help="Person IDs to link"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
 ):
     """Link people to an existing event."""
     db = _open_db(write=True)
@@ -335,7 +351,7 @@ def add_event_people(
         console.print("\n[bold]To add:[/bold]")
         console.print(_people_age_table(to_add))
 
-        _confirm()
+        _confirm(yes)
 
         with DbTxn('Add people to event', db) as trans:
             for person, _, _, _ in to_add:
@@ -452,6 +468,7 @@ def add_event(
     date: Optional[str] = typer.Option(None, "--date", help="Date: year or 'DD Mon YYYY'"),
     place_query: Optional[str] = typer.Option(None, "--place", help="Place name or ID"),
     gallery: Optional[Path] = typer.Option(None, "--gallery", help="Media file to attach"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
 ):
     """Add an event and link it to one or more people."""
     event_type = EVENT_TYPE_MAP.get(event_type_str.lower())
@@ -496,7 +513,7 @@ def add_event(
         console.print("\n[bold]People:[/bold]")
         console.print(_people_table(people))
 
-        _confirm()
+        _confirm(yes)
 
         with DbTxn(f'Add {event_type_str} event', db) as trans:
             event = Event()
@@ -743,6 +760,7 @@ def list_event_people(
 def rm_event_person(
     event_id: str = typer.Argument(..., help="Event ID"),
     person_id: str = typer.Argument(..., help="Person ID to remove"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
 ):
     """Remove a person from an event."""
     db = _open_db(write=True)
@@ -765,7 +783,7 @@ def rm_event_person(
 
         console.print(f"[bold]Event:[/bold] {event_id} — {_event_label(event)}")
         console.print(f"[bold]Remove:[/bold] {person_id} — {_person_name(person)}")
-        _confirm()
+        _confirm(yes)
 
         with DbTxn('Remove person from event', db) as trans:
             person.set_event_ref_list(new_erefs)
@@ -780,6 +798,7 @@ def rm_event_person(
 def add_ancestry_link(
     person_id: str = typer.Argument(..., help="Person ID"),
     url: str = typer.Argument(..., help="Full Ancestry URL"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
 ):
     """Add an Ancestry URL to a person."""
     db = _open_db(write=True)
@@ -796,7 +815,7 @@ def add_ancestry_link(
         console.print(f"[bold]{person_id}:[/bold] {_person_name(person)}")
         console.print(f"[bold]URL:[/bold]       {url}")
 
-        _confirm()
+        _confirm(yes)
 
         url_obj = Url()
         url_type = UrlType()
@@ -813,12 +832,51 @@ def add_ancestry_link(
         db.close()
 
 
+@app.command("add-grave-link", no_args_is_help=True)
+def add_grave_link(
+    person_id: str = typer.Argument(..., help="Person ID"),
+    url: str = typer.Argument(..., help="Full Find A Grave URL"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
+):
+    """Add a Find A Grave URL to a person."""
+    db = _open_db(write=True)
+    try:
+        person = db.get_person_from_gramps_id(person_id)
+        if not person:
+            console.print(f"[red]Person {person_id!r} not found[/red]")
+            raise typer.Exit(1)
+
+        existing = [u for u in person.get_url_list() if str(u.get_type()) == 'Find A Grave']
+        if existing:
+            console.print(f"[yellow]Already has Find A Grave link: {existing[0].get_path()}[/yellow]")
+
+        console.print(f"[bold]{person_id}:[/bold] {_person_name(person)}")
+        console.print(f"[bold]URL:[/bold]       {url}")
+
+        _confirm(yes)
+
+        url_obj = Url()
+        url_type = UrlType()
+        url_type.set((UrlType.CUSTOM, 'Find A Grave'))
+        url_obj.set_type(url_type)
+        url_obj.set_path(url)
+
+        with DbTxn('Add Find A Grave link', db) as trans:
+            person.add_url(url_obj)
+            db.commit_person(person, trans)
+
+        console.print(f"[green]Find A Grave link added to {person_id}[/green]")
+    finally:
+        db.close()
+
+
 @app.command("add-child", no_args_is_help=True)
 def add_child(
     father_id: str = typer.Argument(..., help="Father's person ID"),
     mother_id: str = typer.Argument(..., help="Mother's person ID"),
     child_name: str = typer.Argument(..., help="Child's given name (surname taken from father)"),
     dob: Optional[str] = typer.Option(None, "--dob", help="Date of birth (e.g. '1 Jan 1950' or 1950)"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
 ):
     """Add a child to a family (surname from father), creating the family if it doesn't exist."""
     parsed_dob = None
@@ -860,7 +918,7 @@ def add_child(
         summary.add_row("Family", f"{existing_family.get_gramps_id()} (existing)" if existing_family else "new family will be created")
         console.print(summary)
 
-        _confirm()
+        _confirm(yes)
 
         with DbTxn('Add child', db) as trans:
             child = Person()

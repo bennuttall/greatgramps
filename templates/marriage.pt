@@ -19,8 +19,8 @@
       <span class="ancestor-badge" tal:condition="is_ancestor_event">ancestor</span>
     </h1>
 
-    <div class="photos" tal:condition="couple_photos">
-      <a tal:repeat="photo couple_photos" href="${photo['url']}">
+    <div class="photos" tal:condition="photos">
+      <a tal:repeat="photo photos" href="${photo['url']}">
         <img src="${photo['url']}"
              alt="${photo['description']}"
              class="person-photo">
@@ -51,6 +51,13 @@
           <a href="../../people/${spouse['gramps_id']}/"
              tal:attributes="class 'male' if spouse['gender'] == 1 else ('female' if spouse['gender'] == 0 else None)">${spouse['full_name']}</a>
         </h2>
+        <div class="photos" tal:condition="spouse['photos']">
+          <a tal:repeat="photo spouse['photos']" href="${photo['url']}">
+            <img src="${photo['url']}"
+                 alt="${photo['description']}"
+                 class="person-photo">
+          </a>
+        </div>
         <table class="events">
           <tr tal:condition="event['year'] and spouse['birth_year']">
             <th>Age at marriage</th>

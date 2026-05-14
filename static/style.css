@@ -164,7 +164,7 @@ header a.secondary:hover { color: #333; }
 
 #people-table td:nth-child(n+2) { color: #666; font-size: 0.9em; }
 
-h1 { margin-top: 0; }
+h1 { margin-top: 0; margin-bottom: 0.25rem; }
 h2 { font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.05em; color: #444; margin-top: 2rem; }
 h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #666; margin-top: 1.5rem; margin-bottom: 0; }
 
@@ -172,6 +172,40 @@ a { color: #5a3e28; }
 a:hover { color: #222; }
 
 .years { color: #666; font-size: 0.9em; }
+
+.person-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1.5rem;
+  align-items: start;
+  margin-bottom: 1rem;
+}
+
+.person-header-info {
+  min-width: 0;
+}
+
+.person-meta-table {
+  border-collapse: collapse;
+  margin: 0.3rem 0 0;
+  font-size: 0.9em;
+  color: #666;
+}
+
+.person-meta-table td {
+  padding: 0.1rem 0.5rem 0.1rem 0;
+  vertical-align: middle;
+}
+
+.person-meta-table td:first-child {
+  white-space: nowrap;
+}
+
+.person-header-photo .person-photo {
+  max-height: 180px;
+  border-radius: 4px;
+  display: block;
+}
 
 .profile-link {
   font-size: 0.6rem;
@@ -189,11 +223,7 @@ a:hover { color: #222; }
 .profile-link.ancestry { background: #367d3a; }
 .profile-link.ancestry:hover { background: #2a5f2d; color: white; }
 
-.relation {
-  color: #666;
-  font-style: italic;
-  margin-top: -0.5rem;
-}
+
 
 .person-tabs {
   display: flex;
@@ -249,6 +279,18 @@ a:hover { color: #222; }
   background: #999;
 }
 
+.ancestor-badge.relative {
+  background: #6a5a9a;
+}
+
+.ancestor-badge.by-marriage {
+  background: #9a6a2a;
+}
+
+.ancestor-badge.unrelated {
+  background: #bbb;
+}
+
 .birthday-people {
   list-style: none;
   padding: 0;
@@ -265,7 +307,6 @@ a:hover { color: #222; }
   padding: 2px 6px;
   border-radius: 3px;
   vertical-align: middle;
-  margin-left: 0.5rem;
 }
 
 /* Marriage event — spouse details side by side */
@@ -388,7 +429,7 @@ pre.event-note {
 
 /* Person detail */
 .person-detail .events,
-.person-detail .family,
+.person-detail .profile-overview,
 .person-detail .ancestors,
 .person-detail .descendants {
   padding: 1.25rem 1.5rem;
@@ -403,13 +444,19 @@ pre.event-note {
   margin: 0.5rem 0 0;
 }
 
+.profile-overview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
 .person-detail .events { background: #fdf8f3; }
-.person-detail .family { background: #f0f5fb; }
+.person-detail .profile-overview { background: #f0f5fb; }
 .person-detail .ancestors { background: #f0f7f2; }
 .person-detail .descendants { background: #f7f0fb; }
 
 .person-detail .events h2,
-.person-detail .family h2,
 .person-detail .ancestors h2,
 .person-detail .descendants h2 {
   margin-top: 0;

@@ -72,6 +72,10 @@ def person_data(db, person):
         'gender': person.get_gender(),
         'grave_url': urls.get('Find a Grave'),
         'ancestry_url': urls.get('Ancestry'),
+        'external_links': sorted(
+            [{'label': str(u.get_type()), 'url': u.get_path()} for u in person.get_url_list()],
+            key=lambda x: (0 if x['label'] == 'Ancestry' else 1, x['label']),
+        ),
         'is_living': probably_alive(person, db),
     }
 
@@ -366,6 +370,45 @@ def get_relation_to_me(db, me_ancestors, person, gender=2):
     u = me_ancestors[lca]
     d = other_ancestors[lca]
     return relationship_label(u, d, gender)
+
+
+def is_related_by_marriage(db, me_ancestors, person):
+    """Returns True if person is a spouse of a blood relative of mine."""
+    me_ancestor_set = set(me_ancestors)
+    for fam_handle in person.get_family_handle_list():
+        family = db.get_family_from_handle(fam_handle)
+        for handle in [family.get_father_handle(), family.get_mother_handle()]:
+            if handle and handle != person.get_handle():
+                spouse = db.get_person_from_handle(handle)
+                if spouse:
+                    spouse_ancestors = ancestors_with_distances(db, spouse)
+                    if me_ancestor_set & set(spouse_ancestors):
+                        return True
+    return False
+
+
+def get_by_marriage_relation(db, me_ancestors, person, gender=2):
+    """Returns a relation label for a person related by marriage, e.g. 'uncle' or 'step-grandfather'."""
+    me_ancestor_set = set(me_ancestors)
+    for fam_handle in person.get_family_handle_list():
+        family = db.get_family_from_handle(fam_handle)
+        for handle in [family.get_father_handle(), family.get_mother_handle()]:
+            if handle and handle != person.get_handle():
+                spouse = db.get_person_from_handle(handle)
+                if spouse:
+                    spouse_ancestors = ancestors_with_distances(db, spouse)
+                    common = me_ancestor_set & set(spouse_ancestors)
+                    if common:
+                        lca = min(common, key=lambda gid: me_ancestors[gid] + spouse_ancestors[gid])
+                        u = me_ancestors[lca]
+                        d = spouse_ancestors[lca]
+                        if u == 1 and d == 1:
+                            return None  # sibling's spouse — skip
+                        label = relationship_label(u, d, gender)
+                        if d == 0:
+                            label = 'step-' + label
+                        return label
+    return None
 
 
 def get_children(db, person):
