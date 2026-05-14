@@ -8,12 +8,12 @@
     <h1>
       Marriage
       <tal:block tal:condition="couple[0]"> of
-        <a href="../../people/${couple[0]['gramps_id']}/"
+        <a href="/people/${couple[0]['gramps_id']}/"
            tal:attributes="class 'male' if couple[0]['gender'] == 1 else ('female' if couple[0]['gender'] == 0 else None)">${couple[0]['full_name']}</a>
       </tal:block>
       <tal:block tal:condition="couple[0] and couple[1]"> and </tal:block>
       <tal:block tal:condition="couple[1]">
-        <a href="../../people/${couple[1]['gramps_id']}/"
+        <a href="/people/${couple[1]['gramps_id']}/"
            tal:attributes="class 'male' if couple[1]['gender'] == 1 else ('female' if couple[1]['gender'] == 0 else None)">${couple[1]['full_name']}</a>
       </tal:block>
       <span class="ancestor-badge" tal:condition="is_ancestor_event">ancestor</span>
@@ -35,7 +35,7 @@
       <tr tal:condition="event['place']">
         <th>Place</th>
         <td>
-          <a tal:condition="event['place_id']" href="../../places/${event['place_id']}/">${event['place']}</a>
+          <a tal:condition="event['place_id']" href="/places/${event['place_id']}/">${event['place']}</a>
           <span tal:condition="not event['place_id']">${event['place']}</span>
         </td>
       </tr>
@@ -48,7 +48,7 @@
     <div class="couple-details" tal:condition="couple_details">
       <div tal:repeat="spouse couple_details" class="spouse-detail">
         <h2>
-          <a href="../../people/${spouse['gramps_id']}/"
+          <a href="/people/${spouse['gramps_id']}/"
              tal:attributes="class 'male' if spouse['gender'] == 1 else ('female' if spouse['gender'] == 0 else None)">${spouse['full_name']}</a>
         </h2>
         <div class="photos" tal:condition="spouse['photos']">
@@ -73,14 +73,14 @@
           <tr tal:condition="spouse['father']">
             <th>Father</th>
             <td>
-              <a href="../../people/${spouse['father']['gramps_id']}/"
+              <a href="/people/${spouse['father']['gramps_id']}/"
                  tal:attributes="class 'male' if spouse['father']['gender'] == 1 else ('female' if spouse['father']['gender'] == 0 else None)">${spouse['father']['full_name']}</a>
             </td>
           </tr>
           <tr tal:condition="spouse['mother']">
             <th>Mother</th>
             <td>
-              <a href="../../people/${spouse['mother']['gramps_id']}/"
+              <a href="/people/${spouse['mother']['gramps_id']}/"
                  tal:attributes="class 'male' if spouse['mother']['gender'] == 1 else ('female' if spouse['mother']['gender'] == 0 else None)">${spouse['mother']['full_name']}</a>
             </td>
           </tr>
@@ -108,7 +108,7 @@
         <tbody>
           <tr tal:repeat="child children">
             <td>
-              <a href="../../people/${child['gramps_id']}/"
+              <a href="/people/${child['gramps_id']}/"
                  tal:attributes="class 'male' if child['gender'] == 1 else ('female' if child['gender'] == 0 else None)">${child['full_name']}</a>
             </td>
             <td class="year">${child['birth_year'] or ''}</td>

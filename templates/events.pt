@@ -30,26 +30,26 @@
             <span tal:condition="event['couple']">
               <span tal:condition="event['couple'][0]"
                     tal:define="person event['couple'][0]">
-                <a href="../people/${person['gramps_id']}/"
+                <a href="/people/${person['gramps_id']}/"
                    tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
               </span>
               <span tal:condition="event['couple'][0] and event['couple'][1]"> &amp; </span>
               <span tal:condition="event['couple'][1]"
                     tal:define="person event['couple'][1]">
-                <a href="../people/${person['gramps_id']}/"
+                <a href="/people/${person['gramps_id']}/"
                    tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
               </span>
             </span>
             <span tal:condition="not event['couple']">
               <span tal:repeat="person event['people']">
-                <a href="../people/${person['gramps_id']}/"
+                <a href="/people/${person['gramps_id']}/"
                    tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
               </span>
             </span>
           </td>
           <td>
             <a tal:condition="event['place_id']"
-               href="../places/${event['place_id']}/">${event['place']}</a>
+               href="/places/${event['place_id']}/">${event['place']}</a>
             <span tal:condition="not event['place_id']">${event['place'] or ''}</span>
           </td>
         </tr>

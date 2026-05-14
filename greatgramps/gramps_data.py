@@ -55,6 +55,42 @@ def get_place_name(db, event):
     return place.get_name().get_value() if place else None
 
 
+def _alt_names(db, person, primary_name):
+    result = []
+    seen_surnames = {primary_name.get_surname()}
+    for n in person.get_alternate_names():
+        entry = {
+            'given': n.get_first_name(),
+            'surname': n.get_surname(),
+            'full_name': f'{n.get_first_name()} {n.get_surname()}'.strip(),
+            'type': str(n.get_type()),
+        }
+        result.append(entry)
+        seen_surnames.add(n.get_surname())
+    if person.get_gender() != FEMALE:
+        return result
+    for fam_handle in person.get_family_handle_list():
+        family = db.get_family_from_handle(fam_handle)
+        if int(family.get_relationship()) not in (0, 2):  # married or civil union only
+            continue
+        spouse_handle = family.get_father_handle()
+        if not spouse_handle or spouse_handle == person.get_handle():
+            continue
+        spouse = db.get_person_from_handle(spouse_handle)
+        if not spouse:
+            continue
+        spouse_surname = spouse.get_primary_name().get_surname()
+        if spouse_surname and spouse_surname not in seen_surnames:
+            result.append({
+                'given': '',
+                'surname': spouse_surname,
+                'full_name': spouse_surname,
+                'type': 'Married Name',
+            })
+            seen_surnames.add(spouse_surname)
+    return result
+
+
 def person_data(db, person):
     birth = get_event(db, person, EventType.BIRTH)
     death = get_event(db, person, EventType.DEATH)
@@ -77,6 +113,7 @@ def person_data(db, person):
             key=lambda x: (0 if x['label'] == 'Ancestry' else 1, x['label']),
         ),
         'is_living': probably_alive(person, db),
+        'alt_names': _alt_names(db, person, name),
     }
 
 
@@ -188,7 +225,7 @@ def get_all_events(db, person):
         spouse_h = family.get_mother_handle() if is_father else family.get_father_handle()
         spouse = db.get_person_from_handle(spouse_h) if spouse_h else None
         spouse_name = person_data(db, spouse)['full_name'] if spouse else None
-        spouse_url = f'../{spouse.get_gramps_id()}/' if spouse else None
+        spouse_url = f'/people/{spouse.get_gramps_id()}/' if spouse else None
         for eref in family.get_event_ref_list():
             event = db.get_event_from_handle(eref.get_reference_handle())
             spouse_gender = spouse.get_gender() if spouse else None
@@ -203,7 +240,7 @@ def get_all_events(db, person):
                     db, birth, birth_year,
                     label='Child born',
                     desc=child_data['full_name'],
-                    desc_url=f'../{child.get_gramps_id()}/',
+                    desc_url=f'/people/{child.get_gramps_id()}/',
                     desc_gender=child.get_gender(),
                 ))
 
@@ -377,6 +414,8 @@ def is_related_by_marriage(db, me_ancestors, person):
     me_ancestor_set = set(me_ancestors)
     for fam_handle in person.get_family_handle_list():
         family = db.get_family_from_handle(fam_handle)
+        if int(family.get_relationship()) not in (0, 2):  # married or civil union only
+            continue
         for handle in [family.get_father_handle(), family.get_mother_handle()]:
             if handle and handle != person.get_handle():
                 spouse = db.get_person_from_handle(handle)
@@ -392,6 +431,8 @@ def get_by_marriage_relation(db, me_ancestors, person, gender=2):
     me_ancestor_set = set(me_ancestors)
     for fam_handle in person.get_family_handle_list():
         family = db.get_family_from_handle(fam_handle)
+        if int(family.get_relationship()) not in (0, 2):  # married or civil union only
+            continue
         for handle in [family.get_father_handle(), family.get_mother_handle()]:
             if handle and handle != person.get_handle():
                 spouse = db.get_person_from_handle(handle)
@@ -406,6 +447,15 @@ def get_by_marriage_relation(db, me_ancestors, person, gender=2):
                             return None  # sibling's spouse — skip
                         label = relationship_label(u, d, gender)
                         if d == 0:
+                            other_spouses = [
+                                db.get_person_from_handle(sh)
+                                for fh in spouse.get_family_handle_list()
+                                for fam in [db.get_family_from_handle(fh)]
+                                for sh in [fam.get_father_handle(), fam.get_mother_handle()]
+                                if sh and sh != spouse.get_handle() and sh != person.get_handle()
+                            ]
+                            if any(s and probably_alive(s, db) for s in other_spouses):
+                                return None
                             label = 'step-' + label
                         return label
     return None

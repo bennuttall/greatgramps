@@ -185,6 +185,20 @@ a:hover { color: #222; }
   min-width: 0;
 }
 
+.person-alt-names {
+  color: #888;
+  font-size: 0.85em;
+  margin: 0.15rem 0 0;
+  font-style: italic;
+}
+
+.alt-surnames {
+  color: #aaa;
+  font-size: 0.85em;
+  font-style: italic;
+  margin-left: 0.3em;
+}
+
 .person-meta-table {
   border-collapse: collapse;
   margin: 0.3rem 0 0;

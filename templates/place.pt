@@ -7,7 +7,7 @@
     <p class="place-enclosing" tal:condition="place['enclosing']">
       Part of
       <tal:block tal:repeat="enc place['enclosing']">
-        <a href="../${enc['gramps_id']}/">${enc['name']}</a><tal:block tal:condition="not repeat.enc.end"> &rsaquo; </tal:block>
+        <a href="/places/${enc['gramps_id']}/">${enc['name']}</a><tal:block tal:condition="not repeat.enc.end"> &rsaquo; </tal:block>
       </tal:block>
     </p>
 
@@ -33,21 +33,21 @@
               <span tal:condition="event['couple']">
                 <span tal:condition="event['couple'][0]"
                       tal:define="person event['couple'][0]">
-                  <a href="../../people/${person['gramps_id']}/"
+                  <a href="/people/${person['gramps_id']}/"
                      tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
                   <span class="ancestor-badge" tal:condition="person['gramps_id'] in ancestor_ids">ancestor</span>
                 </span>
                 <span tal:condition="event['couple'][0] and event['couple'][1]"> &amp; </span>
                 <span tal:condition="event['couple'][1]"
                       tal:define="person event['couple'][1]">
-                  <a href="../../people/${person['gramps_id']}/"
+                  <a href="/people/${person['gramps_id']}/"
                      tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
                   <span class="ancestor-badge" tal:condition="person['gramps_id'] in ancestor_ids">ancestor</span>
                 </span>
               </span>
               <span tal:condition="not event['couple']">
                 <span tal:repeat="person event['people']">
-                  <a href="../../people/${person['gramps_id']}/"
+                  <a href="/people/${person['gramps_id']}/"
                      tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
                   <span class="ancestor-badge" tal:condition="person['gramps_id'] in ancestor_ids">ancestor</span>
                 </span>
@@ -55,7 +55,7 @@
             </td>
             <td tal:condition="place['sub_places']">
               <a tal:condition="event['sub_place']"
-                 href="../${event['sub_place_id']}/">${event['sub_place']}</a>
+                 href="/places/${event['sub_place_id']}/">${event['sub_place']}</a>
             </td>
           </tr>
         </tbody>
@@ -66,7 +66,7 @@
       <h2>Places within ${place['name']}</h2>
       <ul>
         <li tal:repeat="sub place['sub_places']">
-          <a href="../${sub['gramps_id']}/">${sub['name']}</a>
+          <a href="/places/${sub['gramps_id']}/">${sub['name']}</a>
           <span class="place-type">${sub['type']}</span>
         </li>
       </ul>

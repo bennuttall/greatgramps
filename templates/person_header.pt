@@ -1,0 +1,47 @@
+<div metal:define-macro="person_header" class="person-header" tal:define="
+  birth_year person['birth_year'];
+  death_year person['death_year'];
+  is_living person['is_living'];
+  living_age max(0, current_year - birth_year - 1) if birth_year else None;
+  died_age death_year - birth_year if birth_year and death_year else None;
+">
+  <div class="person-header-info">
+    <h1>
+      <tal:block tal:condition="not surname_url">${person['full_name']}</tal:block>
+      <tal:block tal:condition="surname_url">
+        <span tal:condition="person['given']">${person['given']} </span><a href="${surname_url}">${person['surname']}</a>
+      </tal:block>
+      <small class="years" tal:condition="is_living and birth_year">(${birth_year}–)</small>
+      <small class="years" tal:condition="not is_living and (birth_year or death_year)">(${birth_year or '?'}–${death_year or ''})</small>
+    </h1>
+    <p class="person-alt-names" tal:condition="person['alt_names']">
+      <tal:block tal:repeat="n person['alt_names']"><tal:block tal:condition="not repeat.n.start">, </tal:block>${n['full_name'] or n['surname']} <span class="years">(${n['type'].lower()})</span></tal:block>
+    </p>
+    <table class="person-meta-table" tal:condition="not is_me or (is_living and living_age) or (not is_living and died_age)">
+      <tr tal:condition="not is_me">
+        <td>
+          <span class="ancestor-badge" tal:condition="is_ancestor">ancestor</span>
+          <span class="ancestor-badge relative" tal:condition="relation and not is_ancestor">relative</span>
+          <span class="ancestor-badge by-marriage" tal:condition="by_marriage">related by marriage</span>
+          <span class="ancestor-badge unrelated" tal:condition="not relation and not by_marriage">unrelated</span>
+        </td>
+        <td tal:condition="relation">your ${relation}</td>
+        <td tal:condition="by_marriage and marriage_relation">your ${marriage_relation}</td>
+        <td tal:condition="not relation and not (by_marriage and marriage_relation)"></td>
+      </tr>
+      <tr tal:condition="is_living and living_age">
+        <td><span class="ancestor-badge living">living</span></td>
+        <td>Age ${living_age}</td>
+      </tr>
+      <tr tal:condition="not is_living and died_age">
+        <td><span class="ancestor-badge deceased">deceased</span></td>
+        <td>Age at death ${died_age}</td>
+      </tr>
+    </table>
+  </div>
+  <div class="person-header-photo" tal:condition="photos">
+    <a href="${photos[0]['url']}">
+      <img src="${photos[0]['url']}" alt="${photos[0]['description']}" class="person-photo">
+    </a>
+  </div>
+</div>

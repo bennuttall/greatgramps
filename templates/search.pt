@@ -17,10 +17,13 @@
       </thead>
       <tbody>
         <tr tal:repeat="row rows" tal:attributes="data-ancestor 1 if row['is_ancestor'] else None">
-          <td data-name="${row['full_name']}">
+          <td tal:attributes="data-name row['full_name'] + (' ' + ' '.join(row['alt_surnames']) if row['alt_surnames'] else '')">
             <a href="${row['gramps_id']}/"
                tal:attributes="class 'male' if row['gender'] == 1 else ('female' if row['gender'] == 0 else None)">${row['full_name']}</a>
             <span class="ancestor-badge" tal:condition="row['is_ancestor']">ancestor</span>
+            <span class="alt-surnames" tal:condition="row['alt_surnames']">
+              also ${', '.join(row['alt_surnames'])}
+            </span>
           </td>
           <td tal:define="label 'Male' if row['gender'] == 1 else ('Female' if row['gender'] == 0 else '')"
               tal:attributes="data-val label"

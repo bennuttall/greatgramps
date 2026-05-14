@@ -11,17 +11,17 @@
       ${event['type']}
       <tal:block tal:condition="couple"> of
         <tal:block tal:condition="couple[0]">
-          <a href="../../people/${couple[0]['gramps_id']}/"
+          <a href="/people/${couple[0]['gramps_id']}/"
              tal:attributes="class 'male' if couple[0]['gender'] == 1 else ('female' if couple[0]['gender'] == 0 else None)">${couple[0]['full_name']}</a>
         </tal:block>
         <tal:block tal:condition="couple[0] and couple[1]"> and </tal:block>
         <tal:block tal:condition="couple[1]">
-          <a href="../../people/${couple[1]['gramps_id']}/"
+          <a href="/people/${couple[1]['gramps_id']}/"
              tal:attributes="class 'male' if couple[1]['gender'] == 1 else ('female' if couple[1]['gender'] == 0 else None)">${couple[1]['full_name']}</a>
         </tal:block>
       </tal:block>
       <tal:block tal:condition="not couple and single"> of
-        <a href="../../people/${single_person['gramps_id']}/"
+        <a href="/people/${single_person['gramps_id']}/"
            tal:attributes="class 'male' if single_person['gender'] == 1 else ('female' if single_person['gender'] == 0 else None)">${single_person['full_name']}</a>
       </tal:block>
       <span class="ancestor-badge" tal:condition="is_ancestor_event and not couple">ancestor</span>
@@ -51,7 +51,7 @@
       <tr tal:condition="event['place']">
         <th>Place</th>
         <td>
-          <a tal:condition="event['place_id']" href="../../places/${event['place_id']}/">${event['place']}</a>
+          <a tal:condition="event['place_id']" href="/places/${event['place_id']}/">${event['place']}</a>
           <span tal:condition="not event['place_id']">${event['place']}</span>
         </td>
       </tr>
@@ -80,7 +80,7 @@
       <h2>People</h2>
       <ul>
         <li tal:repeat="person event['people']">
-          <a href="../../people/${person['gramps_id']}/"
+          <a href="/people/${person['gramps_id']}/"
              tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
           <span class="years" tal:condition="person['birth_year'] or person['death_year']">
             (${person['birth_year'] or '?'}–${person['death_year'] or ''})
@@ -98,7 +98,7 @@
       <h2>Children</h2>
       <ul>
         <li tal:repeat="child children">
-          <a href="../../people/${child['gramps_id']}/"
+          <a href="/people/${child['gramps_id']}/"
              tal:attributes="class 'male' if child['gender'] == 1 else ('female' if child['gender'] == 0 else None)">${child['full_name']}</a>
           <span class="years" tal:condition="child['birth_year'] or child['death_year']">
             (${child['birth_year'] or '?'}–${child['death_year'] or ''})

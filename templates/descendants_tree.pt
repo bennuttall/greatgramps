@@ -3,38 +3,17 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   </tal:block>
   <div metal:fill-slot="content" tal:omit-tag="1">
-    <h1 tal:define="
-      birth_year person['birth_year'];
-      death_year person['death_year'];
-      is_living person['is_living'];
-      living_age max(0, current_year - birth_year - 1) if birth_year else None;
-    ">
-      <tal:block tal:condition="not surname_url">${person['full_name']}</tal:block>
-      <tal:block tal:condition="surname_url">
-        <span tal:condition="person['given']">${person['given']} </span><a href="${surname_url}">${person['surname']}</a>
-      </tal:block>
-      <span class="years" tal:condition="is_living and birth_year">(${birth_year}–)</span>
-      <span class="years" tal:condition="is_living and living_age">aged ${living_age}</span>
-      <span class="years" tal:condition="not is_living and (birth_year or death_year)">(${birth_year or '?'}–${death_year or ''})</span>
-      <span class="ancestor-badge male" tal:condition="person['gender'] == 1">male</span>
-      <span class="ancestor-badge female" tal:condition="person['gender'] == 0">female</span>
-      <span class="ancestor-badge me" tal:condition="is_me">me</span>
-      <span class="ancestor-badge" tal:condition="is_ancestor">ancestor</span>
-      <span class="ancestor-badge living" tal:condition="is_living">living</span>
-      <span class="ancestor-badge deceased" tal:condition="not is_living">deceased</span>
-      <a class="profile-link ancestry" tal:condition="person['ancestry_url']" href="${person['ancestry_url']}">Ancestry</a>
-    </h1>
-    <p class="relation" tal:condition="relation and not is_me">your ${relation}</p>
+    <tal:block metal:use-macro="person_header"></tal:block>
     <nav class="person-tabs">
-      <a href="../">Profile</a>
-      <a href="../ancestors/">Ancestors <span class="tab-count">(${format(num_ancestors, ',')})</span></a>
+      <a href="/people/${person['gramps_id']}/">Profile</a>
+      <a href="/people/${person['gramps_id']}/ancestors/">Ancestors <span class="tab-count">(${format(num_ancestors, ',')})</span></a>
       <span class="active">Descendants <span class="tab-count">(${format(num_descendants, ',')})</span></span>
     </nav>
     <div class="pedigree-wrap">
       <div class="pedigree-chart" tal:attributes="style tree_grid_style">
         <a tal:repeat="node nodes"
            tal:attributes="
-             href '../' if node['gen'] == 0 else '../../' + node['gramps_id'] + '/descendants/';
+             href '/people/' + person['gramps_id'] + '/' if node['gen'] == 0 else '/people/' + node['gramps_id'] + '/descendants/';
              class 'pedigree-cell gen-' + str(node['gen']) + (' has-further-down' if node['has_further'] else '') + (' male' if node['gender'] == 1 else (' female' if node['gender'] == 0 else ''));
              style node['grid_style']
            ">
