@@ -478,8 +478,8 @@ pre.event-note {
   margin-top: 0;
 }
 
-a.male:not(.pedigree-cell) { color: #3a6f9a; }
-a.female:not(.pedigree-cell) { color: #9a3a6f; }
+a.male:not(.pedigree-cell), td.male { color: #3a6f9a; }
+a.female:not(.pedigree-cell), td.female { color: #9a3a6f; }
 
 .person-detail .ancestors h3,
 .person-detail .descendants h3 {
@@ -514,6 +514,32 @@ a.female:not(.pedigree-cell) { color: #9a3a6f; }
   font-weight: bold;
   color: #5a3e28;
   line-height: 1.1;
+}
+
+.pct-text {
+  display: inline-block;
+  width: 2.5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.pct-bar {
+  display: inline-block;
+  width: 100px;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+
+.pct-bar > .pct-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  padding: 0;
+  font-size: inherit;
+  color: inherit;
+  vertical-align: top;
 }
 
 .pct-high, .pct-mid, .pct-low {
