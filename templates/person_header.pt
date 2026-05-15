@@ -15,7 +15,14 @@
       <small class="years" tal:condition="not is_living and (birth_year or death_year)">(${birth_year or '?'}–${death_year or ''})</small>
     </h1>
     <p class="person-alt-names" tal:condition="person['alt_names']">
-      <tal:block tal:repeat="n person['alt_names']"><tal:block tal:condition="not repeat.n.start">, </tal:block>${n['full_name'] or n['surname']} <span class="years">(${n['type'].lower()})</span></tal:block>
+      <tal:block tal:repeat="n person['alt_names']">
+        <tal:block tal:condition="not repeat.n.start">, </tal:block>
+        <tal:block tal:define="url alt_surname_urls.get(n['surname'])">
+          <a tal:condition="url" href="${url}">${n['full_name'] or n['surname']}</a>
+          <span tal:condition="not url">${n['full_name'] or n['surname']}</span>
+        </tal:block>
+        <span class="years">(${n['type'].lower()})</span>
+      </tal:block>
     </p>
     <table class="person-meta-table" tal:condition="not is_me or (is_living and living_age) or (not is_living and died_age)">
       <tr tal:condition="not is_me">
@@ -35,7 +42,7 @@
       </tr>
       <tr tal:condition="not is_living and died_age">
         <td><span class="ancestor-badge deceased">deceased</span></td>
-        <td>Age at death ${died_age}</td>
+        <td>died in ${death_year} aged ${died_age}</td>
       </tr>
     </table>
   </div>

@@ -70,7 +70,15 @@ def _geocode(query: str):
 
 def _person_name(person) -> str:
     n = person.get_primary_name()
-    return f"{n.get_first_name()} {n.get_surname()}".strip()
+    primary = f"{n.get_first_name()} {n.get_surname()}".strip()
+    primary_surname = n.get_surname()
+    alt_surnames = [
+        a.get_surname() for a in person.get_alternate_names()
+        if a.get_surname() and a.get_surname() != primary_surname
+    ]
+    if alt_surnames:
+        return f"{primary} ({', '.join(alt_surnames)})"
+    return primary
 
 
 def _event_label(event) -> str:

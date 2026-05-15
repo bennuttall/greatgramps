@@ -257,6 +257,10 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         desc_data['is_me'] = desc_gid == config.me
     num_descendants = len(all_descendants)
     descendant_generations = group_descendants_by_generation(all_descendants)
+    alt_surname_urls = {
+        n['surname']: surname_page_url.get(n['surname'])
+        for n in data['alt_names'] if n['surname']
+    }
     html = render(
         'person',
         base='/',
@@ -280,6 +284,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         descendant_generations=descendant_generations,
         event_map_json=event_map_json,
         surname_url=surname_page_url.get(data['surname']),
+        alt_surname_urls=alt_surname_urls,
         current_year=date.today().year,
         num_ancestors=num_ancestors,
         num_descendants=num_descendants,
@@ -314,6 +319,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         marriage_relation=marriage_relation,
         photos=photos,
         surname_url=surname_url,
+        alt_surname_urls=alt_surname_urls,
         current_year=date.today().year,
         ancestors_map_json=ancestors_map_json,
         num_pictures=len(all_pictures),
@@ -343,6 +349,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         marriage_relation=marriage_relation,
         photos=photos,
         surname_url=surname_url,
+        alt_surname_urls=alt_surname_urls,
         current_year=date.today().year,
         descendants_map_json=descendants_map_json,
         num_pictures=len(all_pictures),
@@ -365,6 +372,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         marriage_relation=marriage_relation,
         photos=photos,
         surname_url=surname_url,
+        alt_surname_urls=alt_surname_urls,
         current_year=date.today().year,
         num_pictures=len(all_pictures),
     ))
