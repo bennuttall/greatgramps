@@ -1,0 +1,146 @@
+<div metal:use-macro="layout">
+  <tal:block metal:fill-slot="head_extra">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  </tal:block>
+  <div metal:fill-slot="content" tal:omit-tag="1">
+    <h1>${year} Census <span class="years">${date}</span></h1>
+
+    <div id="census-map"></div>
+    <div id="filters" class="event-filters"></div>
+
+    <table class="events-table" id="census-table">
+      <thead>
+        <tr>
+          <th data-col="0" class="sortable sort-asc">Name</th>
+          <th data-col="1" class="sortable">Household</th>
+          <th data-col="2" class="sortable">Place</th>
+          <th data-col="3" class="sortable" data-numeric="1">Born</th>
+          <th data-col="4" class="sortable" data-numeric="1">Age</th>
+          <th data-col="5" class="sortable">Relation</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tal:block tal:repeat="event events">
+          <tr tal:repeat="person event['people']"
+              tal:attributes="data-ancestor 'true' if person['gramps_id'] in ancestor_ids else None;
+                              data-lat event['lat'] if event['lat'] else None;
+                              data-lon event['lon'] if event['lon'] else None;
+                              data-place event['place'] if event['place'] else None;
+                              data-event-url '/events/' + event['url_slug'] + '/'">
+            <td>
+              <a href="/people/${person['gramps_id']}/"
+                 tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
+              <span class="ancestor-badge" tal:condition="person['gramps_id'] in ancestor_ids">ancestor</span>
+            </td>
+            <td><a href="/events/${event['url_slug']}/">${event['household_name']}</a></td>
+            <td>
+              <a tal:condition="event['place_id']" href="/places/${event['place_id']}/">${event['place']}</a>
+              <span tal:condition="not event['place_id']">${event['place'] or ''}</span>
+            </td>
+            <td class="year">${person['birth_year'] or ''}</td>
+            <td class="year" tal:condition="event['year'] and person['birth_year']">${max(0, event['year'] - person['birth_year'] - 1)}</td>
+            <td class="year" tal:condition="not (event['year'] and person['birth_year'])"></td>
+            <td class="year" tal:define="rel relation_map.get(person['gramps_id'])">${rel or ''}</td>
+          </tr>
+        </tal:block>
+      </tbody>
+    </table>
+  </div>
+  <tal:block metal:fill-slot="scripts">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+    const tbody = document.querySelector('#census-table tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+
+    let sortCol = 0;
+    let sortAsc = true;
+    let ancestorOnly = false;
+
+    function cellText(row, col) {
+      return row.cells[col].textContent.trim();
+    }
+
+    function sortRows() {
+      const ths = document.querySelectorAll('#census-table th.sortable');
+      const numeric = ths[sortCol].dataset.numeric === '1';
+      rows.sort((a, b) => {
+        const av = cellText(a, sortCol);
+        const bv = cellText(b, sortCol);
+        if (numeric) {
+          const an = parseInt(av) || 0, bn = parseInt(bv) || 0;
+          return sortAsc ? an - bn : bn - an;
+        }
+        return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+      });
+      rows.forEach(r => tbody.appendChild(r));
+    }
+
+    document.querySelectorAll('#census-table th.sortable').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = +th.dataset.col;
+        if (sortCol === col) {
+          sortAsc = !sortAsc;
+        } else {
+          sortCol = col;
+          sortAsc = true;
+        }
+        document.querySelectorAll('#census-table th.sortable').forEach(h => {
+          h.classList.remove('sort-asc', 'sort-desc');
+        });
+        th.classList.add(sortAsc ? 'sort-asc' : 'sort-desc');
+        sortRows();
+      });
+    });
+
+    function applyFilters() {
+      rows.forEach(r => {
+        r.hidden = ancestorOnly && r.dataset.ancestor !== 'true';
+      });
+      updateMap();
+    }
+
+    const ancestorBtn = document.createElement('button');
+    ancestorBtn.textContent = 'Ancestors only';
+    ancestorBtn.className = 'filter-btn toggle-btn';
+    ancestorBtn.addEventListener('click', () => {
+      ancestorOnly = !ancestorOnly;
+      ancestorBtn.classList.toggle('active', ancestorOnly);
+      applyFilters();
+    });
+    document.getElementById('filters').appendChild(ancestorBtn);
+
+    const censusMap = L.map('census-map');
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(censusMap);
+    const markersLayer = L.layerGroup().addTo(censusMap);
+
+    function updateMap() {
+      markersLayer.clearLayers();
+      const groups = {};
+      rows.filter(r => !r.hidden && r.dataset.lat).forEach(r => {
+        const key = r.dataset.lat + ',' + r.dataset.lon;
+        if (!groups[key]) {
+          groups[key] = { lat: +r.dataset.lat, lon: +r.dataset.lon, place: r.dataset.place, households: new Map() };
+        }
+        const url = r.dataset.eventUrl;
+        if (!groups[key].households.has(url)) {
+          groups[key].households.set(url, r.cells[1].querySelector('a').textContent.trim());
+        }
+      });
+      const pts = Object.values(groups);
+      if (!pts.length) return;
+      pts.forEach(g => {
+        const lines = Array.from(g.households.entries())
+          .map(([url, name]) => '<a href="' + url + '">' + name + '</a>')
+          .join('<br>');
+        L.marker([g.lat, g.lon]).addTo(markersLayer)
+          .bindPopup('<strong>' + g.place + '</strong><br>' + lines);
+      });
+      censusMap.fitBounds(pts.map(g => [g.lat, g.lon]), { padding: [20, 20], maxZoom: 10 });
+    }
+
+    updateMap();
+    </script>
+  </tal:block>
+</div>

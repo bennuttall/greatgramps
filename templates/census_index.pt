@@ -1,0 +1,23 @@
+<div metal:use-macro="layout">
+  <div metal:fill-slot="content" tal:omit-tag="1">
+    <h1>Census Records</h1>
+    <table class="events-table">
+      <thead>
+        <tr>
+          <th>Year</th>
+          <th>Date</th>
+          <th>Records</th>
+          <th>People</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr tal:repeat="cy census_years">
+          <td><a href="/census/${cy['year']}/">${cy['year']}</a></td>
+          <td>${cy['date']}</td>
+          <td>${cy['count']}</td>
+          <td>${cy['people_count']}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

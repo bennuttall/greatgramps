@@ -911,3 +911,78 @@ def get_all_person_pictures(db, person):
 
     pictures.sort(key=lambda p: p['year'] or 9999)
     return pictures
+
+
+CENSUS_DATES = {
+    1841: (6,  6, 1841),
+    1851: (30, 3, 1851),
+    1861: (7,  4, 1861),
+    1871: (2,  4, 1871),
+    1881: (3,  4, 1881),
+    1891: (5,  4, 1891),
+    1901: (31, 3, 1901),
+    1911: (2,  4, 1911),
+    1921: (19, 6, 1921),
+    1939: (29, 9, 1939),
+}
+
+
+def _household_name(description, year):
+    if not description:
+        return None
+    s = description
+    prefix = f'{year} census - '
+    if s.lower().startswith(prefix.lower()):
+        s = s[len(prefix):]
+    if s.lower().endswith(' household'):
+        s = s[:-len(' household')]
+    return s.strip() or description
+
+
+def build_census_data(db):
+    """Returns {year: [event_dicts]} for all Census events, sorted by description within each year."""
+    event_people = {}
+    for person in db.iter_people():
+        pdata = person_data(db, person)
+        for eref in person.get_event_ref_list():
+            h = eref.get_reference_handle()
+            event_people.setdefault(h, []).append(pdata)
+
+    by_year = {}
+    for event in db.iter_events():
+        if int(event.get_type()) != EventType.CENSUS:
+            continue
+        year = event.get_date_object().get_year() or None
+        if not year:
+            continue
+        place_h = event.get_place_handle()
+        place_obj = db.get_place_from_handle(place_h) if place_h else None
+        notes = []
+        for note_handle in event.get_note_list():
+            note = db.get_note_from_handle(note_handle)
+            text = str(note.get()).strip()
+            if text:
+                notes.append(text)
+        people = sorted(
+            event_people.get(event.get_handle(), []),
+            key=lambda p: p['birth_year'] or 9999,
+        )
+        gid = event.get_gramps_id()
+        description = event.get_description() or None
+        by_year.setdefault(year, []).append({
+            'gramps_id': gid,
+            'url_slug': event_url_slug(gid),
+            'description': description,
+            'household_name': _household_name(description, year),
+            'date': format_date(event.get_date_object()),
+            'year': year,
+            'place': place_obj.get_name().get_value() if place_obj else None,
+            'place_id': place_obj.get_gramps_id() if place_obj else None,
+            'notes': notes,
+            'people': people,
+        })
+
+    for events in by_year.values():
+        events.sort(key=lambda e: e['description'] or '')
+
+    return by_year

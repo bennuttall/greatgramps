@@ -2,7 +2,7 @@
 
 body {
   font-family: Georgia, serif;
-  max-width: 900px;
+  max-width: 1000px;
   margin: 0 auto;
   padding: 1rem 2rem;
   color: #222;
@@ -78,7 +78,7 @@ header a.secondary:hover { color: #333; }
 .filter-btn:hover { border-color: #5a3e28; color: #5a3e28; }
 .filter-btn.active { background: #5a3e28; border-color: #5a3e28; color: white; }
 
-#map, #events-map {
+#map, #events-map, #census-map {
   height: 400px;
   border-radius: 6px;
   margin: 1rem 0;

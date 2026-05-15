@@ -14,6 +14,7 @@ from .gramps_data import (
     build_event_pages_data, build_birthday_list, person_data,
     collect_ancestor_tree, collect_descendant_tree, count_descendants,
     collect_all_descendants, group_descendants_by_generation,
+    build_census_data, CENSUS_DATES, MONTHS,
 )
 from .settings import get_config
 
@@ -616,6 +617,46 @@ def build():
                    surname=surname, people=people_on_page)
         )
     print(f'Built {len(by_surname)} surname pages')
+
+    # Build census pages
+    census_data = build_census_data(db)
+    for events_list in census_data.values():
+        for event in events_list:
+            pid = event['place_id']
+            lat, lon = place_lat_lon.get(pid, (None, None)) if pid else (None, None)
+            event['lat'] = lat
+            event['lon'] = lon
+    census_dir = config.output_dir / 'census'
+    census_dir.mkdir(exist_ok=True)
+    ancestor_ids = set(my_ancestors) - {config.me}
+
+    census_years_list = []
+    for year in sorted(census_data):
+        events = census_data[year]
+        day, month, _ = CENSUS_DATES.get(year, (None, None, None))
+        date_str = f'{day} {MONTHS[month]} {year}' if day and month else str(year)
+        people_count = len({p['gramps_id'] for e in events for p in e['people']})
+        census_years_list.append({'year': year, 'date': date_str, 'count': len(events), 'people_count': people_count})
+        year_dir = census_dir / str(year)
+        year_dir.mkdir(exist_ok=True)
+        (year_dir / 'index.html').write_text(render(
+            'census_year',
+            base='/',
+            page_title=f'{year} Census — Family Tree',
+            year=year,
+            date=date_str,
+            events=events,
+            ancestor_ids=ancestor_ids,
+            relation_map=relation_map,
+        ))
+
+    (census_dir / 'index.html').write_text(render(
+        'census_index',
+        base='/',
+        page_title='Census Records — Family Tree',
+        census_years=census_years_list,
+    ))
+    print(f'Built census/index.html and {len(census_data)} census year pages')
 
     db.close()
 
