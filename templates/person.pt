@@ -107,7 +107,7 @@
                   full_date event['date']
                 ">
                 <td>${full_date or year or ''}</td>
-                <td class="event-age" tal:define="has_age event['age'] is not None">
+                <td class="event-age" tal:define="has_age event['age'] is not None and event['age'] > 0">
                   <tal:block tal:condition="has_age">${event['age']}</tal:block>
                 </td>
                 <td>

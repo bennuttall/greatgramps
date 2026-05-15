@@ -244,7 +244,14 @@ def get_all_events(db, person):
                     desc_gender=child.get_gender(),
                 ))
 
-    events.sort(key=lambda e: (e['year'] or 9999, e['month'], e['day'], e['sort']))
+    _LAST = {'Death', 'Burial', 'Probate'}
+    events.sort(key=lambda e: (
+        0 if e['type'] == 'Birth' else (2 if e['type'] in _LAST else 1),
+        e['year'] or 9999,
+        e['month'],
+        e['day'],
+        e['sort'],
+    ))
     return events
 
 
