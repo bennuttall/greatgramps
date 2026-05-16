@@ -14,13 +14,18 @@
         <tr>
           <th data-col="0" class="sortable sort-asc">Place</th>
           <th data-col="1" class="sortable">Type</th>
-          <th data-col="2" class="sortable">Events</th>
+          <th data-col="2" class="sortable">Enclosed by</th>
+          <th data-col="3" class="sortable">Events</th>
         </tr>
       </thead>
       <tbody>
         <tr tal:repeat="place places">
           <td><a href="${place['gramps_id']}/">${place['name']}</a></td>
           <td class="year">${place['type']}</td>
+          <td tal:condition="place['enclosing']">
+            <a href="/places/${place['enclosing'][0]['gramps_id']}/">${place['enclosing'][0]['name']}</a>
+          </td>
+          <td tal:condition="not place['enclosing']"></td>
           <td class="year" data-val="${place['event_count']}">${format(place['event_count'], ',')}</td>
         </tr>
       </tbody>
@@ -62,7 +67,7 @@
       const q = this.value.toLowerCase();
       let visible = 0;
       rows.forEach(row => {
-        const show = row.cells[0].textContent.toLowerCase().includes(q);
+        const show = [0, 2].some(i => row.cells[i].textContent.toLowerCase().includes(q));
         row.hidden = !show;
         if (show) visible++;
       });

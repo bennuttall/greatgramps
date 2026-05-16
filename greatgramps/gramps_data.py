@@ -279,6 +279,7 @@ def get_spouses(db, person):
                 place_h = event.get_place_handle()
                 marriage = {
                     'date': format_date(event.get_date_object()),
+                    'year': event.get_date_object().get_year() or None,
                     'place': db.get_place_from_handle(place_h).get_name().get_value() if place_h else None,
                 }
                 break
@@ -662,12 +663,15 @@ def build_place_event_index(db):
             continue
         etype = int(event.get_type())
         parties = event_parties.get(event.get_handle(), {'people': [], 'couple': None})
+        gid = event.get_gramps_id()
         entry = {
             'type': EVENT_TYPE_LABELS.get(etype, str(event.get_type())),
             'date': format_date(event.get_date_object()),
             'year': event.get_date_object().get_year() or None,
             'people': parties['people'],
             'couple': parties['couple'],
+            'gramps_id': gid,
+            'url_slug': event_url_slug(gid),
         }
         place_index.setdefault(ph, []).append(entry)
 

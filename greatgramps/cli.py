@@ -16,12 +16,12 @@ from gramps.gen.db import DBMODE_R, DBMODE_W, DbTxn
 from gramps.gen.lib import (
     ChildRef, Date, Event, EventRef, EventRoleType, EventType,
     Family, Media, MediaRef, Name, NameType, Person, Place, PlaceName,
-    PlaceType, Surname, Url, UrlType,
+    PlaceRef, PlaceType, Surname, Url, UrlType,
 )
 from gramps.plugins.db.dbapi.sqlite import SQLite
 
 from .build import rebuild_pages
-from .gramps_data import get_event, get_year
+from .gramps_data import CENSUS_DATES, get_event, get_year
 from .settings import get_config
 
 
@@ -137,9 +137,13 @@ def _people_table(people: list[tuple]) -> Table:
 
 @app.command("rebuild-page", no_args_is_help=True)
 def rebuild_page(
-    ids: List[str] = typer.Argument(..., help="Person or event IDs to rebuild (e.g. I0061 E0315)"),
+    ids: List[str] = typer.Argument(..., help="IDs or page names to rebuild (e.g. I0061 E0315 P0012 places)"),
 ):
-    """Copy static files and rebuild specific person or event pages."""
+    """Copy static files and rebuild specific pages by ID or name.
+
+    Accepts person IDs (I…), event IDs (E…), place IDs (P…), and named
+    pages: places, people, events, census, index.
+    """
     rebuild_pages(ids)
 
 
@@ -191,6 +195,58 @@ def add_place(
         db.close()
 
 
+@app.command("enclose-place", no_args_is_help=True)
+def enclose_place(
+    child_query: str = typer.Argument(..., help="Place ID or name to be enclosed"),
+    parent_query: str = typer.Argument(..., help="Place ID or name that encloses it"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
+):
+    """Set one place as enclosed by another (GRAMPS 'Enclosed by' relationship)."""
+    db = _open_db(write=True)
+    try:
+        child = _resolve_place(db, child_query)
+        parent = _resolve_place(db, parent_query)
+
+        if child.get_handle() == parent.get_handle():
+            console.print("[red]A place cannot enclose itself[/red]")
+            raise typer.Exit(1)
+
+        existing = [
+            db.get_place_from_handle(r.get_reference_handle())
+            for r in child.get_placeref_list()
+        ]
+        if any(p.get_handle() == parent.get_handle() for p in existing):
+            console.print(
+                f"[yellow]{child.get_gramps_id()} is already enclosed by "
+                f"{parent.get_gramps_id()} ({parent.get_name().get_value()})[/yellow]"
+            )
+            raise typer.Exit(0)
+
+        summary = Table(show_header=False)
+        summary.add_column("Field", style="bold")
+        summary.add_column("Value")
+        summary.add_row("Place", f"{child.get_gramps_id()} — {child.get_name().get_value()}")
+        summary.add_row("Enclosed by", f"{parent.get_gramps_id()} — {parent.get_name().get_value()}")
+        if existing:
+            summary.add_row("Also enclosed by", ", ".join(p.get_name().get_value() for p in existing))
+        console.print(summary)
+
+        _confirm(yes)
+
+        with DbTxn('Set place enclosed by', db) as trans:
+            pref = PlaceRef()
+            pref.set_reference_handle(parent.get_handle())
+            child.add_placeref(pref)
+            db.commit_place(child, trans)
+
+        console.print(
+            f"[green]{child.get_gramps_id()} ({child.get_name().get_value()}) "
+            f"is now enclosed by {parent.get_gramps_id()} ({parent.get_name().get_value()})[/green]"
+        )
+    finally:
+        db.close()
+
+
 @app.command("search-place", no_args_is_help=True)
 def search_place(query: str = typer.Argument(..., help="Name to search for")):
     """Search for places in the database by name."""
@@ -213,23 +269,50 @@ def search_place(query: str = typer.Argument(..., help="Name to search for")):
 
 @app.command("add-census", no_args_is_help=True)
 def add_census(
-    filepath: Path = typer.Argument(..., help="Path to census image file"),
     person_ids: List[str] = typer.Argument(..., help="Person IDs to link to this event"),
+    gallery: Optional[Path] = typer.Option(None, "--gallery", help="Path to census image file"),
+    year_opt: Optional[int] = typer.Option(None, "--year", help="Census year (e.g. 1911); uses the full census date"),
+    name: Optional[str] = typer.Option(None, "--name", help="Head of household for description (e.g. 'John Smith')"),
+    place_query: Optional[str] = typer.Option(None, "--place", help="Place name or ID"),
     yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
 ):
-    """Add a census event from an image file and link people to it."""
-    filepath = filepath.resolve()
-    if not filepath.exists():
-        console.print(f"[red]File not found: {filepath}[/red]")
+    """Add a census event and link people to it."""
+    year_from_stem = None
+    description_from_stem = None
+
+    if gallery:
+        gallery = gallery.resolve()
+        if not gallery.exists():
+            console.print(f"[red]File not found: {gallery}[/red]")
+            raise typer.Exit(1)
+        parts = gallery.stem.split('_')
+        if not parts[0].isdigit():
+            console.print("[red]Filename must start with a year (e.g. 1921_jarvis_nuttall.jpg)[/red]")
+            raise typer.Exit(1)
+        year_from_stem = int(parts[0])
+        description_from_stem = _stem_to_description(gallery.stem)
+
+    year = year_opt or year_from_stem
+
+    if year is None:
+        console.print("[red]Provide a census image (--gallery) or a year (--year)[/red]")
         raise typer.Exit(1)
 
-    parts = filepath.stem.split('_')
-    if not parts[0].isdigit():
-        console.print("[red]Filename must start with a year (e.g. 1921_jarvis_nuttall.jpg)[/red]")
+    if year_opt and year_opt not in CENSUS_DATES:
+        console.print(f"[red]{year_opt} is not a known census year. Known: {', '.join(str(y) for y in sorted(CENSUS_DATES))}[/red]")
         raise typer.Exit(1)
 
-    year = int(parts[0])
-    description = _stem_to_description(filepath.stem)
+    if not gallery and not name:
+        console.print("[red]Provide --gallery or --name (for the event description)[/red]")
+        raise typer.Exit(1)
+
+    record_type = 'register' if year == 1939 else 'census'
+    description = f"{year} {record_type} - {name} household" if name else description_from_stem
+
+    if year_opt:
+        day, month, _ = CENSUS_DATES[year_opt]
+    else:
+        day, month = 0, 0
 
     db = _open_db(write=True)
     try:
@@ -241,45 +324,52 @@ def add_census(
                 raise typer.Exit(1)
             people.append((person, _person_name(person)))
 
+        place = _resolve_place(db, place_query) if place_query else None
+
         summary = Table(show_header=False)
         summary.add_column("Field", style="bold")
         summary.add_column("Value")
-        summary.add_row("File", str(filepath))
+        if gallery:
+            summary.add_row("File", str(gallery))
         summary.add_row("Year", str(year))
         summary.add_row("Description", description)
+        if place:
+            summary.add_row("Place", f"{place.get_name().get_value()} ({place.get_gramps_id()})")
         console.print(summary)
         console.print("\n[bold]People:[/bold]")
         console.print(_people_table(people))
 
         _confirm(yes)
 
-        existing_media_paths = {
-            db.get_media_from_handle(h).get_path(): h
-            for h in db.get_media_handles()
-        }
-
         with DbTxn('Add census event', db) as trans:
             event = Event()
             event.set_type(EventType(EventType.CENSUS))
             date = Date()
-            date.set_yr_mon_day(year, 0, 0)
+            date.set_yr_mon_day(year, month, day)
             event.set_date_object(date)
             event.set_description(description)
 
-            path_str = str(filepath)
-            if path_str in existing_media_paths:
-                media_handle = existing_media_paths[path_str]
-            else:
-                mime = mimetypes.guess_type(path_str)[0] or 'image/jpeg'
-                media = Media()
-                media.set_path(path_str)
-                media.set_mime_type(mime)
-                media.set_description(filepath.stem)
-                media_handle = db.add_media(media, trans)
+            if place:
+                event.set_place_handle(place.get_handle())
 
-            mref = MediaRef()
-            mref.set_reference_handle(media_handle)
-            event.add_media_reference(mref)
+            if gallery:
+                path_str = str(gallery)
+                existing_media_paths = {
+                    db.get_media_from_handle(h).get_path(): h
+                    for h in db.get_media_handles()
+                }
+                if path_str in existing_media_paths:
+                    media_handle = existing_media_paths[path_str]
+                else:
+                    mime = mimetypes.guess_type(path_str)[0] or 'image/jpeg'
+                    media = Media()
+                    media.set_path(path_str)
+                    media.set_mime_type(mime)
+                    media.set_description(gallery.stem)
+                    media_handle = db.add_media(media, trans)
+                mref = MediaRef()
+                mref.set_reference_handle(media_handle)
+                event.add_media_reference(mref)
 
             db.add_event(event, trans)
 
@@ -296,7 +386,8 @@ def add_census(
         result.add_row("Event ID", event.get_gramps_id())
         result.add_row("Description", event.get_description())
         result.add_row("Year", str(year))
-        result.add_row("Image", filepath.name)
+        if gallery:
+            result.add_row("Image", gallery.name)
         console.print(f"\n[green]Event created:[/green]")
         console.print(result)
     finally:
@@ -978,5 +1069,72 @@ def add_child(
         console.print(f"\n[green]Child {child.get_gramps_id()} ({given} {surname}) added to family {family.get_gramps_id()}[/green]")
         if parsed_dob:
             console.print(f"[green]Birth event {birth.get_gramps_id()} created[/green]")
+    finally:
+        db.close()
+
+
+@app.command("census-check", no_args_is_help=True)
+def census_check(
+    person_id: str = typer.Argument(..., help="Person ID"),
+):
+    """Show census years this person should have a record for, and whether they do."""
+    db = _open_db()
+    try:
+        person = db.get_person_from_gramps_id(person_id)
+        if not person:
+            console.print(f"[red]Person {person_id!r} not found[/red]")
+            raise typer.Exit(1)
+
+        birth = get_event(db, person, EventType.BIRTH)
+        death = get_event(db, person, EventType.DEATH)
+        birth_year = get_year(birth)
+        death_year = get_year(death)
+
+        born_str = str(birth_year) if birth_year else "unknown"
+        died_str = str(death_year) if death_year else "unknown"
+        console.print(f"[bold]{person_id}: {_person_name(person)}[/bold]  born {born_str}  died {died_str}\n")
+
+        # person's census events indexed by year
+        person_census_by_year: dict[int, list] = {}
+        for eref in person.get_event_ref_list():
+            event = db.get_event_from_handle(eref.get_reference_handle())
+            if int(event.get_type()) == EventType.CENSUS:
+                year = event.get_date_object().get_year()
+                if year:
+                    person_census_by_year.setdefault(year, []).append(event)
+
+        # event handle -> count of linked people
+        event_person_count: dict = {}
+        for handle in db.get_person_handles():
+            p = db.get_person_from_handle(handle)
+            for eref in p.get_event_ref_list():
+                h = eref.get_reference_handle()
+                event_person_count[h] = event_person_count.get(h, 0) + 1
+
+        eligible = [
+            y for y in sorted(CENSUS_DATES)
+            if (birth_year is None or birth_year <= y)
+            and (death_year is None or death_year >= y)
+        ]
+
+        if not eligible:
+            console.print("No census years fall within this person's lifespan.")
+            return
+
+        table = Table()
+        table.add_column("Year")
+        table.add_column("Record")
+        table.add_column("People on record", justify="right")
+
+        for year in eligible:
+            events = person_census_by_year.get(year, [])
+            if events:
+                for event in events:
+                    count = event_person_count.get(event.get_handle(), 0)
+                    table.add_row(str(year), "[green]Yes[/green]", str(count))
+            else:
+                table.add_row(str(year), "[red]No[/red]", "")
+
+        console.print(table)
     finally:
         db.close()

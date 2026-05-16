@@ -96,12 +96,20 @@
 
       <section class="events" tal:condition="events">
         <h2>Life Events</h2>
+        <tal:block tal:define="event_types sorted(set(e['type'] for e in events))">
+          <div class="event-filters" tal:condition="len(event_types) > 1">
+            <button class="filter-btn active" data-filter="all" onclick="filterEvents(this)">All</button>
+            <button tal:repeat="et event_types" class="filter-btn"
+                    tal:attributes="data-filter et"
+                    onclick="filterEvents(this)">${et}</button>
+          </div>
+        </tal:block>
         <table>
           <thead>
             <tr><th>Date</th><th>Age</th><th>Event</th><th>Detail</th><th>Location</th></tr>
           </thead>
           <tbody>
-            <tr tal:repeat="event events">
+            <tr tal:repeat="event events" tal:attributes="data-type event['type']">
               <tal:block tal:define="
                   year event['year'];
                   full_date event['date']
@@ -223,6 +231,16 @@
     </article>
   </div>
   <tal:block metal:fill-slot="scripts">
+    <script>
+    function filterEvents(btn) {
+      document.querySelectorAll('.event-filters .filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      var filter = btn.dataset.filter;
+      document.querySelectorAll('.events tbody tr').forEach(function(row) {
+        row.style.display = (filter === 'all' || row.dataset.type === filter) ? '' : 'none';
+      });
+    }
+    </script>
     <script tal:condition="event_map_json != '[]'"
             src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script tal:condition="event_map_json != '[]'">

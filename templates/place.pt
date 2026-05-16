@@ -11,7 +11,7 @@
       </tal:block>
     </p>
 
-    <div id="map" tal:condition="place['lat'] and place['lon']"></div>
+    <div id="map" tal:condition="has_map"></div>
 
     <section tal:condition="events">
       <h2>Events (${format(len(events), ',')})</h2>
@@ -28,7 +28,7 @@
         <tbody>
           <tr tal:repeat="event events" data-type="${event['type']}">
             <td class="year">${event['year'] or ''}</td>
-            <td>${event['type']}</td>
+            <td><a href="/events/${event['url_slug']}/">${event['type']}</a></td>
             <td>
               <span tal:condition="event['couple']">
                 <span tal:condition="event['couple'][0]"
@@ -73,14 +73,37 @@
     </section>
   </div>
   <tal:block metal:fill-slot="scripts">
-    <script tal:condition="place['lat'] and place['lon']"
+    <script tal:condition="has_map"
             src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script tal:condition="place['lat'] and place['lon']">
-    var map = L.map('map').setView([${place['lat']}, ${place['lon']}], 11);
+    <script tal:condition="has_map">
+    var map = L.map('map');
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(map);
-    L.marker([${place['lat']}, ${place['lon']}]).addTo(map);
+
+    var allMarkers = [];
+
+    var subject = ${structure: subject_marker_json};
+    if (subject) {
+      var sm = L.circleMarker([subject.lat, subject.lon], {
+        radius: 9, color: '#b91c1c', fillColor: '#ef4444', fillOpacity: 0.9, weight: 2
+      }).bindTooltip(subject.name).addTo(map);
+      allMarkers.push(sm);
+    }
+
+    var subPlaces = ${structure: sub_place_markers_json};
+    subPlaces.forEach(function(p) {
+      var m = L.circleMarker([p.lat, p.lon], {
+        radius: 7, color: '#1a6ab0', fillColor: '#3388ff', fillOpacity: 0.85, weight: 2
+      }).bindTooltip(p.name).addTo(map);
+      allMarkers.push(m);
+    });
+
+    if (allMarkers.length === 1) {
+      map.setView(allMarkers[0].getLatLng(), 11);
+    } else {
+      map.fitBounds(L.featureGroup(allMarkers).getBounds().pad(0.2));
+    }
     </script>
     <script>
     const rows = Array.from(document.querySelectorAll('#places-events-table tbody tr'));
