@@ -21,7 +21,7 @@ from gramps.gen.lib import (
 from gramps.plugins.db.dbapi.sqlite import SQLite
 
 from .build import rebuild_pages
-from .gramps_data import CENSUS_DATES, get_event, get_year
+from .gramps_data import CENSUS_DATES, get_event, get_year, ancestors_with_distances
 from .settings import get_config
 
 
@@ -1149,6 +1149,76 @@ def census_check(
                     table.add_row(str(year), "[green]Yes[/green]", str(count))
             else:
                 table.add_row(str(year), "[red]No[/red]", "")
+
+        console.print(table)
+    finally:
+        db.close()
+
+
+@app.command("rm-people", no_args_is_help=True)
+def rm_people(
+    person_ids: List[str] = typer.Argument(..., help="Person ID(s) to delete"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
+):
+    """Delete one or more people from the database, cleaning up family relationships."""
+    db = _open_db(write=True)
+    try:
+        people = []
+        for person_id in person_ids:
+            person = db.get_person_from_gramps_id(person_id)
+            if not person:
+                console.print(f"[red]Person {person_id!r} not found[/red]")
+                raise typer.Exit(1)
+            people.append(person)
+
+        for person in people:
+            console.print(f"[bold]Delete:[/bold] {person.get_gramps_id()} — {_person_name(person)}")
+            for h in person.get_family_handle_list():
+                family = db.get_family_from_handle(h)
+                console.print(f"  Remove as spouse from family {family.get_gramps_id()}")
+            for h in person.get_parent_family_handle_list():
+                family = db.get_family_from_handle(h)
+                console.print(f"  Remove as child from family {family.get_gramps_id()}")
+
+        _confirm(yes)
+
+        with DbTxn('Delete people', db) as trans:
+            for person in people:
+                db.delete_person_from_database(person, trans)
+
+        ids = ', '.join(p.get_gramps_id() for p in people)
+        console.print(f"[green]Deleted {ids}[/green]")
+    finally:
+        db.close()
+
+
+@app.command("list-ancestors", no_args_is_help=True)
+def list_ancestors(
+    person_id: str = typer.Argument(..., help="Person ID"),
+    generations: Optional[int] = typer.Option(None, "-n", "--generations", help="Limit to this many generations"),
+):
+    """List ancestors of a person grouped by generation."""
+    db = _open_db()
+    try:
+        person = db.get_person_from_gramps_id(person_id)
+        if not person:
+            console.print(f"[red]Person {person_id!r} not found[/red]")
+            raise typer.Exit(1)
+        distances = ancestors_with_distances(db, person)
+        console.print(f"[bold]{person_id}: {_person_name(person)}[/bold]\n")
+
+        table = Table()
+        table.add_column("ID")
+        table.add_column("Name")
+        table.add_column("Generation", justify="right")
+
+        for gid, dist in sorted(distances.items(), key=lambda x: (x[1], x[0])):
+            if dist == 0:
+                continue
+            if generations is not None and dist > generations:
+                continue
+            person = db.get_person_from_gramps_id(gid)
+            table.add_row(gid, _person_name(person), str(dist))
 
         console.print(table)
     finally:

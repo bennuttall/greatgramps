@@ -325,6 +325,14 @@ a:hover { color: #222; }
   vertical-align: middle;
 }
 
+.ancestor-badge.ancestry {
+  background: #2a7a3b;
+}
+
+.ancestor-badge.grave {
+  background: #555;
+}
+
 /* Marriage event — spouse details side by side */
 .couple-details {
   display: grid;
@@ -741,6 +749,16 @@ a.female:not(.pedigree-cell), td.female { color: #9a3a6f; }
   width: 5rem;
 }
 
+.census-records-scroll {
+  overflow-x: auto;
+}
+
+.census-records-table th:not(:first-child),
+.census-records-table td:not(:first-child) {
+  text-align: center;
+  width: 4rem;
+}
+
 .record-check {
   font-size: 1rem;
 }
@@ -751,4 +769,8 @@ a.female:not(.pedigree-cell), td.female { color: #9a3a6f; }
 
 .missing-record {
   color: #c0392b;
+}
+
+.record-na {
+  color: #999;
 }

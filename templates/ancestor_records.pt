@@ -15,6 +15,8 @@
             <th>Burial</th>
             <th>Father</th>
             <th>Mother</th>
+            <th>Ancestry</th>
+            <th>Find a Grave</th>
           </tr>
         </thead>
         <tbody>
@@ -45,6 +47,14 @@
             </td>
             <td class="record-check" tal:attributes="class 'record-check has-record' if person['has_mother'] else 'record-check missing-record'">
               ${'✓' if person['has_mother'] else '✗'}
+            </td>
+            <td class="record-check" tal:attributes="class 'record-check has-record' if person['ancestry_url'] else 'record-check missing-record'">
+              <a tal:condition="person['ancestry_url']" tal:attributes="href person['ancestry_url']" class="ancestor-badge ancestry">A</a>
+              <span tal:condition="not person['ancestry_url']">✗</span>
+            </td>
+            <td class="record-check" tal:attributes="class 'record-check has-record' if person['grave_url'] else 'record-check missing-record'">
+              <a tal:condition="person['grave_url']" tal:attributes="href person['grave_url']" class="ancestor-badge grave">G</a>
+              <span tal:condition="not person['grave_url']">✗</span>
             </td>
           </tr>
         </tbody>

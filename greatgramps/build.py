@@ -581,6 +581,8 @@ def _render_ancestor_records_page(ctx):
             'burial':   _has_event(person, EventType.BURIAL),
             'has_father': father is not None,
             'has_mother': mother is not None,
+            'ancestry_url': d['ancestry_url'],
+            'grave_url': d['grave_url'],
         }
         generations.setdefault(dist, []).append(row)
 
@@ -597,6 +599,79 @@ def _render_ancestor_records_page(ctx):
                gen_list=gen_list)
     )
     print(f'Built ancestor-records/index.html ({sum(len(g["people"]) for g in gen_list)} ancestors)')
+
+
+def _render_ancestor_census_page(ctx):
+    config = ctx['config']
+    db = ctx['db']
+    me = ctx['me']
+    all_people = ctx['all_people']
+    render = ctx['render']
+
+    ancestor_distances = ancestors_with_distances(db, me)
+    census_years = sorted(CENSUS_DATES.keys())
+
+    event_person_count = {}
+    person_census_events = {}
+    for person in db.iter_people():
+        gid = person.get_gramps_id()
+        for eref in person.get_event_ref_list():
+            h = eref.get_reference_handle()
+            event_person_count[h] = event_person_count.get(h, 0) + 1
+            event = db.get_event_from_handle(h)
+            if int(event.get_type()) == EventType.CENSUS:
+                year = event.get_date_object().get_year() or None
+                if year:
+                    person_census_events.setdefault(gid, {}).setdefault(year, []).append(h)
+
+    person_census_counts = {
+        gid: {year: max(event_person_count.get(h, 1) for h in handles)
+              for year, handles in years.items()}
+        for gid, years in person_census_events.items()
+    }
+
+    generations = {}
+    for gid, dist in ancestor_distances.items():
+        if dist == 0:
+            continue
+        d = all_people.get(gid)
+        if not d:
+            continue
+        birth_year = d['birth_year']
+        death_year = d['death_year']
+        census_status = {}
+        for year in census_years:
+            if birth_year and birth_year > year:
+                census_status[year] = {'type': 'unborn', 'count': 0}
+            elif death_year and death_year < year:
+                census_status[year] = {'type': 'deceased', 'count': 0}
+            else:
+                count = person_census_counts.get(gid, {}).get(year, 0)
+                census_status[year] = {'type': 'found' if count else 'missing', 'count': count}
+        generations.setdefault(dist, []).append({
+            'gramps_id': gid,
+            'full_name': d['full_name'],
+            'gender': d['gender'],
+            'birth_year': birth_year,
+            'death_year': death_year,
+            'ancestry_url': d['ancestry_url'],
+            'census': census_status,
+        })
+
+    gen_list = []
+    for dist in sorted(generations):
+        people = sorted(generations[dist], key=lambda r: r['birth_year'] or 9999)
+        label = relationship_label(dist, 0).capitalize() + 's'
+        gen_list.append({'dist': dist, 'label': label, 'people': people})
+
+    records_dir = config.output_dir / 'census-records'
+    records_dir.mkdir(exist_ok=True)
+    (records_dir / 'index.html').write_text(
+        render('census_records', base='/', page_title='Census Records — Family Tree',
+               gen_list=gen_list, census_years=census_years)
+    )
+    total = sum(len(g['people']) for g in gen_list)
+    print(f'Built census-records/index.html ({total} ancestors)')
 
 
 def _report(label, total, errors, elapsed):
@@ -804,6 +879,7 @@ def build():
     print('Built census/index.html')
 
     _render_ancestor_records_page(ctx)
+    _render_ancestor_census_page(ctx)
 
     db.close()
 
