@@ -347,6 +347,29 @@ def ancestors_with_distances(db, person):
     return result
 
 
+def ancestors_with_ahnentafel(db, person):
+    """Returns {gramps_id: ahnentafel_number} for all ancestors including self (1).
+
+    Ahnentafel numbering: subject=1, father=2, mother=3, paternal GF=4,
+    paternal GM=5, maternal GF=6, maternal GM=7, etc. Lower numbers are
+    more paternal; couples share consecutive numbers (2n, 2n+1).
+    """
+    result = {}
+    queue = [(person, 1)]
+    while queue:
+        p, num = queue.pop(0)
+        gid = p.get_gramps_id()
+        if gid in result:
+            continue
+        result[gid] = num
+        father, mother = get_parents(db, p)
+        if father:
+            queue.append((father, 2 * num))
+        if mother:
+            queue.append((mother, 2 * num + 1))
+    return result
+
+
 def _ordinal(n):
     return {1: '1st', 2: '2nd', 3: '3rd'}.get(n, f'{n}th')
 

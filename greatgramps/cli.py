@@ -59,6 +59,15 @@ def _open_db(write=False):
     return db
 
 
+def _to_media_path(gallery: Path) -> str:
+    """Return gallery path relative to the DB dir (matching how paths are stored)."""
+    db_path = get_config().validated_db_path
+    try:
+        return str(gallery.resolve().relative_to(db_path))
+    except ValueError:
+        return str(gallery.resolve())
+
+
 def _geocode(query: str):
     params = urllib.parse.urlencode({'q': query, 'format': 'json', 'limit': 5})
     req = urllib.request.Request(
@@ -363,7 +372,7 @@ def add_census(
                 event.set_place_handle(place.get_handle())
 
             if gallery:
-                path_str = str(gallery)
+                path_str = _to_media_path(gallery)
                 existing_media_paths = {
                     db.get_media_from_handle(h).get_path(): h
                     for h in db.get_media_handles()
@@ -641,7 +650,7 @@ def add_event(
                 event.set_place_handle(place.get_handle())
 
             if gallery:
-                path_str = str(gallery.resolve())
+                path_str = _to_media_path(gallery)
                 existing = {db.get_media_from_handle(h).get_path(): h for h in db.get_media_handles()}
                 if path_str in existing:
                     media_handle = existing[path_str]

@@ -12,7 +12,7 @@ from gramps.gen.lib.eventtype import EventType
 from .gramps_data import (
     open_db, collect_all_people, collect_ancestors,
     get_parents, get_children, get_siblings, get_spouses, get_all_events,
-    ancestors_with_distances, get_relation_to_me, is_related_by_marriage, get_by_marriage_relation,
+    ancestors_with_distances, ancestors_with_ahnentafel, get_relation_to_me, is_related_by_marriage, get_by_marriage_relation,
     get_photos, get_occupations, get_all_person_pictures, place_data, build_place_event_index, build_event_list,
     build_event_pages_data, build_birthday_list, person_data,
     collect_ancestor_tree, collect_descendant_tree, count_descendants,
@@ -545,6 +545,7 @@ def _render_ancestor_records_page(ctx):
     render = ctx['render']
 
     ancestor_distances = ancestors_with_distances(db, me)
+    ahnentafel = ancestors_with_ahnentafel(db, me)
 
     def _has_event(person, etype):
         return any(
@@ -588,7 +589,7 @@ def _render_ancestor_records_page(ctx):
 
     gen_list = []
     for dist in sorted(generations):
-        people = sorted(generations[dist], key=lambda r: r['birth_year'] or 9999)
+        people = sorted(generations[dist], key=lambda r: ahnentafel.get(r['gramps_id'], 9999))
         label = relationship_label(dist, 0).capitalize() + 's'
         gen_list.append({'dist': dist, 'label': label, 'people': people})
 
@@ -609,6 +610,7 @@ def _render_ancestor_census_page(ctx):
     render = ctx['render']
 
     ancestor_distances = ancestors_with_distances(db, me)
+    ahnentafel = ancestors_with_ahnentafel(db, me)
     census_years = sorted(CENSUS_DATES.keys())
 
     event_person_count = {}
@@ -660,7 +662,7 @@ def _render_ancestor_census_page(ctx):
 
     gen_list = []
     for dist in sorted(generations):
-        people = sorted(generations[dist], key=lambda r: r['birth_year'] or 9999)
+        people = sorted(generations[dist], key=lambda r: ahnentafel.get(r['gramps_id'], 9999))
         label = relationship_label(dist, 0).capitalize() + 's'
         gen_list.append({'dist': dist, 'label': label, 'people': people})
 
@@ -884,7 +886,7 @@ def build():
     db.close()
 
 
-NAMED_PAGES = {'places', 'people', 'events', 'census', 'index'}
+NAMED_PAGES = {'places', 'people', 'events', 'census', 'index', 'ancestor-records', 'census-records'}
 
 
 def rebuild_pages(ids):
@@ -1052,6 +1054,12 @@ def rebuild_pages(ids):
             render('index', base='/', page_title='Family Tree', summary=summary)
         )
         print('Rebuilt index.html')
+
+    if 'ancestor-records' in named:
+        _render_ancestor_records_page(ctx)
+
+    if 'census-records' in named:
+        _render_ancestor_census_page(ctx)
 
     db.close()
 
