@@ -8,6 +8,7 @@ from collections import Counter
 from datetime import date
 from PIL import Image
 from chameleon import PageTemplateLoader
+from gramps.gen.lib.eventtype import EventType
 from .gramps_data import (
     open_db, collect_all_people, collect_ancestors,
     get_parents, get_children, get_siblings, get_spouses, get_all_events,
@@ -16,7 +17,7 @@ from .gramps_data import (
     build_event_pages_data, build_birthday_list, person_data,
     collect_ancestor_tree, collect_descendant_tree, count_descendants,
     collect_all_descendants, group_descendants_by_generation,
-    build_census_data, CENSUS_DATES, MONTHS,
+    build_census_data, CENSUS_DATES, MONTHS, relationship_label,
 )
 from .settings import get_config
 
@@ -536,6 +537,67 @@ def _render_event_page(ctx, slug, event_data, relation_map):
         event_map_json=event_map_json,
     ))
 
+def _render_ancestor_records_page(ctx):
+    config = ctx['config']
+    db = ctx['db']
+    me = ctx['me']
+    all_people = ctx['all_people']
+    render = ctx['render']
+
+    ancestor_distances = ancestors_with_distances(db, me)
+
+    def _has_event(person, etype):
+        return any(
+            int(db.get_event_from_handle(er.get_reference_handle()).get_type()) == etype
+            for er in person.get_event_ref_list()
+        )
+
+    def _has_marriage(person):
+        for fam_handle in person.get_family_handle_list():
+            family = db.get_family_from_handle(fam_handle)
+            for er in family.get_event_ref_list():
+                if int(db.get_event_from_handle(er.get_reference_handle()).get_type()) == EventType.MARRIAGE:
+                    return True
+        return False
+
+    generations = {}
+    for gid, dist in ancestor_distances.items():
+        if dist == 0:
+            continue
+        person = db.get_person_from_gramps_id(gid)
+        if not person:
+            continue
+        d = all_people[gid]
+        father, mother = get_parents(db, person)
+        row = {
+            'gramps_id': gid,
+            'full_name': d['full_name'],
+            'gender': d['gender'],
+            'birth_year': d['birth_year'],
+            'birth':    _has_event(person, EventType.BIRTH),
+            'baptism':  _has_event(person, EventType.BAPTISM),
+            'marriage': _has_marriage(person),
+            'death':    _has_event(person, EventType.DEATH),
+            'burial':   _has_event(person, EventType.BURIAL),
+            'has_father': father is not None,
+            'has_mother': mother is not None,
+        }
+        generations.setdefault(dist, []).append(row)
+
+    gen_list = []
+    for dist in sorted(generations):
+        people = sorted(generations[dist], key=lambda r: r['birth_year'] or 9999)
+        label = relationship_label(dist, 0).capitalize() + 's'
+        gen_list.append({'dist': dist, 'label': label, 'people': people})
+
+    records_dir = config.output_dir / 'ancestor-records'
+    records_dir.mkdir(exist_ok=True)
+    (records_dir / 'index.html').write_text(
+        render('ancestor_records', base='/', page_title='Ancestor Records — Family Tree',
+               gen_list=gen_list)
+    )
+    print(f'Built ancestor-records/index.html ({sum(len(g["people"]) for g in gen_list)} ancestors)')
+
 
 def _report(label, total, errors, elapsed):
     err_str = f' ({len(errors)} error{"s" if len(errors) != 1 else ""})' if errors else ''
@@ -740,6 +802,8 @@ def build():
     ))
     _report('census pages', len(census_data), census_errors, time.time() - t)
     print('Built census/index.html')
+
+    _render_ancestor_records_page(ctx)
 
     db.close()
 

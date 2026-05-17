@@ -734,3 +734,21 @@ a.female:not(.pedigree-cell), td.female { color: #9a3a6f; }
   color: #999;
   flex-shrink: 0;
 }
+
+.ancestor-records-table th:not(:first-child),
+.ancestor-records-table td:not(:first-child) {
+  text-align: center;
+  width: 5rem;
+}
+
+.record-check {
+  font-size: 1rem;
+}
+
+.has-record {
+  color: #2a7a3b;
+}
+
+.missing-record {
+  color: #c0392b;
+}

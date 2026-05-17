@@ -1,0 +1,54 @@
+<div metal:use-macro="layout">
+  <div metal:fill-slot="content" tal:omit-tag="1">
+    <h1>Ancestor Records</h1>
+
+    <div tal:repeat="gen gen_list">
+      <h2>${gen['label']} <span class="tab-count">(${len(gen['people'])})</span></h2>
+      <table class="events-table ancestor-records-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Birth</th>
+            <th>Baptism</th>
+            <th>Marriage</th>
+            <th>Death</th>
+            <th>Burial</th>
+            <th>Father</th>
+            <th>Mother</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr tal:repeat="person gen['people']">
+            <td>
+              <a href="/people/${person['gramps_id']}/"
+                 tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)"
+              >${person['full_name']}</a>
+              <span class="years" tal:condition="person['birth_year']">(${person['birth_year']})</span>
+            </td>
+            <td class="record-check" tal:attributes="class 'record-check has-record' if person['birth'] else 'record-check missing-record'">
+              ${'✓' if person['birth'] else '✗'}
+            </td>
+            <td class="record-check" tal:attributes="class 'record-check has-record' if person['baptism'] else 'record-check missing-record'">
+              ${'✓' if person['baptism'] else '✗'}
+            </td>
+            <td class="record-check" tal:attributes="class 'record-check has-record' if person['marriage'] else 'record-check missing-record'">
+              ${'✓' if person['marriage'] else '✗'}
+            </td>
+            <td class="record-check" tal:attributes="class 'record-check has-record' if person['death'] else 'record-check missing-record'">
+              ${'✓' if person['death'] else '✗'}
+            </td>
+            <td class="record-check" tal:attributes="class 'record-check has-record' if person['burial'] else 'record-check missing-record'">
+              ${'✓' if person['burial'] else '✗'}
+            </td>
+            <td class="record-check" tal:attributes="class 'record-check has-record' if person['has_father'] else 'record-check missing-record'">
+              ${'✓' if person['has_father'] else '✗'}
+            </td>
+            <td class="record-check" tal:attributes="class 'record-check has-record' if person['has_mother'] else 'record-check missing-record'">
+              ${'✓' if person['has_mother'] else '✗'}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
