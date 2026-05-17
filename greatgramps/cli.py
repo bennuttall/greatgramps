@@ -322,7 +322,9 @@ def add_census(
             if not person:
                 console.print(f"[red]Person {pid!r} not found[/red]")
                 raise typer.Exit(1)
-            people.append((person, _person_name(person)))
+            birth_year = get_year(get_event(db, person, EventType.BIRTH))
+            age = str(year - birth_year) if birth_year else ""
+            people.append((person, _person_name(person), birth_year, age))
 
         place = _resolve_place(db, place_query) if place_query else None
 
@@ -336,8 +338,16 @@ def add_census(
         if place:
             summary.add_row("Place", f"{place.get_name().get_value()} ({place.get_gramps_id()})")
         console.print(summary)
+
+        people_table = Table()
+        people_table.add_column("ID")
+        people_table.add_column("Name")
+        people_table.add_column("Born", justify="right")
+        people_table.add_column("Age", justify="right")
+        for person, name, birth_year, age in people:
+            people_table.add_row(person.get_gramps_id(), name, str(birth_year) if birth_year else "", age)
         console.print("\n[bold]People:[/bold]")
-        console.print(_people_table(people))
+        console.print(people_table)
 
         _confirm(yes)
 
@@ -373,7 +383,7 @@ def add_census(
 
             db.add_event(event, trans)
 
-            for person, _ in people:
+            for person, *_ in people:
                 eref = EventRef()
                 eref.set_reference_handle(event.get_handle())
                 eref.set_role(EventRoleType(EventRoleType.PRIMARY))
@@ -861,10 +871,10 @@ def list_event_people(
 @app.command("rm-event-person", no_args_is_help=True)
 def rm_event_person(
     event_id: str = typer.Argument(..., help="Event ID"),
-    person_id: str = typer.Argument(..., help="Person ID to remove"),
+    person_ids: List[str] = typer.Argument(..., help="Person ID(s) to remove"),
     yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
 ):
-    """Remove a person from an event."""
+    """Remove one or more people from an event."""
     db = _open_db(write=True)
     try:
         event = db.get_event_from_gramps_id(event_id)
@@ -872,26 +882,31 @@ def rm_event_person(
             console.print(f"[red]Event {event_id!r} not found[/red]")
             raise typer.Exit(1)
 
-        person = db.get_person_from_gramps_id(person_id)
-        if not person:
-            console.print(f"[red]Person {person_id!r} not found[/red]")
-            raise typer.Exit(1)
-
-        erefs = person.get_event_ref_list()
-        new_erefs = [e for e in erefs if e.get_reference_handle() != event.get_handle()]
-        if len(new_erefs) == len(erefs):
-            console.print(f"[yellow]{person_id} is not linked to {event_id}[/yellow]")
-            raise typer.Exit(1)
+        to_remove = []
+        for pid in person_ids:
+            person = db.get_person_from_gramps_id(pid)
+            if not person:
+                console.print(f"[red]Person {pid!r} not found[/red]")
+                raise typer.Exit(1)
+            erefs = person.get_event_ref_list()
+            new_erefs = [e for e in erefs if e.get_reference_handle() != event.get_handle()]
+            if len(new_erefs) == len(erefs):
+                console.print(f"[yellow]{pid} is not linked to {event_id}[/yellow]")
+                raise typer.Exit(1)
+            to_remove.append((person, new_erefs))
 
         console.print(f"[bold]Event:[/bold] {event_id} — {_event_label(event)}")
-        console.print(f"[bold]Remove:[/bold] {person_id} — {_person_name(person)}")
+        for person, _ in to_remove:
+            console.print(f"[bold]Remove:[/bold] {person.get_gramps_id()} — {_person_name(person)}")
         _confirm(yes)
 
-        with DbTxn('Remove person from event', db) as trans:
-            person.set_event_ref_list(new_erefs)
-            db.commit_person(person, trans)
+        with DbTxn('Remove people from event', db) as trans:
+            for person, new_erefs in to_remove:
+                person.set_event_ref_list(new_erefs)
+                db.commit_person(person, trans)
 
-        console.print(f"[green]Removed {person_id} from {event_id}[/green]")
+        ids = ', '.join(p.get_gramps_id() for p, _ in to_remove)
+        console.print(f"[green]Removed {ids} from {event_id}[/green]")
     finally:
         db.close()
 
