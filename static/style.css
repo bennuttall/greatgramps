@@ -774,3 +774,7 @@ a.female:not(.pedigree-cell), td.female { color: #9a3a6f; }
 .record-na {
   color: #999;
 }
+
+.duplicate-warning {
+  color: #c0392b;
+}

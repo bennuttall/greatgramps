@@ -26,7 +26,8 @@
                     tal:attributes="class 'record-check has-record' if s['type'] == 'found' else ('record-check missing-record' if s['type'] == 'missing' else 'record-check record-na');
                                     title 'Not yet born' if s['type'] == 'unborn' else ('Deceased' if s['type'] == 'deceased' else None)"
                 >
-                  <strong tal:condition="s['type'] == 'found'">${s['count']}</strong>
+                  <strong tal:condition="s['type'] == 'found' and not s.get('duplicate')">${s['count']}</strong>
+                  <span tal:condition="s.get('duplicate')" title="Multiple records for this year" class="duplicate-warning">⚠</span>
                   <span tal:condition="s['type'] == 'missing'">✗</span>
                   <span tal:condition="s['type'] == 'unborn'">○</span>
                   <span tal:condition="s['type'] == 'deceased'">†</span>

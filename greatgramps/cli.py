@@ -877,7 +877,7 @@ def list_event_people(
         db.close()
 
 
-@app.command("rm-event-person", no_args_is_help=True)
+@app.command("rm-event-people", no_args_is_help=True)
 def rm_event_person(
     event_id: str = typer.Argument(..., help="Event ID"),
     person_ids: List[str] = typer.Argument(..., help="Person ID(s) to remove"),
@@ -916,6 +916,66 @@ def rm_event_person(
 
         ids = ', '.join(p.get_gramps_id() for p, _ in to_remove)
         console.print(f"[green]Removed {ids} from {event_id}[/green]")
+    finally:
+        db.close()
+
+
+@app.command("rm-event", no_args_is_help=True)
+def rm_event(
+    event_ids: List[str] = typer.Argument(..., help="Event ID(s) to delete"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
+):
+    """Delete one or more events, removing all references from people and families."""
+    db = _open_db(write=True)
+    try:
+        events = []
+        for eid in event_ids:
+            event = db.get_event_from_gramps_id(eid)
+            if not event:
+                console.print(f"[red]Event {eid!r} not found[/red]")
+                raise typer.Exit(1)
+            events.append(event)
+
+        linked_people = {}
+        linked_families = {}
+        for event in events:
+            h = event.get_handle()
+            linked_people[h] = []
+            for person_handle in db.get_person_handles():
+                person = db.get_person_from_handle(person_handle)
+                if any(e.get_reference_handle() == h for e in person.get_event_ref_list()):
+                    linked_people[h].append(person)
+            linked_families[h] = []
+            for fam_handle in db.get_family_handles():
+                family = db.get_family_from_handle(fam_handle)
+                if any(e.get_reference_handle() == h for e in family.get_event_ref_list()):
+                    linked_families[h].append(family)
+
+        for event in events:
+            h = event.get_handle()
+            console.print(f"[bold]Delete:[/bold] {event.get_gramps_id()} — {_event_label(event)}")
+            for person in linked_people[h]:
+                console.print(f"  Remove ref from {person.get_gramps_id()} — {_person_name(person)}")
+            for family in linked_families[h]:
+                console.print(f"  Remove ref from family {family.get_gramps_id()}")
+
+        _confirm(yes)
+
+        with DbTxn('Delete events', db) as trans:
+            for event in events:
+                h = event.get_handle()
+                for person in linked_people[h]:
+                    new_erefs = [e for e in person.get_event_ref_list() if e.get_reference_handle() != h]
+                    person.set_event_ref_list(new_erefs)
+                    db.commit_person(person, trans)
+                for family in linked_families[h]:
+                    new_erefs = [e for e in family.get_event_ref_list() if e.get_reference_handle() != h]
+                    family.set_event_ref_list(new_erefs)
+                    db.commit_family(family, trans)
+                db.remove_event(h, trans)
+
+        ids = ', '.join(e.get_gramps_id() for e in events)
+        console.print(f"[green]Deleted {ids}[/green]")
     finally:
         db.close()
 

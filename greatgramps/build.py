@@ -649,7 +649,8 @@ def _render_ancestor_census_page(ctx):
                 census_status[year] = {'type': 'deceased', 'count': 0}
             else:
                 count = person_census_counts.get(gid, {}).get(year, 0)
-                census_status[year] = {'type': 'found' if count else 'missing', 'count': count}
+                num_events = len(person_census_events.get(gid, {}).get(year, []))
+                census_status[year] = {'type': 'found' if count else 'missing', 'count': count, 'duplicate': num_events > 1}
         generations.setdefault(dist, []).append({
             'gramps_id': gid,
             'full_name': d['full_name'],
