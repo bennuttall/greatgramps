@@ -690,6 +690,7 @@ def build():
     config = get_config()
     db = open_db()
 
+    config.output_dir.mkdir(parents=True, exist_ok=True)
     for f in config.static_dir.iterdir():
         shutil.copy2(f, config.output_dir / f.name)
 
@@ -899,6 +900,7 @@ def rebuild_pages(ids):
     config = get_config()
     db = open_db()
 
+    config.output_dir.mkdir(parents=True, exist_ok=True)
     for f in config.static_dir.iterdir():
         shutil.copy2(f, config.output_dir / f.name)
 
