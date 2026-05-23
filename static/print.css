@@ -1,0 +1,212 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  font-family: Georgia, serif;
+  max-width: none;
+  margin: 0;
+  padding: 0.5cm 1cm;
+  color: #000;
+  line-height: 1.5;
+  font-size: 10pt;
+}
+
+header { display: none; }
+
+main { padding: 0; }
+
+h1 { margin-top: 0; margin-bottom: 0.15rem; font-size: 16pt; }
+h2 { font-size: 11pt; text-transform: uppercase; letter-spacing: 0.05em; color: #333; margin-top: 1.2rem; }
+h3 { font-size: 9pt; text-transform: uppercase; letter-spacing: 0.05em; color: #555; margin-top: 1rem; margin-bottom: 0; }
+
+a { color: #000; text-decoration: none; }
+
+/* Remove backgrounds from person-detail sections */
+.person-detail .events,
+.person-detail .profile-overview,
+.person-detail .ancestors,
+.person-detail .descendants {
+  background: none;
+  padding: 0;
+  border: none;
+  border-top: 1px solid #ccc;
+  border-radius: 0;
+  margin-top: 1rem;
+}
+
+/* Hide interactive / screen-only elements */
+header nav,
+.event-filters,
+.filter-btn,
+.person-tabs,
+#search,
+#name-search,
+.profile-link { display: none; }
+
+/* Hide maps */
+#map, #events-map, #census-map { display: none; }
+
+/* Compact person header */
+.person-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.person-header-photo .person-photo {
+  max-height: 120px;
+}
+
+/* Tables */
+.events-table,
+#people-table,
+#places-table,
+#surnames-table,
+.events table,
+.summary-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.events-table th, .events-table td,
+#people-table th, #people-table td,
+#places-table th, #places-table td,
+#surnames-table th, #surnames-table td,
+.events th, .events td,
+.summary-table td {
+  padding: 0.15rem 0.75rem 0.15rem 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.events-table th,
+#people-table th,
+#places-table th,
+#surnames-table th {
+  font-size: 8pt;
+}
+
+tr { page-break-inside: avoid; }
+
+/* Summary stats — horizontal strip, compact */
+.summary-stats {
+  display: flex;
+  gap: 2rem;
+  margin: 0.75rem 0 1.5rem;
+  flex-wrap: wrap;
+}
+
+.stat-value { font-size: 16pt; }
+
+/* Full-width pedigree */
+.pedigree-wrap { overflow: visible; }
+
+.pedigree-cell {
+  border: 1px solid #aaa;
+  background: none;
+  font-size: 8pt;
+  padding: 0.2rem 0.4rem;
+  page-break-inside: avoid;
+}
+
+/* No gender colours in print */
+a.male:not(.pedigree-cell), td.male,
+a.female:not(.pedigree-cell), td.female { color: #000; }
+.ancestor-badge.male, .ancestor-badge.female { background: #ddd; color: #333; }
+.pedigree-cell.male, .pedigree-cell.female { background: none; border-color: #aaa; }
+
+/* Two-column layout can stay on print */
+.profile-overview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  background: none;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+/* Ancestor records table */
+.ancestor-records-table th:not(:first-child),
+.ancestor-records-table td:not(:first-child) {
+  text-align: center;
+}
+
+/* Census records — ultra-compact */
+.census-records-scroll { overflow: visible; }
+
+.census-records-table {
+  font-size: 7pt;
+  width: 100%;
+}
+
+.census-records-table th,
+.census-records-table td {
+  padding: 1px 3px;
+  border: none;
+  border-bottom: 1px solid #555;
+  font-size: 7pt;
+}
+
+.census-records-table th:not(:first-child),
+.census-records-table td:not(:first-child) {
+  text-align: center;
+  width: 1.5rem;
+}
+
+/* Drop birth/death years and Ancestry badge from name cells */
+.census-records-table .years,
+.census-records-table .ancestor-badge { display: none; }
+
+/* Drop generation counts from headings */
+.tab-count { display: none; }
+
+/* Replace Unicode symbols with ASCII equivalents */
+.census-missing  { font-size: 0; }
+.census-unborn   { font-size: 0; }
+.census-deceased { font-size: 0; }
+.duplicate-warning { font-size: 0; }
+.census-missing::before  { content: "x";  font-size: 7pt; color: #c00; }
+.census-unborn::before   { content: "-";  font-size: 7pt; color: #999; }
+.census-deceased::before { content: "d";  font-size: 7pt; color: #999; }
+.duplicate-warning::before { content: "!"; font-size: 7pt; color: #c00; }
+
+/* Allow rows to break across pages in large tables */
+.census-records-table tr { page-break-inside: auto; }
+
+/* Badges */
+.ancestor-badge,
+.place-type {
+  font-size: 7pt;
+  padding: 1px 4px;
+  border-radius: 2px;
+  color: #333;
+  background: #ddd;
+}
+
+/* Event notes */
+pre.event-note {
+  font-family: Georgia, serif;
+  font-size: 9pt;
+  white-space: pre-wrap;
+  background: none;
+  border-left: 2px solid #aaa;
+  padding: 0.5rem 0.75rem;
+  margin: 0.4rem 0 0.75rem;
+}
+
+/* Photos */
+.photos { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.person-photo { max-height: 160px; }
+
+.profile-media {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 0.5rem 0;
+}
+
+/* Page breaks */
+h2, h3 { page-break-after: avoid; }

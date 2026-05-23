@@ -21,7 +21,7 @@ from gramps.gen.lib import (
 from gramps.plugins.db.dbapi.sqlite import SQLite
 
 from .build import rebuild_pages
-from .gramps_data import CENSUS_DATES, get_event, get_year, ancestors_with_distances
+from .gramps_data import CENSUS_DATES, format_date, get_event, get_year, ancestors_with_distances
 from .settings import get_config
 
 
@@ -582,6 +582,79 @@ def _resolve_place(db, query: str):
     raise typer.Exit(1)
 
 
+def _split_name(full_name: str) -> tuple[str, str]:
+    parts = full_name.rsplit(' ', 1)
+    return (parts[0], parts[1]) if len(parts) == 2 else (parts[0], '')
+
+
+def _build_person(db, trans, full_name: str) -> Person:
+    given, surname = _split_name(full_name)
+    person = Person()
+    pname = Name()
+    pname.set_first_name(given)
+    if surname:
+        surn = Surname()
+        surn.set_surname(surname)
+        pname.set_surname_list([surn])
+    pname.set_type(NameType(NameType.BIRTH))
+    person.set_primary_name(pname)
+    db.add_person(person, trans)
+    return person
+
+
+def _attach_event(db, trans, person: Person, event_type: EventType, parsed_date) -> Event:
+    event = Event()
+    event.set_type(event_type)
+    if parsed_date:
+        y, m, d = parsed_date
+        dt = Date()
+        dt.set_yr_mon_day(y, m, d)
+        event.set_date_object(dt)
+    db.add_event(event, trans)
+    eref = EventRef()
+    eref.set_reference_handle(event.get_handle())
+    eref.set_role(EventRoleType(EventRoleType.PRIMARY))
+    person.add_event_ref(eref)
+    return event
+
+
+def _family_handles(parent1, parent2=None) -> tuple:
+    """Return (father_handle, mother_handle) by gender, falling back to positional."""
+    h1, g1 = parent1.get_handle(), parent1.get_gender()
+    h2 = parent2.get_handle() if parent2 else None
+    g2 = parent2.get_gender() if parent2 else None
+    if parent2 is None:
+        return (None, h1) if g1 == Person.FEMALE else (h1, None)
+    if g1 == Person.MALE and g2 != Person.MALE:
+        return h1, h2
+    if g2 == Person.MALE and g1 != Person.MALE:
+        return h2, h1
+    if g1 == Person.FEMALE and g2 != Person.FEMALE:
+        return h2, h1
+    if g2 == Person.FEMALE and g1 != Person.FEMALE:
+        return h1, h2
+    return h1, h2  # same gender or both unknown — positional
+
+
+def _get_or_create_family(db, trans, parent1, parent2=None) -> tuple[Family, bool]:
+    """Return (family, created). Searches parent1's families for a matching pair first."""
+    father_h, mother_h = _family_handles(parent1, parent2)
+    for fam_handle in parent1.get_family_handle_list():
+        fam = db.get_family_from_handle(fam_handle)
+        if (fam.get_father_handle() or None) == father_h and (fam.get_mother_handle() or None) == mother_h:
+            return fam, False
+    family = Family()
+    family.set_father_handle(father_h)
+    family.set_mother_handle(mother_h)
+    db.add_family(family, trans)
+    parent1.add_family_handle(family.get_handle())
+    db.commit_person(parent1, trans)
+    if parent2:
+        parent2.add_family_handle(family.get_handle())
+        db.commit_person(parent2, trans)
+    return family, True
+
+
 @app.command("add-event", no_args_is_help=True)
 def add_event(
     event_type_str: str = typer.Argument(..., help=f"Event type: {', '.join(EVENT_TYPE_MAP)}"),
@@ -1056,103 +1129,390 @@ def add_grave_link(
         db.close()
 
 
-@app.command("add-child", no_args_is_help=True)
-def add_child(
-    father_id: str = typer.Argument(..., help="Father's person ID"),
-    mother_id: str = typer.Argument(..., help="Mother's person ID"),
-    child_name: str = typer.Argument(..., help="Child's given name (surname taken from father)"),
-    dob: Optional[str] = typer.Option(None, "--dob", help="Date of birth (e.g. '1 Jan 1950' or 1950)"),
+@app.command("add-person", no_args_is_help=True)
+def add_person(
+    name: str = typer.Argument(..., help="Full name, e.g. 'John Smith'"),
+    birth: Optional[str] = typer.Option(None, "--birth", help="Birth date, e.g. '1 Jan 1950' or 1950"),
+    death: Optional[str] = typer.Option(None, "--death", help="Death date"),
+    gender: Optional[str] = typer.Option(None, "--gender", help="Gender: m/male or f/female"),
+    father_id: Optional[str] = typer.Option(None, "--father", help="Father's person ID"),
+    mother_id: Optional[str] = typer.Option(None, "--mother", help="Mother's person ID"),
     yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
 ):
-    """Add a child to a family (surname from father), creating the family if it doesn't exist."""
-    parsed_dob = None
-    if dob:
-        parsed_dob = _parse_date(dob)
-        if parsed_dob is None:
-            console.print(f"[red]Could not parse date {dob!r}[/red]")
+    """Add a new person to the database."""
+    parsed_birth = _parse_date(birth) if birth else None
+    if birth and parsed_birth is None:
+        console.print(f"[red]Could not parse birth date {birth!r}[/red]")
+        raise typer.Exit(1)
+    parsed_death = _parse_date(death) if death else None
+    if death and parsed_death is None:
+        console.print(f"[red]Could not parse death date {death!r}[/red]")
+        raise typer.Exit(1)
+
+    explicit_gender = None
+    if gender:
+        g = gender.strip().lower()
+        if g in ('m', 'male'):
+            explicit_gender = Person.MALE
+        elif g in ('f', 'female'):
+            explicit_gender = Person.FEMALE
+        elif g in ('u', 'unknown'):
+            explicit_gender = Person.UNKNOWN
+        else:
+            console.print(f"[red]Unknown gender {gender!r}. Use m/male, f/female, or u/unknown[/red]")
             raise typer.Exit(1)
 
     db = _open_db(write=True)
     try:
-        father = db.get_person_from_gramps_id(father_id)
-        if not father:
-            console.print(f"[red]Father {father_id!r} not found[/red]")
-            raise typer.Exit(1)
-        mother = db.get_person_from_gramps_id(mother_id)
-        if not mother:
-            console.print(f"[red]Mother {mother_id!r} not found[/red]")
-            raise typer.Exit(1)
+        father = None
+        if father_id:
+            father = db.get_person_from_gramps_id(father_id)
+            if not father:
+                console.print(f"[red]Father {father_id!r} not found[/red]")
+                raise typer.Exit(1)
+        mother = None
+        if mother_id:
+            mother = db.get_person_from_gramps_id(mother_id)
+            if not mother:
+                console.print(f"[red]Mother {mother_id!r} not found[/red]")
+                raise typer.Exit(1)
 
-        given = child_name
-        surname = father.get_primary_name().get_surname()
+        # Determine gender: explicit → inferred → prompt
+        gender_source = None
+        if explicit_gender is not None:
+            resolved_gender = explicit_gender
+            gender_source = 'specified'
+        else:
+            given, _ = _split_name(name)
+            resolved_gender = db.genderStats.guess_gender(given)
+            if resolved_gender != Person.UNKNOWN:
+                gender_source = 'inferred'
 
-        existing_family = None
-        for fam_handle in father.get_family_handle_list():
+        if resolved_gender == Person.UNKNOWN and gender_source is None:
+            while True:
+                try:
+                    g = input("Gender not inferred from name. Specify [m/f/u]: ").strip().lower()
+                except KeyboardInterrupt:
+                    console.print("\nCancelled.")
+                    raise typer.Exit(0)
+                if g in ('m', 'male'):
+                    resolved_gender = Person.MALE
+                    break
+                elif g in ('f', 'female'):
+                    resolved_gender = Person.FEMALE
+                    break
+                elif g in ('u', 'unknown', ''):
+                    resolved_gender = Person.UNKNOWN
+                    break
+                console.print("[red]Enter m (male), f (female), or u (unknown)[/red]")
+
+        summary = Table(show_header=False)
+        summary.add_column("Field", style="bold")
+        summary.add_column("Value")
+        summary.add_row("Name", name)
+        if resolved_gender == Person.MALE:
+            suffix = " (inferred from name)" if gender_source == 'inferred' else ""
+            summary.add_row("Gender", f"Male{suffix}")
+        elif resolved_gender == Person.FEMALE:
+            suffix = " (inferred from name)" if gender_source == 'inferred' else ""
+            summary.add_row("Gender", f"Female{suffix}")
+        if birth:
+            summary.add_row("Birth", birth)
+        if death:
+            summary.add_row("Death", death)
+        if father:
+            summary.add_row("Father", f"{father_id} — {_person_name(father)}")
+        if mother:
+            summary.add_row("Mother", f"{mother_id} — {_person_name(mother)}")
+        console.print(summary)
+
+        _confirm(yes)
+
+        with DbTxn('Add person', db) as trans:
+            person = _build_person(db, trans, name)
+            if resolved_gender != Person.UNKNOWN:
+                person.set_gender(resolved_gender)
+            birth_event = _attach_event(db, trans, person, EventType(EventType.BIRTH), parsed_birth) if parsed_birth else None
+            death_event = _attach_event(db, trans, person, EventType(EventType.DEATH), parsed_death) if parsed_death else None
+            db.commit_person(person, trans)
+            if father or mother:
+                parent1 = father or mother
+                parent2 = mother if father else None
+                family, _ = _get_or_create_family(db, trans, parent1, parent2)
+                cref = ChildRef()
+                cref.set_reference_handle(person.get_handle())
+                family.add_child_ref(cref)
+                db.commit_family(family, trans)
+                person.add_parent_family_handle(family.get_handle())
+                db.commit_person(person, trans)
+
+        console.print(f"[green]Person {person.get_gramps_id()} ({name}) added[/green]")
+        if birth_event:
+            console.print(f"[green]Birth event {birth_event.get_gramps_id()} created[/green]")
+        if death_event:
+            console.print(f"[green]Death event {death_event.get_gramps_id()} created[/green]")
+        if father or mother:
+            console.print(f"[green]Added to family {family.get_gramps_id()}[/green]")
+    finally:
+        db.close()
+
+
+@app.command("add-child", no_args_is_help=True)
+def add_child(
+    name: str = typer.Argument(..., help="Child's full name, e.g. 'John Smith'"),
+    parent1_id: str = typer.Argument(..., help="First parent's person ID"),
+    parent2_id: Optional[str] = typer.Argument(None, help="Second parent's person ID"),
+    birth: Optional[str] = typer.Option(None, "--birth", help="Birth date, e.g. '1 Jan 1950' or 1950"),
+    death: Optional[str] = typer.Option(None, "--death", help="Death date"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
+):
+    """Add a child to a family, creating the family if it doesn't exist."""
+    parsed_birth = _parse_date(birth) if birth else None
+    if birth and parsed_birth is None:
+        console.print(f"[red]Could not parse birth date {birth!r}[/red]")
+        raise typer.Exit(1)
+    parsed_death = _parse_date(death) if death else None
+    if death and parsed_death is None:
+        console.print(f"[red]Could not parse death date {death!r}[/red]")
+        raise typer.Exit(1)
+
+    db = _open_db(write=True)
+    try:
+        parent1 = db.get_person_from_gramps_id(parent1_id)
+        if not parent1:
+            console.print(f"[red]Parent {parent1_id!r} not found[/red]")
+            raise typer.Exit(1)
+        parent2 = None
+        if parent2_id:
+            parent2 = db.get_person_from_gramps_id(parent2_id)
+            if not parent2:
+                console.print(f"[red]Parent {parent2_id!r} not found[/red]")
+                raise typer.Exit(1)
+
+        father_h, mother_h = _family_handles(parent1, parent2)
+        existing_fam_id = None
+        for fam_handle in parent1.get_family_handle_list():
             fam = db.get_family_from_handle(fam_handle)
-            if fam.get_mother_handle() == mother.get_handle():
-                existing_family = fam
+            if (fam.get_father_handle() or None) == father_h and (fam.get_mother_handle() or None) == mother_h:
+                existing_fam_id = fam.get_gramps_id()
                 break
 
         summary = Table(show_header=False)
         summary.add_column("Field", style="bold")
         summary.add_column("Value")
-        summary.add_row("Father", f"{father_id} — {_person_name(father)}")
-        summary.add_row("Mother", f"{mother_id} — {_person_name(mother)}")
-        summary.add_row("Child", f"{given} {surname}")
-        if parsed_dob:
-            summary.add_row("Date of birth", dob)
-        summary.add_row("Family", f"{existing_family.get_gramps_id()} (existing)" if existing_family else "new family will be created")
+        summary.add_row("Child", name)
+        summary.add_row("Parent 1", f"{parent1_id} — {_person_name(parent1)}")
+        if parent2:
+            summary.add_row("Parent 2", f"{parent2_id} — {_person_name(parent2)}")
+        if birth:
+            summary.add_row("Birth", birth)
+        if death:
+            summary.add_row("Death", death)
+        summary.add_row("Family", f"{existing_fam_id} (existing)" if existing_fam_id else "new family will be created")
         console.print(summary)
 
         _confirm(yes)
 
         with DbTxn('Add child', db) as trans:
-            child = Person()
-            pname = Name()
-            pname.set_first_name(given)
-            surn = Surname()
-            surn.set_surname(surname)
-            pname.set_surname_list([surn])
-            pname.set_type(NameType(NameType.BIRTH))
-            child.set_primary_name(pname)
-            db.add_person(child, trans)
-
-            if parsed_dob:
-                birth = Event()
-                birth.set_type(EventType(EventType.BIRTH))
-                y, m, d = parsed_dob
-                dt = Date()
-                dt.set_yr_mon_day(y, m, d)
-                birth.set_date_object(dt)
-                db.add_event(birth, trans)
-                eref = EventRef()
-                eref.set_reference_handle(birth.get_handle())
-                eref.set_role(EventRoleType(EventRoleType.PRIMARY))
-                child.add_event_ref(eref)
-
-            if existing_family:
-                family = existing_family
-            else:
-                family = Family()
-                family.set_father_handle(father.get_handle())
-                family.set_mother_handle(mother.get_handle())
-                db.add_family(family, trans)
-                father.add_family_handle(family.get_handle())
-                db.commit_person(father, trans)
-                mother.add_family_handle(family.get_handle())
-                db.commit_person(mother, trans)
-
+            child = _build_person(db, trans, name)
+            birth_event = _attach_event(db, trans, child, EventType(EventType.BIRTH), parsed_birth) if parsed_birth else None
+            death_event = _attach_event(db, trans, child, EventType(EventType.DEATH), parsed_death) if parsed_death else None
+            family, _ = _get_or_create_family(db, trans, parent1, parent2)
             cref = ChildRef()
             cref.set_reference_handle(child.get_handle())
             family.add_child_ref(cref)
             db.commit_family(family, trans)
-
             child.add_parent_family_handle(family.get_handle())
             db.commit_person(child, trans)
 
-        console.print(f"\n[green]Child {child.get_gramps_id()} ({given} {surname}) added to family {family.get_gramps_id()}[/green]")
-        if parsed_dob:
-            console.print(f"[green]Birth event {birth.get_gramps_id()} created[/green]")
+        console.print(f"\n[green]Child {child.get_gramps_id()} ({name}) added to family {family.get_gramps_id()}[/green]")
+        if birth_event:
+            console.print(f"[green]Birth event {birth_event.get_gramps_id()} created[/green]")
+        if death_event:
+            console.print(f"[green]Death event {death_event.get_gramps_id()} created[/green]")
+    finally:
+        db.close()
+
+
+@app.command("add-parents", no_args_is_help=True)
+def add_parents(
+    child_id: str = typer.Argument(..., help="Child's person ID"),
+    parent1_id: str = typer.Argument(..., help="First parent's person ID"),
+    parent2_id: Optional[str] = typer.Argument(None, help="Second parent's person ID"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
+):
+    """Link a child to one or two parents, filling a missing parent slot in an existing family if possible."""
+    db = _open_db(write=True)
+    try:
+        child = db.get_person_from_gramps_id(child_id)
+        if not child:
+            console.print(f"[red]Child {child_id!r} not found[/red]")
+            raise typer.Exit(1)
+        parent1 = db.get_person_from_gramps_id(parent1_id)
+        if not parent1:
+            console.print(f"[red]Parent {parent1_id!r} not found[/red]")
+            raise typer.Exit(1)
+        parent2 = None
+        if parent2_id:
+            parent2 = db.get_person_from_gramps_id(parent2_id)
+            if not parent2:
+                console.print(f"[red]Parent {parent2_id!r} not found[/red]")
+                raise typer.Exit(1)
+
+        father_h, mother_h = _family_handles(parent1, parent2)
+        parents_by_handle = {parent1.get_handle(): parent1}
+        if parent2:
+            parents_by_handle[parent2.get_handle()] = parent2
+
+        # Scan child's existing parent families for a match or a partial slot to fill
+        update_fam = None   # existing family to update
+        fill_father = None  # handle to write into the father slot
+        fill_mother = None  # handle to write into the mother slot
+
+        for fam_handle in child.get_parent_family_handle_list():
+            fam = db.get_family_from_handle(fam_handle)
+            fam_father = fam.get_father_handle() or None
+            fam_mother = fam.get_mother_handle() or None
+
+            if fam_father == father_h and fam_mother == mother_h:
+                console.print(f"[yellow]{child_id} is already a child of these parents in {fam.get_gramps_id()}[/yellow]")
+                raise typer.Exit(0)
+
+            if parent2 is None:
+                # Single parent: fill an empty slot in a family that already has the other parent
+                if father_h and fam_father is None and fam_mother is not None:
+                    update_fam, fill_father = fam, father_h
+                    break
+                if mother_h and fam_mother is None and fam_father is not None:
+                    update_fam, fill_mother = fam, mother_h
+                    break
+            else:
+                # Two parents: one slot already matches, fill the empty one
+                if fam_father == father_h and fam_mother is None:
+                    update_fam, fill_mother = fam, mother_h
+                    break
+                if fam_mother == mother_h and fam_father is None:
+                    update_fam, fill_father = fam, father_h
+                    break
+
+        summary = Table(show_header=False)
+        summary.add_column("Field", style="bold")
+        summary.add_column("Value")
+        summary.add_row("Child", f"{child_id} — {_person_name(child)}")
+        summary.add_row("Parent 1", f"{parent1_id} — {_person_name(parent1)}")
+        if parent2:
+            summary.add_row("Parent 2", f"{parent2_id} — {_person_name(parent2)}")
+        if update_fam:
+            summary.add_row("Family", f"{update_fam.get_gramps_id()} (filling empty slot in existing family)")
+        else:
+            summary.add_row("Family", "new family will be created")
+        console.print(summary)
+
+        _confirm(yes)
+
+        if update_fam:
+            with DbTxn('Add parent to family', db) as trans:
+                if fill_father:
+                    update_fam.set_father_handle(fill_father)
+                    parents_by_handle[fill_father].add_family_handle(update_fam.get_handle())
+                    db.commit_person(parents_by_handle[fill_father], trans)
+                if fill_mother:
+                    update_fam.set_mother_handle(fill_mother)
+                    parents_by_handle[fill_mother].add_family_handle(update_fam.get_handle())
+                    db.commit_person(parents_by_handle[fill_mother], trans)
+                db.commit_family(update_fam, trans)
+            console.print(f"[green]Family {update_fam.get_gramps_id()} updated[/green]")
+        else:
+            with DbTxn('Add parents', db) as trans:
+                family, created = _get_or_create_family(db, trans, parent1, parent2)
+                cref = ChildRef()
+                cref.set_reference_handle(child.get_handle())
+                family.add_child_ref(cref)
+                db.commit_family(family, trans)
+                child.add_parent_family_handle(family.get_handle())
+                db.commit_person(child, trans)
+            action = "created" if created else "existing"
+            console.print(f"[green]{child_id} ({_person_name(child)}) added to family {family.get_gramps_id()} ({action})[/green]")
+    finally:
+        db.close()
+
+
+@app.command("update-person", no_args_is_help=True)
+def update_person(
+    person_id: str = typer.Argument(..., help="Person ID"),
+    birth: Optional[str] = typer.Option(None, "--birth", help="Birth date, e.g. '1 Jan 1950' or 1950"),
+    death: Optional[str] = typer.Option(None, "--death", help="Death date"),
+    baptism: Optional[str] = typer.Option(None, "--baptism", help="Baptism date"),
+    burial: Optional[str] = typer.Option(None, "--burial", help="Burial date"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
+):
+    """Set or update event dates on a person."""
+    date_inputs = [
+        ("Birth",   EventType.BIRTH,   birth),
+        ("Death",   EventType.DEATH,   death),
+        ("Baptism", EventType.BAPTISM, baptism),
+        ("Burial",  EventType.BURIAL,  burial),
+    ]
+    parsed = {}
+    for label, event_type, date_str in date_inputs:
+        if date_str:
+            result = _parse_date(date_str)
+            if result is None:
+                console.print(f"[red]Could not parse {label.lower()} date {date_str!r}[/red]")
+                raise typer.Exit(1)
+            parsed[event_type] = (label, date_str, result)
+
+    if not parsed:
+        console.print("[red]Specify at least one of --birth, --death, --baptism, --burial[/red]")
+        raise typer.Exit(1)
+
+    db = _open_db(write=True)
+    try:
+        person = db.get_person_from_gramps_id(person_id)
+        if not person:
+            console.print(f"[red]Person {person_id!r} not found[/red]")
+            raise typer.Exit(1)
+
+        fields = [
+            (label, event_type, date_str, parsed_date, get_event(db, person, event_type))
+            for event_type, (label, date_str, parsed_date) in parsed.items()
+        ]
+
+        summary = Table(show_header=False)
+        summary.add_column("Field", style="bold")
+        summary.add_column("Value")
+        summary.add_row("Person", f"{person_id} — {_person_name(person)}")
+        for label, event_type, date_str, parsed_date, existing in fields:
+            if existing:
+                current = format_date(existing.get_date_object()) or "(no date)"
+                action = f"updating {existing.get_gramps_id()}, was: {current}"
+            else:
+                action = "new event"
+            summary.add_row(label, f"{date_str}  ({action})")
+        console.print(summary)
+
+        _confirm(yes)
+
+        with DbTxn('Update person events', db) as trans:
+            person_modified = False
+            for label, event_type, date_str, parsed_date, existing in fields:
+                if existing:
+                    y, m, d = parsed_date
+                    dt = Date()
+                    dt.set_yr_mon_day(y, m, d)
+                    existing.set_date_object(dt)
+                    db.commit_event(existing, trans)
+                else:
+                    _attach_event(db, trans, person, EventType(event_type), parsed_date)
+                    person_modified = True
+            if person_modified:
+                db.commit_person(person, trans)
+
+        for label, event_type, date_str, parsed_date, existing in fields:
+            if existing:
+                console.print(f"[green]Updated {label} ({existing.get_gramps_id()}) → {date_str}[/green]")
+            else:
+                console.print(f"[green]{label} event created[/green]")
     finally:
         db.close()
 

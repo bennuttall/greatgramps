@@ -28,9 +28,9 @@
                 >
                   <strong tal:condition="s['type'] == 'found' and not s.get('duplicate')">${s['count']}</strong>
                   <span tal:condition="s.get('duplicate')" title="Multiple records for this year" class="duplicate-warning">⚠</span>
-                  <span tal:condition="s['type'] == 'missing'">✗</span>
-                  <span tal:condition="s['type'] == 'unborn'">○</span>
-                  <span tal:condition="s['type'] == 'deceased'">†</span>
+                  <span tal:condition="s['type'] == 'missing'" class="census-missing">✗</span>
+                  <span tal:condition="s['type'] == 'unborn'" class="census-unborn">○</span>
+                  <span tal:condition="s['type'] == 'deceased'" class="census-deceased">†</span>
                 </td>
               </tal:block>
             </tr>
