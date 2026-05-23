@@ -577,6 +577,9 @@ def _resolve_place(db, query: str):
         raise typer.Exit(1)
     if len(matches) == 1:
         return matches[0]
+    exact = [p for p in matches if p.get_name().get_value().lower() == query.lower()]
+    if len(exact) == 1:
+        return exact[0]
     console.print(f"[yellow]{len(matches)} places match {query!r} — be more specific:[/yellow]")
     console.print(_place_table(matches))
     raise typer.Exit(1)
@@ -602,7 +605,7 @@ def _build_person(db, trans, full_name: str) -> Person:
     return person
 
 
-def _attach_event(db, trans, person: Person, event_type: EventType, parsed_date) -> Event:
+def _attach_event(db, trans, person: Person, event_type: EventType, parsed_date=None, place=None) -> Event:
     event = Event()
     event.set_type(event_type)
     if parsed_date:
@@ -610,6 +613,8 @@ def _attach_event(db, trans, person: Person, event_type: EventType, parsed_date)
         dt = Date()
         dt.set_yr_mon_day(y, m, d)
         event.set_date_object(dt)
+    if place:
+        event.set_place_handle(place.get_handle())
     db.add_event(event, trans)
     eref = EventRef()
     eref.set_reference_handle(event.get_handle())
@@ -1139,6 +1144,10 @@ def add_person(
     name: str = typer.Argument(..., help="Full name, e.g. 'John Smith'"),
     birth: Optional[str] = typer.Option(None, "--birth", help="Birth date, e.g. '1 Jan 1950' or 1950"),
     death: Optional[str] = typer.Option(None, "--death", help="Death date"),
+    burial: Optional[str] = typer.Option(None, "--burial", help="Burial date"),
+    birth_place: Optional[str] = typer.Option(None, "--birth-place", help="Birth place ID or name"),
+    death_place: Optional[str] = typer.Option(None, "--death-place", help="Death place ID or name"),
+    burial_place: Optional[str] = typer.Option(None, "--burial-place", help="Burial place ID or name"),
     gender: Optional[str] = typer.Option(None, "--gender", help="Gender: m/male or f/female"),
     father_id: Optional[str] = typer.Option(None, "--father", help="Father's person ID"),
     mother_id: Optional[str] = typer.Option(None, "--mother", help="Mother's person ID"),
@@ -1152,6 +1161,10 @@ def add_person(
     parsed_death = _parse_date(death) if death else None
     if death and parsed_death is None:
         console.print(f"[red]Could not parse death date {death!r}[/red]")
+        raise typer.Exit(1)
+    parsed_burial = _parse_date(burial) if burial else None
+    if burial and parsed_burial is None:
+        console.print(f"[red]Could not parse burial date {burial!r}[/red]")
         raise typer.Exit(1)
 
     explicit_gender = None
@@ -1181,6 +1194,10 @@ def add_person(
             if not mother:
                 console.print(f"[red]Mother {mother_id!r} not found[/red]")
                 raise typer.Exit(1)
+
+        place_birth = _resolve_place(db, birth_place) if birth_place else None
+        place_death = _resolve_place(db, death_place) if death_place else None
+        place_burial = _resolve_place(db, burial_place) if burial_place else None
 
         # Determine gender: explicit → inferred → prompt
         gender_source = None
@@ -1221,10 +1238,15 @@ def add_person(
         elif resolved_gender == Person.FEMALE:
             suffix = " (inferred from name)" if gender_source == 'inferred' else ""
             summary.add_row("Gender", f"Female{suffix}")
-        if birth:
-            summary.add_row("Birth", birth)
-        if death:
-            summary.add_row("Death", death)
+        if birth or place_birth:
+            val = " — ".join(filter(None, [birth, place_birth and place_birth.get_name().get_value()]))
+            summary.add_row("Birth", val)
+        if death or place_death:
+            val = " — ".join(filter(None, [death, place_death and place_death.get_name().get_value()]))
+            summary.add_row("Death", val)
+        if burial or place_burial:
+            val = " — ".join(filter(None, [burial, place_burial and place_burial.get_name().get_value()]))
+            summary.add_row("Burial", val)
         if father:
             summary.add_row("Father", f"{father_id} — {_person_name(father)}")
         if mother:
@@ -1237,8 +1259,9 @@ def add_person(
             person = _build_person(db, trans, name)
             if resolved_gender != Person.UNKNOWN:
                 person.set_gender(resolved_gender)
-            birth_event = _attach_event(db, trans, person, EventType(EventType.BIRTH), parsed_birth) if parsed_birth else None
-            death_event = _attach_event(db, trans, person, EventType(EventType.DEATH), parsed_death) if parsed_death else None
+            birth_event = _attach_event(db, trans, person, EventType(EventType.BIRTH), parsed_birth, place_birth) if (parsed_birth or place_birth) else None
+            death_event = _attach_event(db, trans, person, EventType(EventType.DEATH), parsed_death, place_death) if (parsed_death or place_death) else None
+            burial_event = _attach_event(db, trans, person, EventType(EventType.BURIAL), parsed_burial, place_burial) if (parsed_burial or place_burial) else None
             db.commit_person(person, trans)
             if father or mother:
                 parent1 = father or mother
@@ -1256,6 +1279,8 @@ def add_person(
             console.print(f"[green]Birth event {birth_event.get_gramps_id()} created[/green]")
         if death_event:
             console.print(f"[green]Death event {death_event.get_gramps_id()} created[/green]")
+        if burial_event:
+            console.print(f"[green]Burial event {burial_event.get_gramps_id()} created[/green]")
         if father or mother:
             console.print(f"[green]Added to family {family.get_gramps_id()}[/green]")
     finally:
@@ -1449,26 +1474,35 @@ def update_person(
     death: Optional[str] = typer.Option(None, "--death", help="Death date"),
     baptism: Optional[str] = typer.Option(None, "--baptism", help="Baptism date"),
     burial: Optional[str] = typer.Option(None, "--burial", help="Burial date"),
+    birth_place: Optional[str] = typer.Option(None, "--birth-place", help="Birth place ID or name"),
+    death_place: Optional[str] = typer.Option(None, "--death-place", help="Death place ID or name"),
+    burial_place: Optional[str] = typer.Option(None, "--burial-place", help="Burial place ID or name"),
     yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
 ):
-    """Set or update event dates on a person."""
+    """Set or update event dates and places on a person."""
     date_inputs = [
         ("Birth",   EventType.BIRTH,   birth),
         ("Death",   EventType.DEATH,   death),
         ("Baptism", EventType.BAPTISM, baptism),
         ("Burial",  EventType.BURIAL,  burial),
     ]
-    parsed = {}
+    parsed_dates = {}
     for label, event_type, date_str in date_inputs:
         if date_str:
             result = _parse_date(date_str)
             if result is None:
                 console.print(f"[red]Could not parse {label.lower()} date {date_str!r}[/red]")
                 raise typer.Exit(1)
-            parsed[event_type] = (label, date_str, result)
+            parsed_dates[event_type] = (label, date_str, result)
 
-    if not parsed:
-        console.print("[red]Specify at least one of --birth, --death, --baptism, --burial[/red]")
+    place_inputs = [
+        ("Birth",  EventType.BIRTH,  birth_place),
+        ("Death",  EventType.DEATH,  death_place),
+        ("Burial", EventType.BURIAL, burial_place),
+    ]
+
+    if not parsed_dates and not any(p for _, _, p in place_inputs):
+        console.print("[red]Specify at least one of --birth, --death, --baptism, --burial, --birth-place, --death-place, --burial-place[/red]")
         raise typer.Exit(1)
 
     db = _open_db(write=True)
@@ -1478,44 +1512,72 @@ def update_person(
             console.print(f"[red]Person {person_id!r} not found[/red]")
             raise typer.Exit(1)
 
-        fields = [
-            (label, event_type, date_str, parsed_date, get_event(db, person, event_type))
-            for event_type, (label, date_str, parsed_date) in parsed.items()
-        ]
+        resolved_places = {}
+        for label, event_type, place_query in place_inputs:
+            if place_query:
+                resolved_places[event_type] = (label, _resolve_place(db, place_query))
+
+        all_event_types = sorted(
+            set(parsed_dates.keys()) | set(resolved_places.keys()),
+            key=lambda t: [EventType.BIRTH, EventType.DEATH, EventType.BAPTISM, EventType.BURIAL].index(t) if t in [EventType.BIRTH, EventType.DEATH, EventType.BAPTISM, EventType.BURIAL] else 99,
+        )
+
+        fields = []
+        for event_type in all_event_types:
+            label = (parsed_dates.get(event_type) or resolved_places.get(event_type))[0]
+            date_str, parsed_date = (parsed_dates[event_type][1], parsed_dates[event_type][2]) if event_type in parsed_dates else (None, None)
+            place = resolved_places[event_type][1] if event_type in resolved_places else None
+            existing = get_event(db, person, event_type)
+            fields.append((label, event_type, date_str, parsed_date, place, existing))
 
         summary = Table(show_header=False)
         summary.add_column("Field", style="bold")
         summary.add_column("Value")
         summary.add_row("Person", f"{person_id} — {_person_name(person)}")
-        for label, event_type, date_str, parsed_date, existing in fields:
+        for label, event_type, date_str, parsed_date, place, existing in fields:
+            parts = []
+            if date_str:
+                parts.append(date_str)
+            if place:
+                parts.append(place.get_name().get_value())
             if existing:
-                current = format_date(existing.get_date_object()) or "(no date)"
-                action = f"updating {existing.get_gramps_id()}, was: {current}"
+                current_date = format_date(existing.get_date_object()) or "(no date)"
+                current_place_handle = existing.get_place_handle()
+                current_place = db.get_place_from_handle(current_place_handle).get_name().get_value() if current_place_handle else "(no place)"
+                action = f"updating {existing.get_gramps_id()}, was: {current_date} — {current_place}"
             else:
                 action = "new event"
-            summary.add_row(label, f"{date_str}  ({action})")
+            summary.add_row(label, f"{' — '.join(parts)}  ({action})")
         console.print(summary)
 
         _confirm(yes)
 
         with DbTxn('Update person events', db) as trans:
             person_modified = False
-            for label, event_type, date_str, parsed_date, existing in fields:
+            for label, event_type, date_str, parsed_date, place, existing in fields:
                 if existing:
-                    y, m, d = parsed_date
-                    dt = Date()
-                    dt.set_yr_mon_day(y, m, d)
-                    existing.set_date_object(dt)
+                    if parsed_date:
+                        y, m, d = parsed_date
+                        dt = Date()
+                        dt.set_yr_mon_day(y, m, d)
+                        existing.set_date_object(dt)
+                    if place:
+                        existing.set_place_handle(place.get_handle())
                     db.commit_event(existing, trans)
                 else:
-                    _attach_event(db, trans, person, EventType(event_type), parsed_date)
+                    _attach_event(db, trans, person, EventType(event_type), parsed_date, place)
                     person_modified = True
             if person_modified:
                 db.commit_person(person, trans)
 
-        for label, event_type, date_str, parsed_date, existing in fields:
+        for label, event_type, date_str, parsed_date, place, existing in fields:
+            parts = []
+            if date_str:
+                parts.append(date_str)
+            if place:
+                parts.append(place.get_name().get_value())
             if existing:
-                console.print(f"[green]Updated {label} ({existing.get_gramps_id()}) → {date_str}[/green]")
+                console.print(f"[green]Updated {label} ({existing.get_gramps_id()}) → {' — '.join(parts)}[/green]")
             else:
                 console.print(f"[green]{label} event created[/green]")
     finally:
