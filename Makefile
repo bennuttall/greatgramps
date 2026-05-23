@@ -1,5 +1,5 @@
 PYTHON = /home/ben/.virtualenvs/gramps/bin/python
-GREATGRAMPS_CONFIG=config.yaml
+GREATGRAMPS_CONFIG=config.yml
 
 .PHONY: html serve
 
