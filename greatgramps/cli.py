@@ -159,6 +159,7 @@ def rebuild_page(
 @app.command("add-place", no_args_is_help=True)
 def add_place(
     query: str = typer.Argument(..., help="Location to geocode and add"),
+    enclose: Optional[str] = typer.Option(None, "--enclose", help="Enclose new place within this place ID or name"),
     yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
 ):
     """Geocode a location and add it as a Place in the database."""
@@ -189,6 +190,8 @@ def add_place(
 
     db = _open_db(write=True)
     try:
+        parent = _resolve_place(db, enclose) if enclose else None
+
         place = Place()
         pn = PlaceName()
         pn.set_value(name)
@@ -196,10 +199,16 @@ def add_place(
         place.set_latitude(str(lat))
         place.set_longitude(str(lon))
         place.set_type(PlaceType(place_type_int))
+        if parent:
+            pref = PlaceRef()
+            pref.set_reference_handle(parent.get_handle())
+            place.add_placeref(pref)
         with DbTxn('Add place', db) as trans:
             db.add_place(place, trans)
         console.print("\n[green]Place added:[/green]")
         console.print(_place_table([place]))
+        if parent:
+            console.print(f"[green]Enclosed by {parent.get_gramps_id()} ({parent.get_name().get_value()})[/green]")
     finally:
         db.close()
 
@@ -1289,25 +1298,18 @@ def add_person(
 
 @app.command("add-child", no_args_is_help=True)
 def add_child(
-    name: str = typer.Argument(..., help="Child's full name, e.g. 'John Smith'"),
+    child_id: str = typer.Argument(..., help="Child's person ID"),
     parent1_id: str = typer.Argument(..., help="First parent's person ID"),
     parent2_id: Optional[str] = typer.Argument(None, help="Second parent's person ID"),
-    birth: Optional[str] = typer.Option(None, "--birth", help="Birth date, e.g. '1 Jan 1950' or 1950"),
-    death: Optional[str] = typer.Option(None, "--death", help="Death date"),
     yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
 ):
-    """Add a child to a family, creating the family if it doesn't exist."""
-    parsed_birth = _parse_date(birth) if birth else None
-    if birth and parsed_birth is None:
-        console.print(f"[red]Could not parse birth date {birth!r}[/red]")
-        raise typer.Exit(1)
-    parsed_death = _parse_date(death) if death else None
-    if death and parsed_death is None:
-        console.print(f"[red]Could not parse death date {death!r}[/red]")
-        raise typer.Exit(1)
-
+    """Link an existing person as a child to one or two parents."""
     db = _open_db(write=True)
     try:
+        child = db.get_person_from_gramps_id(child_id)
+        if not child:
+            console.print(f"[red]Child {child_id!r} not found[/red]")
+            raise typer.Exit(1)
         parent1 = db.get_person_from_gramps_id(parent1_id)
         if not parent1:
             console.print(f"[red]Parent {parent1_id!r} not found[/red]")
@@ -1330,23 +1332,16 @@ def add_child(
         summary = Table(show_header=False)
         summary.add_column("Field", style="bold")
         summary.add_column("Value")
-        summary.add_row("Child", name)
+        summary.add_row("Child", f"{child_id} — {_person_name(child)}")
         summary.add_row("Parent 1", f"{parent1_id} — {_person_name(parent1)}")
         if parent2:
             summary.add_row("Parent 2", f"{parent2_id} — {_person_name(parent2)}")
-        if birth:
-            summary.add_row("Birth", birth)
-        if death:
-            summary.add_row("Death", death)
         summary.add_row("Family", f"{existing_fam_id} (existing)" if existing_fam_id else "new family will be created")
         console.print(summary)
 
         _confirm(yes)
 
         with DbTxn('Add child', db) as trans:
-            child = _build_person(db, trans, name)
-            birth_event = _attach_event(db, trans, child, EventType(EventType.BIRTH), parsed_birth) if parsed_birth else None
-            death_event = _attach_event(db, trans, child, EventType(EventType.DEATH), parsed_death) if parsed_death else None
             family, _ = _get_or_create_family(db, trans, parent1, parent2)
             cref = ChildRef()
             cref.set_reference_handle(child.get_handle())
@@ -1355,11 +1350,7 @@ def add_child(
             child.add_parent_family_handle(family.get_handle())
             db.commit_person(child, trans)
 
-        console.print(f"\n[green]Child {child.get_gramps_id()} ({name}) added to family {family.get_gramps_id()}[/green]")
-        if birth_event:
-            console.print(f"[green]Birth event {birth_event.get_gramps_id()} created[/green]")
-        if death_event:
-            console.print(f"[green]Death event {death_event.get_gramps_id()} created[/green]")
+        console.print(f"[green]{child_id} ({_person_name(child)}) added to family {family.get_gramps_id()}[/green]")
     finally:
         db.close()
 
