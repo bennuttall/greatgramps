@@ -1094,10 +1094,15 @@ def add_ancestry_link(
 @app.command("add-grave-link", no_args_is_help=True)
 def add_grave_link(
     person_id: str = typer.Argument(..., help="Person ID"),
-    url: str = typer.Argument(..., help="Full Find A Grave URL"),
+    memorial: str = typer.Argument(..., help="Find A Grave memorial ID or full URL"),
     yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
 ):
     """Add a Find A Grave URL to a person."""
+    if memorial.isdigit():
+        url = f"https://www.findagrave.com/memorial/{memorial}"
+    else:
+        url = memorial
+
     db = _open_db(write=True)
     try:
         person = db.get_person_from_gramps_id(person_id)
