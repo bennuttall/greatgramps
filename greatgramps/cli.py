@@ -441,7 +441,7 @@ def add_event_people(
         def _person_row(person):
             birth = get_event(db, person, EventType.BIRTH)
             birth_year = get_year(birth)
-            age = str(event_year - birth_year) if event_year and birth_year else ""
+            age = str(max(0, event_year - birth_year - 1)) if event_year and birth_year else ""
             return (person, _person_name(person), str(birth_year) if birth_year else "", age)
 
         def _people_age_table(rows):
@@ -508,7 +508,7 @@ def add_event_people(
         table.add_column("Born")
         table.add_column("Age")
         for p, name, birth_year in all_people:
-            age = str(event_year - birth_year) if event_year and birth_year else ""
+            age = str(max(0, event_year - birth_year - 1)) if event_year and birth_year else ""
             table.add_row(p.get_gramps_id(), name, str(birth_year) if birth_year else "", age)
         console.print(table)
     finally:
@@ -959,7 +959,7 @@ def list_event_people(
         table.add_column("Born")
         table.add_column("Age")
         for person, name, birth_year in people:
-            age = str(event_year - birth_year) if event_year and birth_year else ""
+            age = str(max(0, event_year - birth_year - 1)) if event_year and birth_year else ""
             table.add_row(person.get_gramps_id(), name, str(birth_year) if birth_year else "", age)
         console.print(table)
     finally:
