@@ -467,16 +467,18 @@ def add_event_people(
 
         console.print(f"[bold]Event:[/bold] {event.get_gramps_id()} — {_event_label(event)}")
 
+        _age_sort = lambda rows: sorted(rows, key=lambda r: int(r[2]) if r[2] else 9999)
+
         if skipped:
             console.print("\n[yellow]Already linked (skipping):[/yellow]")
-            console.print(_people_age_table(skipped))
+            console.print(_people_age_table(_age_sort(skipped)))
 
         if not to_add:
             console.print("No new people to add.")
             return
 
         console.print("\n[bold]To add:[/bold]")
-        console.print(_people_age_table(to_add))
+        console.print(_people_age_table(_age_sort(to_add)))
 
         _confirm(yes)
 
