@@ -17,7 +17,7 @@ from .gramps_data import (
     build_event_pages_data, build_birthday_list, person_data,
     collect_ancestor_tree, collect_descendant_tree, count_descendants,
     collect_all_descendants, group_descendants_by_generation,
-    build_census_data, CENSUS_DATES, MONTHS, relationship_label,
+    build_census_data, CENSUS_DATES, MONTHS, relationship_label, event_url_slug,
 )
 from .settings import get_config
 
@@ -649,8 +649,19 @@ def _render_ancestor_census_page(ctx):
                 census_status[year] = {'type': 'deceased', 'count': 0}
             else:
                 count = person_census_counts.get(gid, {}).get(year, 0)
-                num_events = len(person_census_events.get(gid, {}).get(year, []))
-                census_status[year] = {'type': 'found' if count else 'missing', 'count': count, 'duplicate': num_events > 1}
+                handles = person_census_events.get(gid, {}).get(year, [])
+                num_events = len(handles)
+                event_url = event_url_slug(db.get_event_from_handle(handles[0]).get_gramps_id()) if handles else None
+                photo_url = None
+                for h in handles:
+                    event_obj = db.get_event_from_handle(h)
+                    if any(
+                        db.get_media_from_handle(ref.get_reference_handle()).get_mime_type().startswith('image/')
+                        for ref in event_obj.get_media_list()
+                    ):
+                        photo_url = event_url_slug(event_obj.get_gramps_id())
+                        break
+                census_status[year] = {'type': 'found' if count else 'missing', 'count': count, 'duplicate': num_events > 1, 'event_url': event_url, 'photo_url': photo_url}
         generations.setdefault(dist, []).append({
             'gramps_id': gid,
             'full_name': d['full_name'],

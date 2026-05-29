@@ -119,6 +119,10 @@ header a.secondary:hover { color: #333; }
   fill: currentColor;
 }
 
+.no-photo-icon {
+  opacity: 0.2;
+}
+
 /* Search page */
 #search, #name-search {
   font-size: 1rem;
