@@ -22,8 +22,6 @@ from gramps.plugins.db.dbapi.sqlite import SQLite
 
 
 GEDCOM_FILE = Path(__file__).parent / 'Nuttall Family Tree.ged'
-ANCESTRY_TREE_ID = '202776716'
-ANCESTRY_BASE = f'https://www.ancestry.co.uk/family-tree/person/tree/{ANCESTRY_TREE_ID}/person'
 
 
 def parse_birth_year(el) -> int | None:
@@ -34,9 +32,10 @@ def parse_birth_year(el) -> int | None:
     return int(m.group()) if m else None
 
 
-def ancestry_url(pointer: str) -> str:
+def ancestry_url(pointer: str, tree_id: str) -> str:
     num = re.search(r'\d+', pointer).group()
-    return f'{ANCESTRY_BASE}/{num}/'
+    base = f'https://www.ancestry.co.uk/family-tree/person/tree/{tree_id}/person'
+    return f'{base}/{num}/'
 
 
 def main():
@@ -55,6 +54,9 @@ def main():
         gedcom_by_name.setdefault(name, []).append((el, year))
 
     config = get_config()
+    if not config.ancestry_tree_id:
+        print('Error: ancestry_tree_id not set in config')
+        return
     db = SQLite()
     db.load(str(config.validated_db_path), mode=DBMODE_W)
 
@@ -110,7 +112,7 @@ def main():
                 if gramps_year is None and ged_year is None:
                     skipped.append((gramps_id, full, 'no birth year on either side'))
                 else:
-                    url = ancestry_url(ged_el.get_pointer())
+                    url = ancestry_url(ged_el.get_pointer(), config.ancestry_tree_id)
                     to_add.append((gramps_id, full, gramps_year, url))
 
         print(f'\n{len(to_add)} confident matches found, {len(skipped)} skipped.\n')

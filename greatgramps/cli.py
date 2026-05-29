@@ -1072,10 +1072,16 @@ def rm_event(
 @app.command("add-ancestry-link", no_args_is_help=True)
 def add_ancestry_link(
     person_id: str = typer.Argument(..., help="Person ID"),
-    url: str = typer.Argument(..., help="Full Ancestry URL"),
+    url: str = typer.Argument(..., help="Ancestry person ID or full URL"),
     yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
 ):
     """Add an Ancestry URL to a person."""
+    if url.isdigit():
+        config = get_config()
+        if not config.ancestry_tree_id:
+            console.print("[red]ancestry_tree_id not set in config[/red]")
+            raise typer.Exit(1)
+        url = f"https://www.ancestry.co.uk/family-tree/person/tree/{config.ancestry_tree_id}/person/{url}/"
     db = _open_db(write=True)
     try:
         person = db.get_person_from_gramps_id(person_id)
