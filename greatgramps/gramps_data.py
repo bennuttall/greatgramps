@@ -1003,6 +1003,10 @@ def build_census_data(db):
         )
         gid = event.get_gramps_id()
         description = event.get_description() or None
+        has_photo = any(
+            db.get_media_from_handle(ref.get_reference_handle()).get_mime_type().startswith('image/')
+            for ref in event.get_media_list()
+        )
         by_year.setdefault(year, []).append({
             'gramps_id': gid,
             'url_slug': event_url_slug(gid),
@@ -1014,6 +1018,7 @@ def build_census_data(db):
             'place_id': place_obj.get_gramps_id() if place_obj else None,
             'notes': notes,
             'people': people,
+            'has_photo': has_photo,
         })
 
     for events in by_year.values():
