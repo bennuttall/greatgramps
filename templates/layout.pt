@@ -12,19 +12,80 @@
   <header>
     <nav>
       <a href="${base}index.html">Home</a>
-      <a class="secondary" href="${base}people/${me_id}/">Me</a>
-      <a class="secondary" href="${base}people/">People</a>
-      <a class="secondary" href="${base}places/">Places</a>
-      <a class="secondary" href="${base}events/">Events</a>
-      <a class="secondary" href="${base}census/">Census</a>
-      <a class="secondary" href="${base}birthdays/">Birthdays</a>
-      <a class="secondary" href="${base}surnames/">Surnames</a>
+      <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" onclick="var l=document.getElementById('nav-links');var o=l.classList.toggle('open');this.setAttribute('aria-expanded',o)">&#9776;</button>
+      <div id="nav-links" class="nav-links">
+        <a class="secondary" href="${base}people/${me_id}/">Me</a>
+        <a class="secondary" href="${base}people/">People</a>
+        <a class="secondary" href="${base}places/">Places</a>
+        <a class="secondary" href="${base}events/">Events</a>
+        <a class="secondary" href="${base}census/">Census</a>
+        <a class="secondary" href="${base}birthdays/">Birthdays</a>
+        <a class="secondary" href="${base}surnames/">Surnames</a>
+      </div>
     </nav>
   </header>
   <main>
     <div metal:define-slot="content"></div>
   </main>
   <tal:block metal:define-slot="scripts"></tal:block>
+  <script>
+  var tabs = document.querySelector('.person-tabs');
+  if (tabs) {
+    var active = tabs.querySelector('span.active');
+    if (active) {
+      var btn = document.createElement('button');
+      btn.className = 'tabs-toggle';
+      btn.textContent = '▾';
+      btn.setAttribute('aria-label', 'Toggle tabs');
+      active.after(btn);
+      btn.addEventListener('click', function() {
+        var open = tabs.classList.toggle('open');
+        btn.textContent = open ? '▴' : '▾';
+      });
+    }
+  }
+
+  var eventsTable = document.querySelector('.events table');
+  if (eventsTable) {
+    var headRow = eventsTable.querySelector('thead tr');
+    var emptyTh = document.createElement('th');
+    emptyTh.className = 'expand-td';
+    headRow.appendChild(emptyTh);
+
+    Array.from(eventsTable.querySelectorAll('tbody tr')).forEach(function(row) {
+      var cell4 = row.cells[3];
+      var cell5 = row.cells[4];
+
+      var expandTd = document.createElement('td');
+      expandTd.className = 'expand-td';
+      row.appendChild(expandTd);
+
+      var parts = [];
+      if (cell4 && cell4.textContent.trim()) parts.push(cell4.innerHTML.trim());
+      if (cell5 && cell5.textContent.trim()) parts.push(cell5.innerHTML.trim());
+      if (!parts.length) return;
+
+      var xbtn = document.createElement('button');
+      xbtn.className = 'row-expand-btn';
+      xbtn.textContent = '▾';
+      expandTd.appendChild(xbtn);
+
+      var detailRow = document.createElement('tr');
+      detailRow.className = 'row-detail';
+      var detailTd = document.createElement('td');
+      detailTd.colSpan = row.cells.length;
+      detailTd.innerHTML = parts.join(' &middot; ');
+      detailRow.appendChild(detailTd);
+      row.after(detailRow);
+
+      xbtn.addEventListener('click', function() {
+        var open = detailRow.classList.toggle('open');
+        xbtn.textContent = open ? '▴' : '▾';
+        detailRow.style.display = open ? '' : 'none';
+      });
+    });
+  }
+  </script>
 </body>
 </html>
 </foo>

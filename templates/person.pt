@@ -247,7 +247,13 @@
       btn.classList.add('active');
       var filter = btn.dataset.filter;
       document.querySelectorAll('.events tbody tr').forEach(function(row) {
-        row.style.display = (filter === 'all' || row.dataset.type === filter) ? '' : 'none';
+        if (row.classList.contains('row-detail')) return;
+        var show = filter === 'all' || row.dataset.type === filter;
+        row.style.display = show ? '' : 'none';
+        var next = row.nextElementSibling;
+        if (next && next.classList.contains('row-detail')) {
+          next.style.display = (show && next.classList.contains('open')) ? '' : 'none';
+        }
       });
     }
     </script>

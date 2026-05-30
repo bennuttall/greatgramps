@@ -19,6 +19,7 @@ header nav {
   display: flex;
   gap: 1.5rem;
   align-items: baseline;
+  flex-wrap: wrap;
 }
 
 header a {
@@ -35,6 +36,90 @@ header a.secondary {
 }
 
 header a.secondary:hover { color: #333; }
+
+.nav-links { display: contents; }
+
+.nav-toggle {
+  display: none;
+  background: none;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 0.2rem 0.5rem;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: #555;
+  margin-left: auto;
+}
+
+.expand-td, .row-detail { display: none; }
+
+.tabs-toggle {
+  display: none;
+  background: none;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+  color: #888;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+@media (max-width: 680px) {
+  body { padding: 0.75rem 1rem; }
+
+  .nav-toggle { display: block; }
+
+  .nav-links {
+    display: none;
+    width: 100%;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 0.5rem 0;
+  }
+
+  .nav-links.open { display: flex; }
+
+  .person-tabs {
+    flex-wrap: wrap;
+    border: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .person-tabs a,
+  .person-tabs span {
+    border-bottom: none;
+    margin-bottom: 0;
+    border-left: 3px solid transparent;
+    white-space: normal;
+  }
+
+  .person-tabs span.active {
+    flex: 1;
+    border-bottom-color: transparent;
+    border-left-color: #5a3e28;
+    background: #f8f5f0;
+  }
+
+  .person-tabs a {
+    display: none;
+    width: 100%;
+    border-top: 1px solid #eee;
+  }
+
+  .person-tabs.open a { display: block; }
+
+  .tabs-toggle { display: block; }
+
+  .events th:nth-child(4),
+  .events td:nth-child(4),
+  .events th:nth-child(5),
+  .events td:nth-child(5) { display: none; }
+
+  .expand-td { display: table-cell; }
+  .row-detail.open { display: table-row; }
+}
 
 /* Place pages */
 .place-enclosing {
@@ -446,6 +531,22 @@ pre.event-note {
 .event-age {
   color: #888;
   font-size: 0.85em;
+}
+
+.row-expand-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  padding: 0 0.2rem;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.row-detail td {
+  padding: 0.1rem 0 0.5rem;
+  font-size: 0.9rem;
+  color: #555;
 }
 
 .events th {
