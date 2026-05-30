@@ -48,20 +48,21 @@
             </ul>
           </section>
 
-          <section class="spouses" tal:condition="spouses">
+          <section class="spouses" tal:condition="any(s['person'] for s in spouses)">
             <h3>Relationships</h3>
             <ul>
-              <li tal:repeat="s spouses">
-                <a tal:condition="s['person']" href="/people/${s['person']['gramps_id']}/"
-                   tal:attributes="class 'male' if s['person']['gender'] == 1 else ('female' if s['person']['gender'] == 0 else None)">${s['person']['full_name']}</a>
-                <span tal:condition="not s['person']">Unknown</span>
-                <span class="ancestor-badge me" tal:condition="s['person'] and s['person']['is_me']">me</span>
-                <span class="ancestor-badge" tal:condition="s['person'] and s['person']['is_ancestor']">ancestor</span>
-                <span class="years">${s['rel_type']}</span>
-                <span class="years" tal:condition="s['marriage'] and s['marriage']['date']">
-                  ${s['marriage']['date']}<span tal:condition="s['marriage']['place']">, ${s['marriage']['place']}</span>
-                </span>
-              </li>
+              <tal:block tal:repeat="s spouses">
+                <li tal:condition="s['person']">
+                  <a href="/people/${s['person']['gramps_id']}/"
+                     tal:attributes="class 'male' if s['person']['gender'] == 1 else ('female' if s['person']['gender'] == 0 else None)">${s['person']['full_name']}</a>
+                  <span class="ancestor-badge me" tal:condition="s['person']['is_me']">me</span>
+                  <span class="ancestor-badge" tal:condition="s['person']['is_ancestor']">ancestor</span>
+                  <span class="years" tal:condition="s['rel_type'] != 'Unknown'">${s['rel_type']}</span>
+                  <span class="years" tal:condition="s['marriage'] and s['marriage']['date']">
+                    ${s['marriage']['date']}<span tal:condition="s['marriage']['place']">, ${s['marriage']['place']}</span>
+                  </span>
+                </li>
+              </tal:block>
             </ul>
           </section>
 
