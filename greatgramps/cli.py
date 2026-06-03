@@ -21,7 +21,7 @@ from gramps.gen.lib import (
 from gramps.plugins.db.dbapi.sqlite import SQLite
 
 from .build import rebuild_pages
-from .gramps_data import CENSUS_DATES, format_date, get_event, get_year, ancestors_with_distances
+from .gramps_data import CENSUS_DATES, format_date, get_event, get_year, ancestors_with_distances, get_children
 from .settings import get_config
 
 
@@ -1466,6 +1466,86 @@ def add_parents(
         db.close()
 
 
+@app.command("add-family", no_args_is_help=True)
+def add_family(
+    parent1_id: str = typer.Argument(..., help="First parent's person ID"),
+    parent2_id: Optional[str] = typer.Argument(None, help="Second parent's person ID"),
+    child_ids: Optional[List[str]] = typer.Option(None, "--child", help="Child's person ID (can be repeated)"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
+):
+    """Create a family for one or two parents, optionally adding children."""
+    db = _open_db(write=True)
+    try:
+        parent1 = db.get_person_from_gramps_id(parent1_id)
+        if not parent1:
+            console.print(f"[red]Person {parent1_id!r} not found[/red]")
+            raise typer.Exit(1)
+        parent2 = None
+        if parent2_id:
+            parent2 = db.get_person_from_gramps_id(parent2_id)
+            if not parent2:
+                console.print(f"[red]Person {parent2_id!r} not found[/red]")
+                raise typer.Exit(1)
+
+        children = []
+        for cid in (child_ids or []):
+            child = db.get_person_from_gramps_id(cid)
+            if not child:
+                console.print(f"[red]Person {cid!r} not found[/red]")
+                raise typer.Exit(1)
+            children.append(child)
+
+        father_h, mother_h = _family_handles(parent1, parent2)
+        existing_fam = None
+        for fam_handle in parent1.get_family_handle_list():
+            fam = db.get_family_from_handle(fam_handle)
+            if (fam.get_father_handle() or None) == father_h and (fam.get_mother_handle() or None) == mother_h:
+                existing_fam = fam
+                break
+
+        if existing_fam and not children:
+            console.print(f"[yellow]Family {existing_fam.get_gramps_id()} already exists for these parents.[/yellow]")
+            raise typer.Exit(0)
+
+        if existing_fam and children:
+            existing_child_handles = {cr.get_reference_handle() for cr in existing_fam.get_child_ref_list()}
+            skipped = [c for c in children if c.get_handle() in existing_child_handles]
+            children = [c for c in children if c.get_handle() not in existing_child_handles]
+            for c in skipped:
+                console.print(f"[yellow]{c.get_gramps_id()} ({_person_name(c)}) already in {existing_fam.get_gramps_id()} — skipped[/yellow]")
+            if not children:
+                raise typer.Exit(0)
+
+        summary = Table(show_header=False)
+        summary.add_column("Field", style="bold")
+        summary.add_column("Value")
+        summary.add_row("Parent 1", f"{parent1_id} — {_person_name(parent1)}")
+        if parent2:
+            summary.add_row("Parent 2", f"{parent2_id} — {_person_name(parent2)}")
+        for child in children:
+            summary.add_row("Child", f"{child.get_gramps_id()} — {_person_name(child)}")
+        summary.add_row("Family", f"{existing_fam.get_gramps_id()} (existing)" if existing_fam else "new family will be created")
+        console.print(summary)
+
+        _confirm(yes)
+
+        with DbTxn('Add family', db) as trans:
+            family, created = _get_or_create_family(db, trans, parent1, parent2)
+            for child in children:
+                cref = ChildRef()
+                cref.set_reference_handle(child.get_handle())
+                family.add_child_ref(cref)
+                child.add_parent_family_handle(family.get_handle())
+                db.commit_person(child, trans)
+            if children:
+                db.commit_family(family, trans)
+
+        action = "created" if created else "updated"
+        console.print(f"[green]Family {family.get_gramps_id()} {action}[/green]")
+    finally:
+        db.close()
+
+
 @app.command("update-person", no_args_is_help=True)
 def update_person(
     person_id: str = typer.Argument(..., help="Person ID"),
@@ -1653,20 +1733,40 @@ def census_check(
 @app.command("rm-people", no_args_is_help=True)
 def rm_people(
     person_ids: List[str] = typer.Argument(..., help="Person ID(s) to delete"),
+    descendants: bool = typer.Option(False, "-d", "--descendants", help="Also delete all descendants"),
     yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
 ):
     """Delete one or more people from the database, cleaning up family relationships."""
     db = _open_db(write=True)
     try:
-        people = []
+        roots = []
         for person_id in person_ids:
             person = db.get_person_from_gramps_id(person_id)
             if not person:
                 console.print(f"[red]Person {person_id!r} not found[/red]")
                 raise typer.Exit(1)
-            people.append(person)
+            roots.append(person)
 
-        for person in people:
+        all_people = list(roots)
+
+        if descendants:
+            seen_ids = {p.get_gramps_id() for p in roots}
+            queue = []
+            for root in roots:
+                queue.extend(get_children(db, root))
+            while queue:
+                child = queue.pop(0)
+                gid = child.get_gramps_id()
+                if gid in seen_ids:
+                    continue
+                seen_ids.add(gid)
+                all_people.append(child)
+                queue.extend(get_children(db, child))
+
+        root_ids = {p.get_gramps_id() for p in roots}
+        desc_people = [p for p in all_people if p.get_gramps_id() not in root_ids]
+
+        for person in roots:
             console.print(f"[bold]Delete:[/bold] {person.get_gramps_id()} — {_person_name(person)}")
             for h in person.get_family_handle_list():
                 family = db.get_family_from_handle(h)
@@ -1675,14 +1775,21 @@ def rm_people(
                 family = db.get_family_from_handle(h)
                 console.print(f"  Remove as child from family {family.get_gramps_id()}")
 
+        if desc_people:
+            console.print(f"\n[bold]Descendants ({len(desc_people)}):[/bold]")
+            for person in desc_people:
+                console.print(f"  {person.get_gramps_id()} — {_person_name(person)}")
+
+        if len(all_people) > 1:
+            console.print(f"\n[bold]Total:[/bold] {len(all_people)} people")
         _confirm(yes)
 
         with DbTxn('Delete people', db) as trans:
-            for person in people:
+            for person in all_people:
                 db.delete_person_from_database(person, trans)
 
-        ids = ', '.join(p.get_gramps_id() for p in people)
-        console.print(f"[green]Deleted {ids}[/green]")
+        ids = ', '.join(p.get_gramps_id() for p in all_people)
+        console.print(f"[green]Deleted {len(all_people)} people: {ids}[/green]")
     finally:
         db.close()
 
@@ -1716,5 +1823,28 @@ def list_ancestors(
             table.add_row(gid, _person_name(person), str(dist))
 
         console.print(table)
+    finally:
+        db.close()
+
+
+@app.command("list-unconnected")
+def list_unconnected():
+    """List people with no family connections (not a parent, spouse, or child in any family)."""
+    db = _open_db()
+    try:
+        people = []
+        for handle in db.get_person_handles():
+            person = db.get_person_from_handle(handle)
+            if not person.get_family_handle_list() and not person.get_parent_family_handle_list():
+                people.append((person, _person_name(person)))
+
+        people.sort(key=lambda p: p[1])
+
+        if not people:
+            console.print("No unconnected people found.")
+            return
+
+        console.print(f"[bold]{len(people)} unconnected person(s):[/bold]")
+        console.print(_people_table(people))
     finally:
         db.close()
