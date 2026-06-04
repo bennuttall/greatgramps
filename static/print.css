@@ -128,11 +128,31 @@ a.female:not(.pedigree-cell), td.female { color: #000; }
   gap: 1.5rem;
 }
 
-/* Ancestor records table */
+/* Ancestor records — ultra-compact */
+.ancestor-records-table {
+  font-size: 7pt;
+  width: 100%;
+}
+
+.ancestor-records-table th,
+.ancestor-records-table td {
+  padding: 1px 3px;
+  border: none;
+  border-bottom: 1px solid #555;
+  font-size: 7pt;
+}
+
 .ancestor-records-table th:not(:first-child),
 .ancestor-records-table td:not(:first-child) {
   text-align: center;
+  width: 1.5rem;
 }
+
+/* Drop birth year from name cells */
+.ancestor-records-table .years { display: none; }
+
+/* Allow rows to break across pages in large tables */
+.ancestor-records-table tr { page-break-inside: auto; }
 
 /* Census records — ultra-compact */
 .census-records-scroll { overflow: visible; }
