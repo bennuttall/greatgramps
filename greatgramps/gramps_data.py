@@ -133,6 +133,7 @@ EVENT_TYPE_LABELS = {
     EventType.BIRTH: 'Birth',
     EventType.DEATH: 'Death',
     EventType.BURIAL: 'Burial',
+    EventType.CREMATION: 'Cremation',
     EventType.BAPTISM: 'Baptism',
     EventType.CONFIRMATION: 'Confirmation',
     EventType.MARRIAGE: 'Marriage',
@@ -177,7 +178,8 @@ def _event_dict(db, event, birth_year, desc=None, desc_url=None, desc_gender=Non
     event_year = date_obj.get_year() or None
     event_month = date_obj.get_month() or 0
     event_day = date_obj.get_day() or 0
-    age = max(0, event_year - birth_year - 1) if (show_age and event_year and birth_year) else None
+    _post_death = {EventType.BURIAL, EventType.CREMATION, EventType.PROBATE}
+    age = max(0, event_year - birth_year - 1) if (show_age and etype not in _post_death and event_year and birth_year) else None
     gid = event.get_gramps_id()
     has_photo = any(
         db.get_media_from_handle(ref.get_reference_handle()).get_mime_type().startswith('image/')
@@ -244,9 +246,10 @@ def get_all_events(db, person):
                     desc_gender=child.get_gender(),
                 ))
 
-    _LAST = {'Death', 'Burial', 'Probate'}
+    _LAST = {'Death': 0, 'Burial': 1, 'Cremation': 1, 'Probate': 1}
     events.sort(key=lambda e: (
         0 if e['type'] == 'Birth' else (2 if e['type'] in _LAST else 1),
+        _LAST.get(e['type'], 0),
         e['year'] or 9999,
         e['month'],
         e['day'],
