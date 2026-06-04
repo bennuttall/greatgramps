@@ -7,10 +7,15 @@ import re
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
+REPO_ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(REPO_ROOT))
 
 from dotenv import load_dotenv
-load_dotenv(Path(__file__).parent / '.env')
+import os
+load_dotenv(REPO_ROOT / '.env')
+_cfg = os.environ.get('GREATGRAMPS_CONFIG', 'config.yml')
+if not Path(_cfg).is_absolute():
+    os.environ['GREATGRAMPS_CONFIG'] = str(REPO_ROOT / _cfg)
 
 from gedcom.parser import Parser
 from gedcom.element.individual import IndividualElement
@@ -23,7 +28,7 @@ from gramps.gen.lib import (
 from gramps.plugins.db.dbapi.sqlite import SQLite
 
 
-GEDCOM_FILE = Path(__file__).parent / 'Nuttall Family Tree.ged'
+GEDCOM_FILE = REPO_ROOT / 'ged' / 'Nuttall Family Tree.ged'
 
 MONTH_NAMES = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
