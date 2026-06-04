@@ -6,8 +6,8 @@ import re
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
-os.environ.setdefault('GREATGRAMPS_CONFIG', str(Path(__file__).parent / 'config.yaml'))
+REPO_ROOT = Path(__file__).parent.parent
+os.environ.setdefault('GREATGRAMPS_CONFIG', str(REPO_ROOT / 'config.yml'))
 
 from greatgramps.gramps_data import open_db
 from gramps.gen.lib.eventtype import EventType

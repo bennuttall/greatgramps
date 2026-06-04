@@ -6,10 +6,10 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
+REPO_ROOT = Path(__file__).parent.parent
 
 import os
-os.environ.setdefault('GREATGRAMPS_CONFIG', str(Path(__file__).parent / 'config.yaml'))
+os.environ.setdefault('GREATGRAMPS_CONFIG', str(REPO_ROOT / 'config.yml'))
 
 from greatgramps.settings import get_config
 from gramps.plugins.db.dbapi.sqlite import SQLite

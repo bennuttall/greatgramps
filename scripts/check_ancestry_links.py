@@ -3,14 +3,18 @@
 
 from __future__ import annotations
 
+import os
 import sys
 import webbrowser
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
+REPO_ROOT = Path(__file__).parent.parent
 
 from dotenv import load_dotenv
-load_dotenv(Path(__file__).parent / '.env')
+load_dotenv(REPO_ROOT / '.env')
+_cfg = os.environ.get('GREATGRAMPS_CONFIG', 'config.yml')
+if not Path(_cfg).is_absolute():
+    os.environ['GREATGRAMPS_CONFIG'] = str(REPO_ROOT / _cfg)
 
 from rich.console import Console
 

@@ -4,16 +4,21 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import urllib.parse
 import urllib.request
 import webbrowser
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(Path(__file__).parent))
 
 from dotenv import load_dotenv
-load_dotenv(Path(__file__).parent / '.env')
+load_dotenv(REPO_ROOT / '.env')
+_cfg = os.environ.get('GREATGRAMPS_CONFIG', 'config.yml')
+if not Path(_cfg).is_absolute():
+    os.environ['GREATGRAMPS_CONFIG'] = str(REPO_ROOT / _cfg)
 
 from gedcom.parser import Parser
 from gedcom.element.individual import IndividualElement
@@ -26,7 +31,7 @@ from gramps.plugins.db.dbapi.sqlite import SQLite
 
 from gedcom_diff import parse_gedcom_date, find_place
 
-GEDCOM_FILE = Path(__file__).parent / 'Nuttall Family Tree.ged'
+GEDCOM_FILE = REPO_ROOT / 'ged' / 'Nuttall Family Tree.ged'
 
 NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search'
 USER_AGENT = 'greatgramps/0.1 (family tree tool)'
