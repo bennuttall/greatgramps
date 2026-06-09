@@ -15,9 +15,10 @@
           <tbody>
             <tr tal:repeat="person gen['people']">
               <td>
+                <strong tal:omit-tag="python: not any(person['census'][y].get('duplicate') for y in census_years)">
                 <a href="/people/${person['gramps_id']}/"
                    tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)"
-                >${person['full_name']}</a>
+                >${person['full_name']}</a></strong>
                 <span class="years" tal:condition="person['birth_year'] or person['death_year']">(${person['birth_year'] or ''}–${person['death_year'] or ''})</span>
                 <a tal:condition="person['ancestry_url']" tal:attributes="href person['ancestry_url']" class="ancestor-badge ancestry">A</a>
               </td>
