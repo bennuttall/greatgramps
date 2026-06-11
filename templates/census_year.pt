@@ -23,6 +23,7 @@
         <tal:block tal:repeat="event events">
           <tr tal:repeat="person event['people']"
               tal:attributes="data-ancestor 'true' if person['gramps_id'] in ancestor_ids else None;
+                              data-descendant 'true' if person['gramps_id'] in descendant_ids else None;
                               data-lat event['lat'] if event['lat'] else None;
                               data-lon event['lon'] if event['lon'] else None;
                               data-place event['place'] if event['place'] else None;
@@ -62,6 +63,7 @@
     let sortCol = 0;
     let sortAsc = true;
     let ancestorOnly = false;
+    let descendantOnly = false;
 
     function cellText(row, col) {
       return row.cells[col].textContent.trim();
@@ -101,7 +103,8 @@
 
     function applyFilters() {
       rows.forEach(r => {
-        r.hidden = ancestorOnly && r.dataset.ancestor !== 'true';
+        r.hidden = (ancestorOnly && r.dataset.ancestor !== 'true')
+                || (descendantOnly && r.dataset.descendant !== 'true');
       });
       updateMap();
     }
@@ -111,10 +114,22 @@
     ancestorBtn.className = 'filter-btn toggle-btn';
     ancestorBtn.addEventListener('click', () => {
       ancestorOnly = !ancestorOnly;
+      if (ancestorOnly) { descendantOnly = false; descendantBtn.classList.remove('active'); }
       ancestorBtn.classList.toggle('active', ancestorOnly);
       applyFilters();
     });
     document.getElementById('filters').appendChild(ancestorBtn);
+
+    const descendantBtn = document.createElement('button');
+    descendantBtn.textContent = 'Descendants only';
+    descendantBtn.className = 'filter-btn toggle-btn';
+    descendantBtn.addEventListener('click', () => {
+      descendantOnly = !descendantOnly;
+      if (descendantOnly) { ancestorOnly = false; ancestorBtn.classList.remove('active'); }
+      descendantBtn.classList.toggle('active', descendantOnly);
+      applyFilters();
+    });
+    document.getElementById('filters').appendChild(descendantBtn);
 
     const censusMap = L.map('census-map');
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {

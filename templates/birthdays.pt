@@ -16,7 +16,8 @@
             <td>
               <ul class="birthday-people">
                 <li tal:repeat="person entry['people']"
-                    tal:attributes="data-ancestor 'true' if person['gramps_id'] in ancestor_ids else None">
+                    tal:attributes="data-ancestor 'true' if person['gramps_id'] in ancestor_ids else None;
+                                    data-descendant 'true' if person['gramps_id'] in descendant_ids else None">
                   <a href="${base}people/${person['gramps_id']}/"
                      tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
                   <span class="years" tal:condition="person['birth_year']">(${person['birth_year']})</span>
@@ -38,13 +39,17 @@
     people.forEach(li => { if (li.querySelector('.ancestor-badge.living')) li.dataset.living = 'true'; });
     const hasLiving = people.some(li => li.dataset.living);
     const hasAncestors = people.some(li => li.dataset.ancestor);
+    const hasDescendants = people.some(li => li.dataset.descendant);
 
     let livingOnly = false;
     let ancestorsOnly = false;
+    let descendantsOnly = false;
 
     function applyFilter() {
       people.forEach(li => {
-        li.hidden = (livingOnly && !li.dataset.living) || (ancestorsOnly && !li.dataset.ancestor);
+        li.hidden = (livingOnly && !li.dataset.living)
+                 || (ancestorsOnly && !li.dataset.ancestor)
+                 || (descendantsOnly && !li.dataset.descendant);
       });
       rows.forEach(r => {
         const lis = r.querySelectorAll('li');
@@ -65,8 +70,11 @@
     }
 
     const filtersEl = document.getElementById('filters');
-    if (hasAncestors) filtersEl.appendChild(makeToggle('Ancestors only', () => { ancestorsOnly = !ancestorsOnly; }));
-    if (hasLiving)    filtersEl.appendChild(makeToggle('Living only',    () => { livingOnly    = !livingOnly;    }));
+    const ancestorToggle   = hasAncestors   ? makeToggle('Ancestors only',   () => { ancestorsOnly   = !ancestorsOnly;   if (ancestorsOnly)   { descendantsOnly = false; descendantToggle && descendantToggle.classList.remove('active'); } }) : null;
+    const descendantToggle = hasDescendants ? makeToggle('Descendants only', () => { descendantsOnly = !descendantsOnly; if (descendantsOnly) { ancestorsOnly   = false; ancestorToggle   && ancestorToggle.classList.remove('active');   } }) : null;
+    if (ancestorToggle)   filtersEl.appendChild(ancestorToggle);
+    if (descendantToggle) filtersEl.appendChild(descendantToggle);
+    if (hasLiving)        filtersEl.appendChild(makeToggle('Living only', () => { livingOnly = !livingOnly; }));
     </script>
   </tal:block>
 </div>

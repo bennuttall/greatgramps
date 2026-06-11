@@ -192,6 +192,7 @@ def _make_root_ctx(shared, root_id):
     me = db.get_person_from_gramps_id(root_id)
     my_ancestors = collect_ancestors(db, me)
     me_ancestor_distances = ancestors_with_distances(db, me)
+    my_descendants = set(collect_all_descendants(db, me)) - {root_id}
 
     root_dir = config.output_dir / root_id
     root_dir.mkdir(parents=True, exist_ok=True)
@@ -222,6 +223,7 @@ def _make_root_ctx(shared, root_id):
         **shared,
         'me': me,
         'my_ancestors': my_ancestors,
+        'my_descendants': my_descendants,
         'me_ancestor_distances': me_ancestor_distances,
         'root_id': root_id,
         'root_dir': root_dir,
@@ -240,6 +242,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
     db = ctx['db']
     all_people = ctx['all_people']
     my_ancestors = ctx['my_ancestors']
+    my_descendants = ctx['my_descendants']
     media_dir = ctx['media_dir']
     people_dir = ctx['people_dir']
     place_lat_lon = ctx['place_lat_lon']
@@ -414,6 +417,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
 
     return {**data, 'num_children': len(children_p), 'num_spouses': len(spouses),
             'is_ancestor': gid in my_ancestors and gid != root_id,
+            'is_descendant': gid in my_descendants,
             'alt_surnames': [n['surname'] for n in data['alt_names'] if n['surname']]}
 
 
@@ -733,6 +737,7 @@ def _build_root(ctx):
     db = ctx['db']
     all_people = ctx['all_people']
     my_ancestors = ctx['my_ancestors']
+    my_descendants = ctx['my_descendants']
     me_ancestor_distances = ctx['me_ancestor_distances']
     all_places = ctx['all_places']
     place_lat_lon = ctx['place_lat_lon']
@@ -797,6 +802,7 @@ def _build_root(ctx):
             person_errors.append(f'{gid}: {type(e).__name__}: {e}')
             search_row = {**data, 'num_children': 0, 'num_spouses': 0,
                           'is_ancestor': gid in my_ancestors and gid != root_id,
+                          'is_descendant': gid in my_descendants,
                           'alt_surnames': [n['surname'] for n in data['alt_names'] if n['surname']]}
         search_rows.append(search_row)
     _report('person pages', len(all_people), person_errors, time.time() - t)
@@ -824,7 +830,10 @@ def _build_root(ctx):
 
     # Events list page
     events_dir = ctx['events_dir']
-    ancestor_events = build_event_list(db, set(my_ancestors) - {root_id})
+    ancestor_events = [
+        {**e, 'is_descendant_event': any(p['gramps_id'] in my_descendants for p in e['people'])}
+        for e in build_event_list(db, set(my_ancestors) - {root_id})
+    ]
     (events_dir / 'index.html').write_text(
         render('events', page_title='Events — Family Tree',
                events=ancestor_events, relation_map=relation_map)
@@ -852,7 +861,8 @@ def _build_root(ctx):
     (birthdays_dir / 'index.html').write_text(
         render('birthdays', page_title='Birthdays — Family Tree',
                birthday_months=birthday_months, total_birthdays=total_birthdays,
-               ancestor_ids=set(my_ancestors) - {root_id})
+               ancestor_ids=set(my_ancestors) - {root_id},
+               descendant_ids=my_descendants)
     )
     print(f'Built birthdays/index.html ({total_birthdays} birthdays)')
 
@@ -914,7 +924,7 @@ def _build_root(ctx):
             (year_dir / 'index.html').write_text(render(
                 'census_year', page_title=f'{year} Census — Family Tree',
                 year=year, date=date_str, events=events,
-                ancestor_ids=ancestor_ids, relation_map=relation_map,
+                ancestor_ids=ancestor_ids, descendant_ids=my_descendants, relation_map=relation_map,
             ))
         except Exception as e:
             census_errors.append(f'{year}: {type(e).__name__}: {e}')
@@ -968,6 +978,7 @@ def _rebuild_root_pages(ctx, ids):
     all_people = ctx['all_people']
     all_places = ctx['all_places']
     my_ancestors = ctx['my_ancestors']
+    my_descendants = ctx['my_descendants']
     me_ancestor_distances = ctx['me_ancestor_distances']
     root_id = ctx['root_id']
     root_dir = ctx['root_dir']
@@ -1044,7 +1055,10 @@ def _rebuild_root_pages(ctx, ids):
             gid: get_relation_to_me(db, me_ancestor_distances, db.get_person_from_gramps_id(gid), data['gender'])
             for gid, data in all_people.items()
         }
-        ancestor_events = build_event_list(db, set(my_ancestors) - {root_id})
+        ancestor_events = [
+            {**e, 'is_descendant_event': any(p['gramps_id'] in my_descendants for p in e['people'])}
+            for e in build_event_list(db, set(my_ancestors) - {root_id})
+        ]
         (events_dir / 'index.html').write_text(
             render('events', page_title='Events — Family Tree',
                    events=ancestor_events, relation_map=relation_map)
@@ -1080,7 +1094,7 @@ def _rebuild_root_pages(ctx, ids):
             (year_dir / 'index.html').write_text(render(
                 'census_year', page_title=f'{year} Census — Family Tree',
                 year=year, date=date_str, events=events,
-                ancestor_ids=ancestor_ids, relation_map=relation_map,
+                ancestor_ids=ancestor_ids, descendant_ids=my_descendants, relation_map=relation_map,
             ))
         (census_dir / 'index.html').write_text(render(
             'census_index', page_title='Census Records — Family Tree',

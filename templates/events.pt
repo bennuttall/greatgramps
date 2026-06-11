@@ -20,6 +20,7 @@
         <tr tal:repeat="event events"
             data-type="${event['type']}"
             tal:attributes="data-ancestor 'true' if event['is_ancestor_event'] else None;
+                            data-descendant 'true' if event['is_descendant_event'] else None;
                             data-lat event['lat'] if event['lat'] else None;
                             data-lon event['lon'] if event['lon'] else None;
                             data-url event['url_slug'] + '/' if event['lat'] else None">
@@ -78,6 +79,7 @@
 
     let activeType = null;
     let ancestorOnly = false;
+    let descendantOnly = false;
     let sortCol = 0;
     let sortAsc = true;
 
@@ -120,9 +122,10 @@
       rows.forEach(r => {
         const typeMatch = activeType === null || r.dataset.type === activeType;
         const ancestorMatch = !ancestorOnly || r.dataset.ancestor === 'true';
+        const descendantMatch = !descendantOnly || r.dataset.descendant === 'true';
         const name = r.cells[2].textContent.toLowerCase();
         const nameMatch = words.every(w => name.includes(w));
-        r.hidden = !(typeMatch && ancestorMatch && nameMatch);
+        r.hidden = !(typeMatch && ancestorMatch && descendantMatch && nameMatch);
       });
       updateMap();
     }
@@ -146,7 +149,18 @@
     ancestorBtn.className = 'filter-btn toggle-btn';
     ancestorBtn.addEventListener('click', () => {
       ancestorOnly = !ancestorOnly;
+      if (ancestorOnly) { descendantOnly = false; descendantBtn.classList.remove('active'); }
       ancestorBtn.classList.toggle('active', ancestorOnly);
+      applyFilters();
+    });
+
+    const descendantBtn = document.createElement('button');
+    descendantBtn.textContent = 'Descendants only';
+    descendantBtn.className = 'filter-btn toggle-btn';
+    descendantBtn.addEventListener('click', () => {
+      descendantOnly = !descendantOnly;
+      if (descendantOnly) { ancestorOnly = false; ancestorBtn.classList.remove('active'); }
+      descendantBtn.classList.toggle('active', descendantOnly);
       applyFilters();
     });
 
@@ -154,6 +168,7 @@
     types.forEach(t => filtersEl.appendChild(makeTypeButton(t, t)));
     filtersEl.appendChild(document.createElement('span'));
     filtersEl.appendChild(ancestorBtn);
+    filtersEl.appendChild(descendantBtn);
 
     document.getElementById('name-search').addEventListener('input', applyFilters);
 
