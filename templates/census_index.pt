@@ -12,7 +12,7 @@
       </thead>
       <tbody>
         <tr tal:repeat="cy census_years">
-          <td><a href="/census/${cy['year']}/">${cy['year']}</a></td>
+          <td><a href="${base}census/${cy['year']}/">${cy['year']}</a></td>
           <td>${cy['date']}</td>
           <td>${cy['count']}</td>
           <td>${cy['people_count']}</td>

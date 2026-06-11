@@ -1541,7 +1541,7 @@ def rebuild_page(
     """Copy static files and rebuild specific pages by ID or name.
 
     Accepts person IDs (I…), event IDs (E…), place IDs (P…), and named
-    pages: places, people, events, census, index.
+    pages: places, people, events, census, index, global-index.
     """
     rebuild_pages(ids)
 

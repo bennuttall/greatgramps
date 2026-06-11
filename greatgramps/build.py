@@ -98,22 +98,13 @@ def _make_map_json(person_place_events, people, place_lat_lon, base):
     ])
 
 
-def _make_ctx(config, db):
-    """Build shared context needed to render any page."""
-    me = db.get_person_from_gramps_id(config.me)
+def _make_shared_ctx(config, db):
+    """Build context shared across all root builds."""
     all_people = collect_all_people(db)
-    my_ancestors = collect_ancestors(db, me)
-    me_ancestor_distances = ancestors_with_distances(db, me)
 
     config.output_dir.mkdir(parents=True, exist_ok=True)
-    people_dir = config.output_dir / 'people'
-    people_dir.mkdir(parents=True, exist_ok=True)
     media_dir = config.output_dir / 'media'
     media_dir.mkdir(exist_ok=True)
-    events_dir = config.output_dir / 'events'
-    events_dir.mkdir(exist_ok=True)
-    places_dir = config.output_dir / 'places'
-    places_dir.mkdir(exist_ok=True)
 
     place_event_index = build_place_event_index(db)
     all_places = {p.get_handle(): place_data(p) for p in db.iter_places()}
@@ -151,7 +142,6 @@ def _make_ctx(config, db):
         pdata['enclosing'] = enclosing
         pdata['sub_places'] = sorted(place_children.get(handle, []), key=lambda p: p['name'])
 
-    place_url = {d['gramps_id']: f'/places/{d["gramps_id"]}/' for d in all_places.values()}
     place_lat_lon = {
         d['gramps_id']: (d['lat'], d['lon'])
         for d in all_places.values()
@@ -172,37 +162,74 @@ def _make_ctx(config, db):
         s = data['surname']
         if s:
             by_surname.setdefault(s, []).append(gid)
-    surname_page_url = {s: f'/surnames/{surname_slug(s)}/' for s in by_surname}
 
     templates = PageTemplateLoader(str(config.templates_dir))
     layout = templates['layout.pt'].macros['layout']
     person_header = templates['person_header.pt'].macros['person_header']
-    me_id = config.me
-
-    def render(template_name, base, page_title, **kwargs):
-        return templates[f'{template_name}.pt'](
-            layout=layout, base=base, page_title=page_title, me_id=me_id,
-            person_header=person_header, **kwargs
-        )
 
     return {
         'config': config,
         'db': db,
-        'me': me,
         'all_people': all_people,
-        'my_ancestors': my_ancestors,
-        'me_ancestor_distances': me_ancestor_distances,
-        'people_dir': people_dir,
-        'media_dir': media_dir,
-        'events_dir': events_dir,
-        'places_dir': places_dir,
         'all_places': all_places,
-        'place_url': place_url,
-        'place_lat_lon': place_lat_lon,
         'place_event_index': place_event_index,
         'descendant_handles': descendant_handles,
+        'place_lat_lon': place_lat_lon,
         'person_place_events': person_place_events,
         'by_surname': by_surname,
+        'media_dir': media_dir,
+        'templates': templates,
+        'layout': layout,
+        'person_header': person_header,
+    }
+
+
+def _make_root_ctx(shared, root_id):
+    """Build root-specific context for one home person."""
+    config = shared['config']
+    db = shared['db']
+
+    me = db.get_person_from_gramps_id(root_id)
+    my_ancestors = collect_ancestors(db, me)
+    me_ancestor_distances = ancestors_with_distances(db, me)
+
+    root_dir = config.output_dir / root_id
+    root_dir.mkdir(parents=True, exist_ok=True)
+    people_dir = root_dir / 'people'
+    people_dir.mkdir(exist_ok=True)
+    events_dir = root_dir / 'events'
+    events_dir.mkdir(exist_ok=True)
+    places_dir = root_dir / 'places'
+    places_dir.mkdir(exist_ok=True)
+
+    base = f'/{root_id}/'
+    all_places = shared['all_places']
+    by_surname = shared['by_surname']
+    layout = shared['layout']
+    person_header = shared['person_header']
+    templates = shared['templates']
+
+    place_url = {d['gramps_id']: f'{base}places/{d["gramps_id"]}/' for d in all_places.values()}
+    surname_page_url = {s: f'{base}surnames/{surname_slug(s)}/' for s in by_surname}
+
+    def render(template_name, page_title, **kwargs):
+        return templates[f'{template_name}.pt'](
+            layout=layout, base=base, page_title=page_title,
+            me_id=root_id, person_header=person_header, **kwargs
+        )
+
+    return {
+        **shared,
+        'me': me,
+        'my_ancestors': my_ancestors,
+        'me_ancestor_distances': me_ancestor_distances,
+        'root_id': root_id,
+        'root_dir': root_dir,
+        'people_dir': people_dir,
+        'events_dir': events_dir,
+        'places_dir': places_dir,
+        'base': base,
+        'place_url': place_url,
         'surname_page_url': surname_page_url,
         'render': render,
     }
@@ -211,7 +238,6 @@ def _make_ctx(config, db):
 def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None):
     """Render profile, ancestors, and descendants pages for one person."""
     db = ctx['db']
-    config = ctx['config']
     all_people = ctx['all_people']
     my_ancestors = ctx['my_ancestors']
     media_dir = ctx['media_dir']
@@ -221,6 +247,8 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
     surname_page_url = ctx['surname_page_url']
     person_place_events = ctx['person_place_events']
     render = ctx['render']
+    root_id = ctx['root_id']
+    base = ctx['base']
 
     data = all_people[gid]
     p = db.get_person_from_gramps_id(gid)
@@ -233,11 +261,15 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         for photo in get_photos(db, p)
     ]
     all_pictures = [
-        {**pic, 'url': process_photo(pic, media_dir, gid)}
+        {**pic, 'url': process_photo(pic, media_dir, gid),
+         'page_url': base + pic['page_url'][1:] if (pic.get('page_url') or '').startswith('/') else pic.get('page_url')}
         for pic in get_all_person_pictures(db, p)
     ]
     occupations = get_occupations(p)
-    events = get_all_events(db, p)
+    events = [
+        {**e, 'description_url': base + e['description_url'][1:] if (e.get('description_url') or '').startswith('/people/') else e.get('description_url')}
+        for e in get_all_events(db, p)
+    ]
     map_points = {}
     for event in events:
         if event.get('type') == 'Probate':
@@ -249,7 +281,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
                 map_points[pid] = {
                     'lat': lat, 'lon': lon,
                     'name': event['place'],
-                    'url': f'/places/{pid}/',
+                    'url': f'{base}places/{pid}/',
                     'types': [],
                 }
             map_points[pid]['types'].append(event['type'])
@@ -257,8 +289,8 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
     num_ancestors = len(person_ancestors) - 1
     all_descendants = collect_all_descendants(db, p)
     for desc_gid, desc_data in all_descendants.items():
-        desc_data['is_ancestor'] = desc_gid in my_ancestors and desc_gid != config.me
-        desc_data['is_me'] = desc_gid == config.me
+        desc_data['is_ancestor'] = desc_gid in my_ancestors and desc_gid != root_id
+        desc_data['is_me'] = desc_gid == root_id
     num_descendants = len(all_descendants)
     descendant_generations = group_descendants_by_generation(all_descendants)
     alt_surname_urls = {
@@ -267,20 +299,19 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
     }
     html = render(
         'person',
-        base='/',
         page_title=f"{data['full_name']} — Family Tree",
         person=data,
-        father={**person_data(db, father_p), 'is_ancestor': father_p.get_gramps_id() in my_ancestors and father_p.get_gramps_id() != config.me, 'is_me': father_p.get_gramps_id() == config.me} if father_p else None,
-        mother={**person_data(db, mother_p), 'is_ancestor': mother_p.get_gramps_id() in my_ancestors and mother_p.get_gramps_id() != config.me, 'is_me': mother_p.get_gramps_id() == config.me} if mother_p else None,
+        father={**person_data(db, father_p), 'is_ancestor': father_p.get_gramps_id() in my_ancestors and father_p.get_gramps_id() != root_id, 'is_me': father_p.get_gramps_id() == root_id} if father_p else None,
+        mother={**person_data(db, mother_p), 'is_ancestor': mother_p.get_gramps_id() in my_ancestors and mother_p.get_gramps_id() != root_id, 'is_me': mother_p.get_gramps_id() == root_id} if mother_p else None,
         children=sorted(
-            [{**person_data(db, c), 'is_ancestor': c.get_gramps_id() in my_ancestors and c.get_gramps_id() != config.me, 'is_me': c.get_gramps_id() == config.me} for c in children_p],
+            [{**person_data(db, c), 'is_ancestor': c.get_gramps_id() in my_ancestors and c.get_gramps_id() != root_id, 'is_me': c.get_gramps_id() == root_id} for c in children_p],
             key=lambda c: c['birth_year'] or 9999,
         ),
-        siblings=[{**s, 'is_ancestor': s['gramps_id'] in my_ancestors and s['gramps_id'] != config.me, 'is_me': s['gramps_id'] == config.me} for s in get_siblings(db, p)],
-        spouses=[{**s, 'person': {**s['person'], 'is_ancestor': s['person']['gramps_id'] in my_ancestors and s['person']['gramps_id'] != config.me, 'is_me': s['person']['gramps_id'] == config.me} if s['person'] else None} for s in spouses],
+        siblings=[{**s, 'is_ancestor': s['gramps_id'] in my_ancestors and s['gramps_id'] != root_id, 'is_me': s['gramps_id'] == root_id} for s in get_siblings(db, p)],
+        spouses=[{**s, 'person': {**s['person'], 'is_ancestor': s['person']['gramps_id'] in my_ancestors and s['person']['gramps_id'] != root_id, 'is_me': s['person']['gramps_id'] == root_id} if s['person'] else None} for s in spouses],
         events=events,
-        is_ancestor=gid in my_ancestors and gid != config.me,
-        is_me=gid == config.me,
+        is_ancestor=gid in my_ancestors and gid != root_id,
+        is_me=gid == root_id,
         relation=relation,
         by_marriage=by_marriage,
         marriage_relation=marriage_relation,
@@ -307,20 +338,19 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         f'grid-template-columns:repeat({tree_cols},minmax(140px,1fr))'
     )
     surname_url = surname_page_url.get(data['surname'])
-    ancestors_map_json = _make_map_json(person_place_events, person_ancestors, place_lat_lon, '/')
+    ancestors_map_json = _make_map_json(person_place_events, person_ancestors, place_lat_lon, base)
     ancestors_dir = person_out / 'ancestors'
     ancestors_dir.mkdir(exist_ok=True)
     (ancestors_dir / 'index.html').write_text(render(
         'tree',
-        base='/',
         page_title=f"{data['full_name']} — Ancestor Tree",
         person=data,
         nodes=tree_nodes,
         tree_grid_style=tree_grid_style,
         num_ancestors=num_ancestors,
         num_descendants=num_descendants,
-        is_ancestor=gid in my_ancestors and gid != config.me,
-        is_me=gid == config.me,
+        is_ancestor=gid in my_ancestors and gid != root_id,
+        is_me=gid == root_id,
         relation=relation,
         by_marriage=by_marriage,
         marriage_relation=marriage_relation,
@@ -337,20 +367,19 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         f'grid-template-columns:repeat({desc_cols},minmax(140px,1fr));'
         f'grid-template-rows:repeat({desc_rows},minmax(2.5rem,auto))'
     )
-    descendants_map_json = _make_map_json(person_place_events, all_descendants, place_lat_lon, '/')
+    descendants_map_json = _make_map_json(person_place_events, all_descendants, place_lat_lon, base)
     descendants_dir = person_out / 'descendants'
     descendants_dir.mkdir(exist_ok=True)
     (descendants_dir / 'index.html').write_text(render(
         'descendants_tree',
-        base='/',
         page_title=f"{data['full_name']} — Descendant Tree",
         person=data,
         nodes=desc_nodes,
         tree_grid_style=desc_grid_style,
         num_ancestors=num_ancestors,
         num_descendants=num_descendants,
-        is_ancestor=gid in my_ancestors and gid != config.me,
-        is_me=gid == config.me,
+        is_ancestor=gid in my_ancestors and gid != root_id,
+        is_me=gid == root_id,
         relation=relation,
         by_marriage=by_marriage,
         marriage_relation=marriage_relation,
@@ -366,14 +395,13 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
     pictures_dir.mkdir(exist_ok=True)
     (pictures_dir / 'index.html').write_text(render(
         'pictures',
-        base='/',
         page_title=f"{data['full_name']} — Pictures",
         person=data,
         pictures=all_pictures,
         num_ancestors=num_ancestors,
         num_descendants=num_descendants,
-        is_ancestor=gid in my_ancestors and gid != config.me,
-        is_me=gid == config.me,
+        is_ancestor=gid in my_ancestors and gid != root_id,
+        is_me=gid == root_id,
         relation=relation,
         by_marriage=by_marriage,
         marriage_relation=marriage_relation,
@@ -385,7 +413,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
     ))
 
     return {**data, 'num_children': len(children_p), 'num_spouses': len(spouses),
-            'is_ancestor': gid in my_ancestors and gid != config.me,
+            'is_ancestor': gid in my_ancestors and gid != root_id,
             'alt_surnames': [n['surname'] for n in data['alt_names'] if n['surname']]}
 
 
@@ -416,7 +444,7 @@ def _render_place_page(ctx, handle, events):
     all_places = ctx['all_places']
     places_dir = ctx['places_dir']
     my_ancestors = ctx['my_ancestors']
-    config = ctx['config']
+    root_id = ctx['root_id']
     render = ctx['render']
     pdata = all_places[handle]
     sub_place_markers = [
@@ -430,11 +458,10 @@ def _render_place_page(ctx, handle, events):
     )
     html = render(
         'place',
-        base='/',
         page_title=f"{pdata['name']} — Family Tree",
         place=pdata,
         events=events,
-        ancestor_ids=set(my_ancestors) - {config.me},
+        ancestor_ids=set(my_ancestors) - {root_id},
         has_map=bool(subject_marker or sub_place_markers),
         subject_marker_json=json.dumps(subject_marker),
         sub_place_markers_json=json.dumps(sub_place_markers),
@@ -456,7 +483,7 @@ def _render_places_index(ctx, places_with_events):
         for p in mappable
     ])
     (places_dir / 'index.html').write_text(
-        render('places', base='/', page_title='Places — Family Tree',
+        render('places', page_title='Places — Family Tree',
                places=places_with_events, mappable_json=mappable_json)
     )
 
@@ -464,14 +491,15 @@ def _render_places_index(ctx, places_with_events):
 def _render_event_page(ctx, slug, event_data, relation_map):
     """Render a single event page."""
     db = ctx['db']
-    config = ctx['config']
+    root_id = ctx['root_id']
     my_ancestors = ctx['my_ancestors']
     media_dir = ctx['media_dir']
     events_dir = ctx['events_dir']
     place_lat_lon = ctx['place_lat_lon']
+    base = ctx['base']
     render = ctx['render']
 
-    ancestor_ids = set(my_ancestors) - {config.me}
+    ancestor_ids = set(my_ancestors) - {root_id}
     is_ancestor_event = any(p['gramps_id'] in ancestor_ids for p in event_data['people'])
     pid = event_data['place_id']
     if pid and pid in place_lat_lon:
@@ -479,7 +507,7 @@ def _render_event_page(ctx, slug, event_data, relation_map):
         event_map_json = json.dumps([{
             'lat': lat, 'lon': lon,
             'name': event_data['place'],
-            'url': f'/places/{pid}/',
+            'url': f'{base}places/{pid}/',
         }])
     else:
         event_map_json = '[]'
@@ -524,7 +552,6 @@ def _render_event_page(ctx, slug, event_data, relation_map):
             })
     (event_out / 'index.html').write_text(render(
         template,
-        base='/',
         page_title=page_title,
         event=event_data,
         photos=photos,
@@ -537,14 +564,16 @@ def _render_event_page(ctx, slug, event_data, relation_map):
         event_map_json=event_map_json,
     ))
 
+
 def _render_ancestor_records_page(ctx):
-    config = ctx['config']
     db = ctx['db']
     me = ctx['me']
     all_people = ctx['all_people']
     render = ctx['render']
+    root_dir = ctx['root_dir']
+    root_id = ctx['root_id']
 
-    ancestor_distances = ancestors_with_distances(db, me)
+    ancestor_distances = ctx['me_ancestor_distances']
     ahnentafel = ancestors_with_ahnentafel(db, me)
 
     def _has_event(person, etype):
@@ -593,23 +622,24 @@ def _render_ancestor_records_page(ctx):
         label = relationship_label(dist, 0).capitalize() + 's'
         gen_list.append({'dist': dist, 'label': label, 'people': people})
 
-    records_dir = config.output_dir / 'ancestor-records'
+    records_dir = root_dir / 'ancestor-records'
     records_dir.mkdir(exist_ok=True)
     (records_dir / 'index.html').write_text(
-        render('ancestor_records', base='/', page_title='Ancestor Records — Family Tree',
+        render('ancestor_records', page_title='Ancestor Records — Family Tree',
                gen_list=gen_list)
     )
     print(f'Built ancestor-records/index.html ({sum(len(g["people"]) for g in gen_list)} ancestors)')
 
 
 def _render_ancestor_census_page(ctx):
-    config = ctx['config']
     db = ctx['db']
     me = ctx['me']
     all_people = ctx['all_people']
     render = ctx['render']
+    root_dir = ctx['root_dir']
+    root_id = ctx['root_id']
 
-    ancestor_distances = ancestors_with_distances(db, me)
+    ancestor_distances = ctx['me_ancestor_distances']
     ahnentafel = ancestors_with_ahnentafel(db, me)
     census_years = sorted(CENSUS_DATES.keys())
 
@@ -678,10 +708,10 @@ def _render_ancestor_census_page(ctx):
         label = relationship_label(dist, 0).capitalize() + 's'
         gen_list.append({'dist': dist, 'label': label, 'people': people})
 
-    records_dir = config.output_dir / 'census-records'
+    records_dir = root_dir / 'census-records'
     records_dir.mkdir(exist_ok=True)
     (records_dir / 'index.html').write_text(
-        render('census_records', base='/', page_title='Census Records — Family Tree',
+        render('census_records', page_title='Census Records — Family Tree',
                gen_list=gen_list, census_years=census_years)
     )
     total = sum(len(g['people']) for g in gen_list)
@@ -697,22 +727,21 @@ def _report(label, total, errors, elapsed):
         print(f'    ERROR {e}')
 
 
-def build():
-    config = get_config()
-    db = open_db()
-
-    config.output_dir.mkdir(parents=True, exist_ok=True)
-    for f in config.static_dir.iterdir():
-        shutil.copy2(f, config.output_dir / f.name)
-
-    ctx = _make_ctx(config, db)
+def _build_root(ctx):
+    """Build all pages for one root person."""
+    config = ctx['config']
+    db = ctx['db']
     all_people = ctx['all_people']
     my_ancestors = ctx['my_ancestors']
     me_ancestor_distances = ctx['me_ancestor_distances']
     all_places = ctx['all_places']
     place_lat_lon = ctx['place_lat_lon']
     by_surname = ctx['by_surname']
+    root_id = ctx['root_id']
+    root_dir = ctx['root_dir']
     render = ctx['render']
+
+    print(f'\nBuilding root {root_id}...')
 
     # index.html
     surnames = Counter(d['surname'] for d in all_people.values() if d['surname'])
@@ -733,7 +762,7 @@ def build():
     all_years = [y for d in all_people.values() for y in [d['birth_year'], d['death_year']] if y]
     summary = {
         'total_people': len(all_people),
-        'total_ancestors': sum(1 for gid in my_ancestors if gid != config.me),
+        'total_ancestors': sum(1 for gid in my_ancestors if gid != root_id),
         'total_places': len(all_places),
         'total_events': sum(1 for _ in db.iter_events()),
         'year_from': min(all_years) if all_years else None,
@@ -743,8 +772,8 @@ def build():
         'top_female_given': female_given.most_common(10),
         'generations': group_by_generation(my_ancestors),
     }
-    (config.output_dir / 'index.html').write_text(
-        render('index', base='/', page_title='Family Tree', summary=summary)
+    (root_dir / 'index.html').write_text(
+        render('index', page_title='Family Tree', summary=summary)
     )
     print('Built index.html')
 
@@ -758,16 +787,16 @@ def build():
         p = db.get_person_from_gramps_id(gid)
         relation = get_relation_to_me(db, me_ancestor_distances, p, data['gender'])
         marriage_relation = None
-        if not relation and gid != config.me:
+        if not relation and gid != root_id:
             marriage_relation = get_by_marriage_relation(db, me_ancestor_distances, p, data['gender'])
-        by_marriage = not relation and gid != config.me and (marriage_relation is not None or is_related_by_marriage(db, me_ancestor_distances, p))
+        by_marriage = not relation and gid != root_id and (marriage_relation is not None or is_related_by_marriage(db, me_ancestor_distances, p))
         relation_map[gid] = relation
         try:
             search_row = _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation)
         except Exception as e:
             person_errors.append(f'{gid}: {type(e).__name__}: {e}')
             search_row = {**data, 'num_children': 0, 'num_spouses': 0,
-                          'is_ancestor': gid in my_ancestors and gid != config.me,
+                          'is_ancestor': gid in my_ancestors and gid != root_id,
                           'alt_surnames': [n['surname'] for n in data['alt_names'] if n['surname']]}
         search_rows.append(search_row)
     _report('person pages', len(all_people), person_errors, time.time() - t)
@@ -775,7 +804,7 @@ def build():
     search_rows.sort(key=lambda r: (r['surname'], r['given']))
     people_dir = ctx['people_dir']
     (people_dir / 'index.html').write_text(
-        render('search', base='/', page_title='People — Family Tree', rows=search_rows)
+        render('search', page_title='People — Family Tree', rows=search_rows)
     )
     print('Built people/index.html')
 
@@ -795,9 +824,9 @@ def build():
 
     # Events list page
     events_dir = ctx['events_dir']
-    ancestor_events = build_event_list(db, set(my_ancestors) - {config.me})
+    ancestor_events = build_event_list(db, set(my_ancestors) - {root_id})
     (events_dir / 'index.html').write_text(
-        render('events', base='/', page_title='Events — Family Tree',
+        render('events', page_title='Events — Family Tree',
                events=ancestor_events, relation_map=relation_map)
     )
     print(f'Built events/index.html ({len(ancestor_events)} events)')
@@ -816,34 +845,34 @@ def build():
     _report('event pages', len(valid_events), event_errors, time.time() - t)
 
     # Birthdays page
-    birthdays_dir = config.output_dir / 'birthdays'
+    birthdays_dir = root_dir / 'birthdays'
     birthdays_dir.mkdir(exist_ok=True)
     birthday_months = build_birthday_list(db)
     total_birthdays = sum(len(d['people']) for m in birthday_months for d in m['days'])
     (birthdays_dir / 'index.html').write_text(
-        render('birthdays', base='/', page_title='Birthdays — Family Tree',
+        render('birthdays', page_title='Birthdays — Family Tree',
                birthday_months=birthday_months, total_birthdays=total_birthdays,
-               ancestor_ids=set(my_ancestors) - {config.me})
+               ancestor_ids=set(my_ancestors) - {root_id})
     )
     print(f'Built birthdays/index.html ({total_birthdays} birthdays)')
 
     # Surname pages
-    surnames_dir = config.output_dir / 'surnames'
+    surnames_dir = root_dir / 'surnames'
     surnames_dir.mkdir(exist_ok=True)
     surnames_list = sorted(
         [{'surname': s, 'count': len(gids), 'slug': surname_slug(s)} for s, gids in by_surname.items()],
         key=lambda x: x['surname'],
     )
     (surnames_dir / 'index.html').write_text(
-        render('surnames', base='/', page_title='Surnames — Family Tree', surnames=surnames_list)
+        render('surnames', page_title='Surnames — Family Tree', surnames=surnames_list)
     )
     print(f'Building {len(by_surname)} surname pages...')
     t = time.time()
     surname_errors = []
     for surname, gids in by_surname.items():
         people_on_page = sorted(
-            [{**all_people[gid], 'is_ancestor': gid in my_ancestors and gid != config.me,
-              'is_me': gid == config.me} for gid in gids],
+            [{**all_people[gid], 'is_ancestor': gid in my_ancestors and gid != root_id,
+              'is_me': gid == root_id} for gid in gids],
             key=lambda p: (p['birth_year'] or 9999, p['surname'], p['given']),
         )
         slug = surname_slug(surname)
@@ -851,7 +880,7 @@ def build():
         surname_out.mkdir(exist_ok=True)
         try:
             (surname_out / 'index.html').write_text(
-                render('surname', base='/', page_title=f'{surname} — Family Tree',
+                render('surname', page_title=f'{surname} — Family Tree',
                        surname=surname, people=people_on_page)
             )
         except Exception as e:
@@ -866,9 +895,9 @@ def build():
             lat, lon = place_lat_lon.get(pid, (None, None)) if pid else (None, None)
             event['lat'] = lat
             event['lon'] = lon
-    census_dir = config.output_dir / 'census'
+    census_dir = root_dir / 'census'
     census_dir.mkdir(exist_ok=True)
-    ancestor_ids = set(my_ancestors) - {config.me}
+    ancestor_ids = set(my_ancestors) - {root_id}
     print(f'Building {len(census_data)} census year pages...')
     t = time.time()
     census_errors = []
@@ -883,14 +912,14 @@ def build():
         year_dir.mkdir(exist_ok=True)
         try:
             (year_dir / 'index.html').write_text(render(
-                'census_year', base='/', page_title=f'{year} Census — Family Tree',
+                'census_year', page_title=f'{year} Census — Family Tree',
                 year=year, date=date_str, events=events,
                 ancestor_ids=ancestor_ids, relation_map=relation_map,
             ))
         except Exception as e:
             census_errors.append(f'{year}: {type(e).__name__}: {e}')
     (census_dir / 'index.html').write_text(render(
-        'census_index', base='/', page_title='Census Records — Family Tree',
+        'census_index', page_title='Census Records — Family Tree',
         census_years=census_years_list,
     ))
     _report('census pages', len(census_data), census_errors, time.time() - t)
@@ -899,30 +928,49 @@ def build():
     _render_ancestor_records_page(ctx)
     _render_ancestor_census_page(ctx)
 
-    db.close()
+    return all_people[root_id]
 
 
-NAMED_PAGES = {'places', 'people', 'events', 'census', 'index', 'ancestor-records', 'census-records'}
+def _render_global_index(config, shared):
+    """Render the top-level index listing all root people."""
+    templates = shared['templates']
+    all_people = shared['all_people']
+    roots = [all_people[root_id] for root_id in config.roots if root_id in all_people]
+    html = templates['global_index.pt'](page_title='Family Tree', roots=roots)
+    (config.output_dir / 'index.html').write_text(html)
+    print('Built index.html')
 
 
-def rebuild_pages(ids):
-    """Rebuild specific pages by ID or name and copy static files.
-
-    Accepts person IDs (I…), event IDs (E…), place IDs (P…), and named
-    pages: places, people, events, census, index.
-    """
+def build():
     config = get_config()
     db = open_db()
 
-    config.output_dir.mkdir(parents=True, exist_ok=True)
+    shared = _make_shared_ctx(config, db)
+
     for f in config.static_dir.iterdir():
         shutil.copy2(f, config.output_dir / f.name)
 
-    ctx = _make_ctx(config, db)
+    for root_id in config.roots:
+        ctx = _make_root_ctx(shared, root_id)
+        _build_root(ctx)
+
+    _render_global_index(config, shared)
+
+    db.close()
+
+
+NAMED_PAGES = {'places', 'people', 'events', 'census', 'index', 'ancestor-records', 'census-records', 'global-index'}
+
+
+def _rebuild_root_pages(ctx, ids):
+    """Rebuild specific pages under one root."""
+    db = ctx['db']
     all_people = ctx['all_people']
     all_places = ctx['all_places']
     my_ancestors = ctx['my_ancestors']
     me_ancestor_distances = ctx['me_ancestor_distances']
+    root_id = ctx['root_id']
+    root_dir = ctx['root_dir']
 
     named = {i.lower() for i in ids if i.lower() in NAMED_PAGES}
     person_ids = [i for i in ids if i.startswith('I')]
@@ -939,9 +987,9 @@ def rebuild_pages(ids):
         p = db.get_person_from_gramps_id(gid)
         relation = get_relation_to_me(db, me_ancestor_distances, p, all_people[gid]['gender'])
         marriage_relation = None
-        if not relation and gid != config.me:
+        if not relation and gid != root_id:
             marriage_relation = get_by_marriage_relation(db, me_ancestor_distances, p, all_people[gid]['gender'])
-        by_marriage = not relation and gid != config.me and (marriage_relation is not None or is_related_by_marriage(db, me_ancestor_distances, p))
+        by_marriage = not relation and gid != root_id and (marriage_relation is not None or is_related_by_marriage(db, me_ancestor_distances, p))
         _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation)
 
     if event_ids:
@@ -976,18 +1024,18 @@ def rebuild_pages(ids):
             p = db.get_person_from_gramps_id(gid)
             relation = get_relation_to_me(db, me_ancestor_distances, p, data['gender'])
             marriage_relation = None
-            if not relation and gid != config.me:
+            if not relation and gid != root_id:
                 marriage_relation = get_by_marriage_relation(db, me_ancestor_distances, p, data['gender'])
-            by_marriage = not relation and gid != config.me and (marriage_relation is not None or is_related_by_marriage(db, me_ancestor_distances, p))
+            by_marriage = not relation and gid != root_id and (marriage_relation is not None or is_related_by_marriage(db, me_ancestor_distances, p))
             row = _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation)
             search_rows.append(row)
         search_rows.sort(key=lambda r: (r['surname'], r['given']))
         people_dir = ctx['people_dir']
         render = ctx['render']
         (people_dir / 'index.html').write_text(
-            render('search', base='/', page_title='People — Family Tree', rows=search_rows)
+            render('search', page_title='People — Family Tree', rows=search_rows)
         )
-        print('Rebuilt people/index.html')
+        print(f'Rebuilt people/index.html [{root_id}]')
 
     if 'events' in named:
         events_dir = ctx['events_dir']
@@ -996,12 +1044,12 @@ def rebuild_pages(ids):
             gid: get_relation_to_me(db, me_ancestor_distances, db.get_person_from_gramps_id(gid), data['gender'])
             for gid, data in all_people.items()
         }
-        ancestor_events = build_event_list(db, set(my_ancestors) - {config.me})
+        ancestor_events = build_event_list(db, set(my_ancestors) - {root_id})
         (events_dir / 'index.html').write_text(
-            render('events', base='/', page_title='Events — Family Tree',
+            render('events', page_title='Events — Family Tree',
                    events=ancestor_events, relation_map=relation_map)
         )
-        print('Rebuilt events/index.html')
+        print(f'Rebuilt events/index.html [{root_id}]')
 
     if 'census' in named:
         render = ctx['render']
@@ -1013,9 +1061,9 @@ def rebuild_pages(ids):
                 lat, lon = place_lat_lon.get(pid, (None, None)) if pid else (None, None)
                 event['lat'] = lat
                 event['lon'] = lon
-        census_dir = config.output_dir / 'census'
+        census_dir = root_dir / 'census'
         census_dir.mkdir(exist_ok=True)
-        ancestor_ids = set(my_ancestors) - {config.me}
+        ancestor_ids = set(my_ancestors) - {root_id}
         relation_map = {
             gid: get_relation_to_me(db, me_ancestor_distances, db.get_person_from_gramps_id(gid), data['gender'])
             for gid, data in all_people.items()
@@ -1030,15 +1078,15 @@ def rebuild_pages(ids):
             year_dir = census_dir / str(year)
             year_dir.mkdir(exist_ok=True)
             (year_dir / 'index.html').write_text(render(
-                'census_year', base='/', page_title=f'{year} Census — Family Tree',
+                'census_year', page_title=f'{year} Census — Family Tree',
                 year=year, date=date_str, events=events,
                 ancestor_ids=ancestor_ids, relation_map=relation_map,
             ))
         (census_dir / 'index.html').write_text(render(
-            'census_index', base='/', page_title='Census Records — Family Tree',
+            'census_index', page_title='Census Records — Family Tree',
             census_years=census_years_list,
         ))
-        print('Rebuilt census/index.html')
+        print(f'Rebuilt census/index.html [{root_id}]')
 
     if 'index' in named:
         render = ctx['render']
@@ -1060,7 +1108,7 @@ def rebuild_pages(ids):
         all_years = [y for d in all_people.values() for y in [d['birth_year'], d['death_year']] if y]
         summary = {
             'total_people': len(all_people),
-            'total_ancestors': sum(1 for gid in my_ancestors if gid != config.me),
+            'total_ancestors': sum(1 for gid in my_ancestors if gid != root_id),
             'total_places': len(all_places),
             'total_events': sum(1 for _ in db.iter_events()),
             'year_from': min(all_years) if all_years else None,
@@ -1070,16 +1118,40 @@ def rebuild_pages(ids):
             'top_female_given': female_given.most_common(10),
             'generations': group_by_generation(my_ancestors),
         }
-        (config.output_dir / 'index.html').write_text(
-            render('index', base='/', page_title='Family Tree', summary=summary)
+        (root_dir / 'index.html').write_text(
+            render('index', page_title='Family Tree', summary=summary)
         )
-        print('Rebuilt index.html')
+        print(f'Rebuilt index.html [{root_id}]')
 
     if 'ancestor-records' in named:
         _render_ancestor_records_page(ctx)
 
     if 'census-records' in named:
         _render_ancestor_census_page(ctx)
+
+
+def rebuild_pages(ids):
+    """Rebuild specific pages by ID or name and copy static files.
+
+    Accepts person IDs (I…), event IDs (E…), place IDs (P…), and named
+    pages: places, people, events, census, index, global-index.
+    """
+    config = get_config()
+    db = open_db()
+
+    shared = _make_shared_ctx(config, db)
+
+    for f in config.static_dir.iterdir():
+        shutil.copy2(f, config.output_dir / f.name)
+
+    non_global_ids = [i for i in ids if i != 'global-index']
+    if non_global_ids:
+        for root_id in config.roots:
+            ctx = _make_root_ctx(shared, root_id)
+            _rebuild_root_pages(ctx, non_global_ids)
+
+    if 'global-index' in ids:
+        _render_global_index(config, shared)
 
     db.close()
 

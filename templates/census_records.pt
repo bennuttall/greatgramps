@@ -16,7 +16,7 @@
             <tr tal:repeat="person gen['people']">
               <td>
                 <strong tal:omit-tag="python: not any(person['census'][y].get('duplicate') for y in census_years)">
-                <a href="/people/${person['gramps_id']}/"
+                <a href="${base}people/${person['gramps_id']}/"
                    tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)"
                 >${person['full_name']}</a></strong>
                 <span class="years" tal:condition="person['birth_year'] or person['death_year']">(${person['birth_year'] or ''}–${person['death_year'] or ''})</span>
@@ -28,7 +28,7 @@
                                     title 'Not yet born' if s['type'] == 'unborn' else ('Deceased' if s['type'] == 'deceased' else None)"
                 >
                   <strong tal:condition="s['type'] == 'found' and not s.get('duplicate')">${s['count']}</strong>
-                  <a tal:condition="s.get('event_url') and not s.get('photo_url')" href="/events/${s['event_url']}/" class="photo-icon no-photo-icon" title="No image">
+                  <a tal:condition="s.get('event_url') and not s.get('photo_url')" href="${base}events/${s['event_url']}/" class="photo-icon no-photo-icon" title="No image">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="14" height="14" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/>
                       <line x1="3" y1="3" x2="21" y2="21" stroke-linecap="round"/>

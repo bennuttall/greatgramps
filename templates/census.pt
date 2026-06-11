@@ -22,7 +22,7 @@
       <tr tal:condition="event['place']">
         <th>Place</th>
         <td>
-          <a tal:condition="event['place_id']" href="/places/${event['place_id']}/">${event['place']}</a>
+          <a tal:condition="event['place_id']" href="${base}places/${event['place_id']}/">${event['place']}</a>
           <span tal:condition="not event['place_id']">${event['place']}</span>
         </td>
       </tr>
@@ -49,7 +49,7 @@
         <tbody>
           <tr tal:repeat="person event['people']">
             <td>
-              <a href="/people/${person['gramps_id']}/"
+              <a href="${base}people/${person['gramps_id']}/"
                  tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
               <span class="ancestor-badge" tal:condition="person['gramps_id'] in ancestor_ids">ancestor</span>
             </td>

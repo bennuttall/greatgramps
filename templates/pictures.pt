@@ -3,9 +3,9 @@
     <article class="person-detail">
       <tal:block metal:use-macro="person_header"></tal:block>
       <nav class="person-tabs">
-        <a href="/people/${person['gramps_id']}/">Profile</a>
-        <a href="/people/${person['gramps_id']}/ancestors/">Ancestors <span class="tab-count">(${format(num_ancestors, ',')})</span></a>
-        <a href="/people/${person['gramps_id']}/descendants/">Descendants <span class="tab-count">(${format(num_descendants, ',')})</span></a>
+        <a href="${base}people/${person['gramps_id']}/">Profile</a>
+        <a href="${base}people/${person['gramps_id']}/ancestors/">Ancestors <span class="tab-count">(${format(num_ancestors, ',')})</span></a>
+        <a href="${base}people/${person['gramps_id']}/descendants/">Descendants <span class="tab-count">(${format(num_descendants, ',')})</span></a>
         <span class="active">Pictures <span class="tab-count">(${format(num_pictures, ',')})</span></span>
       </nav>
       <div class="pictures-grid">

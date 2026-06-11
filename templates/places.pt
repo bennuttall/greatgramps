@@ -23,7 +23,7 @@
           <td><a href="${place['gramps_id']}/">${place['name']}</a></td>
           <td class="year">${place['type']}</td>
           <td tal:condition="place['enclosing']">
-            <a href="/places/${place['enclosing'][0]['gramps_id']}/">${place['enclosing'][0]['name']}</a>
+            <a href="${base}places/${place['enclosing'][0]['gramps_id']}/">${place['enclosing'][0]['name']}</a>
           </td>
           <td tal:condition="not place['enclosing']"></td>
           <td class="year" data-val="${place['event_count']}">${format(place['event_count'], ',')}</td>

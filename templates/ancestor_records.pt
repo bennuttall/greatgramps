@@ -22,7 +22,7 @@
         <tbody>
           <tr tal:repeat="person gen['people']">
             <td>
-              <a href="/people/${person['gramps_id']}/"
+              <a href="${base}people/${person['gramps_id']}/"
                  tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)"
               >${person['full_name']}</a>
               <span class="years" tal:condition="person['birth_year']">(${person['birth_year']})</span>

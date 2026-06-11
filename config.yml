@@ -1,3 +1,8 @@
 db_path: /home/ben/.gramps/grampsdb/678295e2
-me: I0018
+roots:
+  - I0018
+  - I0019
+  - I0015
+  - I0017
+  - I0025
 ancestry_tree_id: "202776716"

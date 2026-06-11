@@ -4,23 +4,24 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${page_title}</title>
-  <link rel="stylesheet" href="${base}style.css">
-  <link rel="stylesheet" media="print" href="${base}print.css">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" media="print" href="/print.css">
   <tal:block metal:define-slot="head_extra"></tal:block>
 </head>
 <body>
   <header>
     <nav>
-      <a href="${base}index.html">Home</a>
+      <a href="${base}index.html">My tree</a>
       <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" onclick="var l=document.getElementById('nav-links');var o=l.classList.toggle('open');this.setAttribute('aria-expanded',o)">&#9776;</button>
       <div id="nav-links" class="nav-links">
-        <a class="secondary" href="${base}people/${me_id}/">Me</a>
+        <a class="secondary" tal:condition="me_id" href="${base}people/${me_id}/">Me</a>
         <a class="secondary" href="${base}people/">People</a>
         <a class="secondary" href="${base}places/">Places</a>
         <a class="secondary" href="${base}events/">Events</a>
         <a class="secondary" href="${base}census/">Census</a>
         <a class="secondary" href="${base}birthdays/">Birthdays</a>
         <a class="secondary" href="${base}surnames/">Surnames</a>
+        <a class="secondary" href="/">Switch views</a>
       </div>
     </nav>
   </header>

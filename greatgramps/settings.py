@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 class Config(BaseModel):
     root_path: Path
     db_path: Path
-    me: str
+    roots: list[str]
     ancestry_tree_id: str | None = None
     templates_dir: Path = Path('templates')
     static_dir: Path = Path('static')

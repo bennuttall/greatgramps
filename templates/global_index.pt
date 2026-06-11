@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${page_title}</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main>
+    <h1>Family Tree</h1>
+    <p>View as</p>
+    <ul class="root-people">
+      <li tal:repeat="root roots">
+        <a href="/${root['gramps_id']}/"
+           tal:attributes="class 'male' if root['gender'] == 1 else ('female' if root['gender'] == 0 else None)">${root['full_name']}</a>
+        <span class="years" tal:condition="root['birth_year'] or root['death_year']">
+          (${root['birth_year'] or '?'}–${root['death_year'] or ''})
+        </span>
+      </li>
+    </ul>
+  </main>
+</body>
+</html>

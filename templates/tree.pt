@@ -5,16 +5,16 @@
   <div metal:fill-slot="content" tal:omit-tag="1">
     <tal:block metal:use-macro="person_header"></tal:block>
     <nav class="person-tabs">
-      <a href="/people/${person['gramps_id']}/">Profile</a>
+      <a href="${base}people/${person['gramps_id']}/">Profile</a>
       <span class="active">Ancestors <span class="tab-count">(${format(num_ancestors, ',')})</span></span>
-      <a href="/people/${person['gramps_id']}/descendants/">Descendants <span class="tab-count">(${format(num_descendants, ',')})</span></a>
-      <a tal:condition="num_pictures" href="/people/${person['gramps_id']}/pictures/">Pictures <span class="tab-count">(${format(num_pictures, ',')})</span></a>
+      <a href="${base}people/${person['gramps_id']}/descendants/">Descendants <span class="tab-count">(${format(num_descendants, ',')})</span></a>
+      <a tal:condition="num_pictures" href="${base}people/${person['gramps_id']}/pictures/">Pictures <span class="tab-count">(${format(num_pictures, ',')})</span></a>
     </nav>
     <div class="pedigree-wrap">
       <div class="pedigree-chart" tal:attributes="style tree_grid_style">
         <a tal:repeat="node nodes"
            tal:attributes="
-             href '/people/' + person['gramps_id'] + '/' if node['gen'] == 0 else '/people/' + node['gramps_id'] + '/ancestors/';
+             href base + 'people/' + person['gramps_id'] + '/' if node['gen'] == 0 else base + 'people/' + node['gramps_id'] + '/ancestors/';
              class 'pedigree-cell gen-' + str(node['gen']) + (' has-further' if node['has_further'] else '') + (' male' if node['gender'] == 1 else (' female' if node['gender'] == 0 else ''));
              style node['grid_style']
            ">
