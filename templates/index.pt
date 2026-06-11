@@ -37,10 +37,20 @@
       </section>
 
       <section>
-        <h2>Top first names</h2>
+        <h2>Top male names</h2>
         <table class="summary-table">
-          <tr tal:repeat="item summary['top_given']">
-            <td tal:attributes="class item[2]">${item[0]}</td>
+          <tr tal:repeat="item summary['top_male_given']">
+            <td class="male">${item[0]}</td>
+            <td class="year">${format(item[1], ',')}</td>
+          </tr>
+        </table>
+      </section>
+
+      <section>
+        <h2>Top female names</h2>
+        <table class="summary-table">
+          <tr tal:repeat="item summary['top_female_given']">
+            <td class="female">${item[0]}</td>
             <td class="year">${format(item[1], ',')}</td>
           </tr>
         </table>

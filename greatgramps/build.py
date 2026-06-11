@@ -722,7 +722,14 @@ def build():
             first = d['given'].split()[0]
             given_name_genders.setdefault(first, Counter())
             given_name_genders[first][d['gender']] += 1
-    given_names = Counter({name: sum(c.values()) for name, c in given_name_genders.items()})
+    male_given = Counter()
+    female_given = Counter()
+    for name, genders in given_name_genders.items():
+        total = sum(genders.values())
+        if genders.get(1, 0) >= genders.get(0, 0):
+            male_given[name] = total
+        else:
+            female_given[name] = total
     all_years = [y for d in all_people.values() for y in [d['birth_year'], d['death_year']] if y]
     summary = {
         'total_people': len(all_people),
@@ -732,12 +739,8 @@ def build():
         'year_from': min(all_years) if all_years else None,
         'year_to': max(all_years) if all_years else None,
         'top_surnames': [(s, c, surname_slug(s)) for s, c in surnames.most_common(15)],
-        'top_given': [
-            (name, count,
-             'male' if not given_name_genders[name].get(0) else
-             'female' if not given_name_genders[name].get(1) else None)
-            for name, count in given_names.most_common(15)
-        ],
+        'top_male_given': male_given.most_common(10),
+        'top_female_given': female_given.most_common(10),
         'generations': group_by_generation(my_ancestors),
     }
     (config.output_dir / 'index.html').write_text(
@@ -1046,7 +1049,14 @@ def rebuild_pages(ids):
                 first = d['given'].split()[0]
                 given_name_genders.setdefault(first, Counter())
                 given_name_genders[first][d['gender']] += 1
-        given_names = Counter({name: sum(c.values()) for name, c in given_name_genders.items()})
+        male_given = Counter()
+        female_given = Counter()
+        for name, genders in given_name_genders.items():
+            total = sum(genders.values())
+            if genders.get(1, 0) >= genders.get(0, 0):
+                male_given[name] = total
+            else:
+                female_given[name] = total
         all_years = [y for d in all_people.values() for y in [d['birth_year'], d['death_year']] if y]
         summary = {
             'total_people': len(all_people),
@@ -1056,12 +1066,8 @@ def rebuild_pages(ids):
             'year_from': min(all_years) if all_years else None,
             'year_to': max(all_years) if all_years else None,
             'top_surnames': [(s, c, surname_slug(s)) for s, c in surnames.most_common(15)],
-            'top_given': [
-                (name, count,
-                 'male' if not given_name_genders[name].get(0) else
-                 'female' if not given_name_genders[name].get(1) else None)
-                for name, count in given_names.most_common(15)
-            ],
+            'top_male_given': male_given.most_common(10),
+            'top_female_given': female_given.most_common(10),
             'generations': group_by_generation(my_ancestors),
         }
         (config.output_dir / 'index.html').write_text(
