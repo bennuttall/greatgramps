@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.scripts]
-gg = "greatgramps.cli:app"
+grgr = "greatgramps.cli:app"
 
 [build-system]
 requires = ["poetry-core"]
