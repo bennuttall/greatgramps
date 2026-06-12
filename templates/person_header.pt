@@ -8,9 +8,10 @@
   <div class="person-header-info">
     <h1>
       <tal:block tal:condition="not surname_url">${person['full_name']}</tal:block>
-      <tal:block tal:condition="surname_url">
+      <tal:block tal:condition="surname_url and (person['given'] or person['surname'])">
         <span tal:condition="person['given']">${person['given']} </span><a href="${surname_url}">${person['surname']}</a>
       </tal:block>
+      <tal:block tal:condition="surname_url and not person['given'] and not person['surname']">[Unknown]</tal:block>
       <small class="years" tal:condition="is_living and birth_year">(${birth_year}–)</small>
       <small class="years" tal:condition="not is_living and (birth_year or death_year)">(${birth_year or '?'}–${death_year or ''})</small>
     </h1>

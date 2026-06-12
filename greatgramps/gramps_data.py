@@ -100,7 +100,7 @@ def person_data(db, person):
         'gramps_id': person.get_gramps_id(),
         'given': name.get_first_name(),
         'surname': name.get_surname(),
-        'full_name': f'{name.get_first_name()} {name.get_surname()}'.strip(),
+        'full_name': f'{name.get_first_name()} {name.get_surname()}'.strip() or '[Unknown]',
         'birth_year': get_year(birth),
         'birth_place': get_place_name(db, birth),
         'death_year': get_year(death),
