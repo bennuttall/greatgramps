@@ -477,6 +477,8 @@ def get_by_marriage_relation(db, me_ancestors, person, gender=2):
                         lca = min(common, key=lambda gid: me_ancestors[gid] + spouse_ancestors[gid])
                         u = me_ancestors[lca]
                         d = spouse_ancestors[lca]
+                        if u == 0 and d == 0:
+                            return {FEMALE: 'wife', MALE: 'husband'}.get(gender, 'spouse')
                         if u == 1 and d == 1:
                             return None  # sibling's spouse — skip
                         label = relationship_label(u, d, gender)

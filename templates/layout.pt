@@ -21,7 +21,7 @@
         <a class="secondary" href="${base}census/">Census</a>
         <a class="secondary" href="${base}birthdays/">Birthdays</a>
         <a class="secondary" href="${base}surnames/">Surnames</a>
-        <a class="secondary" href="/">Switch views</a>
+        <span class="secondary">Viewing as ${root_first_name} &mdash; <a href="/">switch</a></span>
       </div>
     </nav>
   </header>

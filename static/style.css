@@ -37,6 +37,14 @@ header a.secondary {
 
 header a.secondary:hover { color: #333; }
 
+header span.secondary,
+header span.secondary a {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+header span.secondary a:hover { color: #333; }
+
 .nav-links { display: contents; }
 
 .nav-toggle {

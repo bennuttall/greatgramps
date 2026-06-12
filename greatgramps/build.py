@@ -213,10 +213,13 @@ def _make_root_ctx(shared, root_id):
     place_url = {d['gramps_id']: f'{base}places/{d["gramps_id"]}/' for d in all_places.values()}
     surname_page_url = {s: f'{base}surnames/{surname_slug(s)}/' for s in by_surname}
 
+    root_first_name = shared['all_people'][root_id]['given'].split()[0]
+
     def render(template_name, page_title, **kwargs):
         return templates[f'{template_name}.pt'](
             layout=layout, base=base, page_title=page_title,
-            me_id=root_id, person_header=person_header, **kwargs
+            me_id=root_id, root_first_name=root_first_name,
+            person_header=person_header, **kwargs
         )
 
     return {
