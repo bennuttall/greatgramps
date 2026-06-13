@@ -20,7 +20,7 @@ from gramps.gen.lib import (
 )
 from gramps.plugins.db.dbapi.sqlite import SQLite
 
-from .build import rebuild_pages
+from .build import build, rebuild_pages
 from .gramps_data import CENSUS_DATES, format_date, get_event, get_year, ancestors_with_distances, get_children
 from .settings import get_config
 
@@ -1200,6 +1200,12 @@ def add_place(
             console.print(f"[green]Enclosed by {parent.get_gramps_id()} ({parent.get_name().get_value()})[/green]")
     finally:
         db.close()
+
+
+@app.command("build")
+def build_site():
+    """Build the full site."""
+    build()
 
 
 @app.command("census-check", no_args_is_help=True)

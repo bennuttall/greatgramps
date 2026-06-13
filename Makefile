@@ -1,13 +1,13 @@
-PYTHON = /home/ben/.virtualenvs/gramps/bin/python
+PYTHON=python3
 GREATGRAMPS_CONFIG=config.yml
 
 .PHONY: html serve clean
 
 html:
-	GREATGRAMPS_CONFIG=$(GREATGRAMPS_CONFIG) $(PYTHON) -m greatgramps.build
+	GREATGRAMPS_CONFIG=$(GREATGRAMPS_CONFIG) grgr build
 
 clean:
-	find www -mindepth 1 -maxdepth 1 ! -name media -exec rm -rf {} +
+	rm -rf www/I*
 
 serve:
 	$(PYTHON) -m http.server -d www
