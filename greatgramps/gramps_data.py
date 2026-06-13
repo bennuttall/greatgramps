@@ -928,8 +928,6 @@ def get_all_person_pictures(db, person):
 
     _add(_collect_photos(db, person), f'/people/{person.get_gramps_id()}/', 'Profile', year=None)
 
-    birth_year = get_year(get_event(db, person, EventType.BIRTH))
-
     for eref in person.get_event_ref_list():
         event = db.get_event_from_handle(eref.get_reference_handle())
         etype = int(event.get_type())

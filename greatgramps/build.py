@@ -22,6 +22,10 @@ from .gramps_data import (
 from .settings import get_config
 
 
+def _clean_name_token(s):
+    return re.sub(r"[^\w''-]", '', s)
+
+
 def process_photo(photo, media_dir, person_id):
     """Copy or crop a photo into media_dir, return the web path."""
     src = photo['src']
@@ -752,11 +756,13 @@ def _build_root(ctx):
     print(f'\nBuilding root {root_id}...')
 
     # index.html
-    surnames = Counter(d['surname'] for d in all_people.values() if d['surname'])
+    surnames = Counter(_clean_name_token(d['surname']) for d in all_people.values() if d['surname'] and _clean_name_token(d['surname']))
     given_name_genders = {}
     for d in all_people.values():
         if d['given']:
-            first = d['given'].split()[0]
+            first = _clean_name_token(d['given'].split()[0])
+            if not first:
+                continue
             given_name_genders.setdefault(first, Counter())
             given_name_genders[first][d['gender']] += 1
     male_given = Counter()
@@ -775,7 +781,7 @@ def _build_root(ctx):
         'total_events': sum(1 for _ in db.iter_events()),
         'year_from': min(all_years) if all_years else None,
         'year_to': max(all_years) if all_years else None,
-        'top_surnames': [(s, c, surname_slug(s)) for s, c in surnames.most_common(15)],
+        'top_surnames': [(s, c, surname_slug(s)) for s, c in surnames.most_common(10)],
         'top_male_given': male_given.most_common(10),
         'top_female_given': female_given.most_common(10),
         'generations': group_by_generation(my_ancestors),
@@ -1107,11 +1113,13 @@ def _rebuild_root_pages(ctx, ids):
 
     if 'index' in named:
         render = ctx['render']
-        surnames = Counter(d['surname'] for d in all_people.values() if d['surname'])
+        surnames = Counter(_clean_name_token(d['surname']) for d in all_people.values() if d['surname'] and _clean_name_token(d['surname']))
         given_name_genders = {}
         for d in all_people.values():
             if d['given']:
-                first = d['given'].split()[0]
+                first = _clean_name_token(d['given'].split()[0])
+                if not first:
+                    continue
                 given_name_genders.setdefault(first, Counter())
                 given_name_genders[first][d['gender']] += 1
         male_given = Counter()
@@ -1130,7 +1138,7 @@ def _rebuild_root_pages(ctx, ids):
             'total_events': sum(1 for _ in db.iter_events()),
             'year_from': min(all_years) if all_years else None,
             'year_to': max(all_years) if all_years else None,
-            'top_surnames': [(s, c, surname_slug(s)) for s, c in surnames.most_common(15)],
+            'top_surnames': [(s, c, surname_slug(s)) for s, c in surnames.most_common(10)],
             'top_male_given': male_given.most_common(10),
             'top_female_given': female_given.most_common(10),
             'generations': group_by_generation(my_ancestors),
