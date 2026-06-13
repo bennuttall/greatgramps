@@ -185,6 +185,7 @@ def _event_dict(db, event, birth_year, desc=None, desc_url=None, desc_gender=Non
         db.get_media_from_handle(ref.get_reference_handle()).get_mime_type().startswith('image/')
         for ref in event.get_media_list()
     )
+    tag_names = {db.get_tag_from_handle(h).get_name() for h in event.get_tag_list()}
     return {
         'gramps_id': gid,
         'url_slug': event_url_slug(gid),
@@ -201,6 +202,8 @@ def _event_dict(db, event, birth_year, desc=None, desc_url=None, desc_gender=Non
         'description_gender': desc_gender,
         'age': age,
         'has_photo': has_photo,
+        'is_interesting': 'Interesting' in tag_names,
+        'is_conflict': 'Conflict' in tag_names,
     }
 
 
@@ -753,6 +756,7 @@ def build_event_list(db, ancestor_ids):
         grave_url = None
         if etype == int(EventType.BURIAL):
             grave_url = next((p['grave_url'] for p in all_people if p.get('grave_url')), None)
+        tag_names = sorted(db.get_tag_from_handle(h).get_name() for h in event.get_tag_list())
         events.append({
             'gramps_id': gid,
             'url_slug': event_url_slug(gid),
@@ -768,6 +772,9 @@ def build_event_list(db, ancestor_ids):
             'is_ancestor_event': is_ancestor_event,
             'has_photo': has_photo,
             'grave_url': grave_url,
+            'tags': tag_names,
+            'is_interesting': 'Interesting' in tag_names,
+            'is_conflict': 'Conflict' in tag_names,
         })
 
     events.sort(key=lambda e: e['year'] or 9999)
@@ -827,6 +834,7 @@ def build_event_pages_data(db):
         if not couple:
             participants.sort(key=lambda p: p['birth_year'] or 9999)
         gid = event.get_gramps_id()
+        tag_names = {db.get_tag_from_handle(h).get_name() for h in event.get_tag_list()}
         result[event_url_slug(gid)] = {
             'gramps_id': gid,
             'url_slug': event_url_slug(gid),
@@ -841,6 +849,8 @@ def build_event_pages_data(db):
             'couple': couple,
             'children': parties.get('children', []),
             'photos': get_event_photos(db, event),
+            'is_interesting': 'Interesting' in tag_names,
+            'is_conflict': 'Conflict' in tag_names,
         }
     return result
 

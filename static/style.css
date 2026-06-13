@@ -216,6 +216,15 @@ header span.secondary a:hover { color: #333; }
   opacity: 0.2;
 }
 
+.tag-icon {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 0.3em;
+}
+
+.tag-icon.interesting { color: #b8860b; }
+.tag-icon.conflict { color: #c0392b; }
+
 /* Search page */
 #search, #name-search {
   font-size: 1rem;
@@ -440,6 +449,8 @@ a:hover { color: #222; }
 
 .spouse-detail h2 {
   margin-top: 0;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 @media (max-width: 580px) {
