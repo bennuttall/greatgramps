@@ -7,6 +7,21 @@ body {
   padding: 1rem 2rem;
   color: #222;
   line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1;
+}
+
+footer {
+  border-top: 1px solid #ccc;
+  margin-top: 2rem;
+  padding-top: 0.5rem;
+  color: #666;
+  font-size: 0.85rem;
 }
 
 header {
