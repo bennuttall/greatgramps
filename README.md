@@ -2,21 +2,21 @@
 
 A static site generator for [GRAMPS](https://www.gramps-project.org) family tree databases.
 
-## What it is
-
 greatgramps reads a GRAMPS database and builds a browsable static website from it. Each person in
 the tree gets their own page with biographical details, family relationships, events, photos, and a
 relationship label showing how they connect to a chosen root person. The site also includes index
 pages for people, places, events, census records, birthdays, and surnames.
 
-The site is generated once and served as plain HTML — no server-side code required.
+The site is generated once and served as plain HTML — no server-side code required. It's not a web
+frontend for GRAMPS (like [gramps-web](https://github.com/gramps-project/gramps-web)), in that it's
+read-only, but it produces a fairly rich browsable site for your tree. Once built, the site can be
+hosted with ease, with no Python or GRAMPS installation required.
 
 ## Requirements
 
 - Python 3.10+
-- A GRAMPS database (tested with the SQLite backend)
-- [Poetry](https://python-poetry.org) for dependency management
-- GRAMPS (install via your system package manager, not pip)
+- A GRAMPS sqlite database
+- GRAMPS
 
 ## Installation
 
@@ -26,10 +26,10 @@ Install GRAMPS first:
 sudo apt install gramps
 ```
 
-Then install the Python dependencies:
+Then install the project and its dependencies:
 
 ```bash
-poetry install
+pip install greatgramps
 ```
 
 ## Configuration
@@ -51,8 +51,6 @@ GREATGRAMPS_CONFIG=config.yml
 
 ## Usage
 
-Build the full site (output goes to `www/`):
-
 ```bash
 grgr build
 ```
@@ -69,4 +67,50 @@ The output is written to `www/` by default.
 ## CLI
 
 The `grgr` CLI has additional subcommands for managing the database directly — adding people,
-events, census records, places, families, and more. Run `grgr --help` for the full list.
+events, census records, places, families, and more. Run `grgr --help` for the full list:
+
+```
+ Usage: grgr [OPTIONS] COMMAND [ARGS]...                                                          
+                                                                                                  
+ Greatgramps — manage your Gramps family tree database.                                           
+                                                                                                  
+╭─ Options ──────────────────────────────────────────────────────────────────────────────────────╮
+│ --install-completion          Install completion for the current shell.                        │
+│ --show-completion             Show completion for the current shell, to copy it or customize   │
+│                               the installation.                                                │
+│ --help                        Show this message and exit.                                      │
+╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ─────────────────────────────────────────────────────────────────────────────────────╮
+│ add-ancestry-link   Add an Ancestry URL to a person.                                           │
+│ add-census          Add a census event and link people to it.                                  │
+│ add-child           Link an existing person as a child to one or two parents.                  │
+│ add-event           Add an event and link it to one or more people.                            │
+│ add-event-people    Link people to an existing event.                                          │
+│ add-event-place     Set the place on an existing event.                                        │
+│ add-family          Create a family for one or two parents, optionally adding children.        │
+│ add-grave-link      Add a Find A Grave URL to a person.                                        │
+│ add-parents         Link a child to one or two parents, filling a missing parent slot in an    │
+│                     existing family if possible.                                               │
+│ add-person          Add a new person to the database.                                          │
+│ add-place           Geocode a location and add it as a Place in the database.                  │
+│ build               Build the full site.                                                       │
+│ census-check        Show census years this person should have a record for, and whether they   │
+│                     do.                                                                        │
+│ enclose-place       Set one place as enclosed by another (GRAMPS 'Enclosed by' relationship).  │
+│ list-ancestors      List ancestors of a person grouped by generation.                          │
+│ list-children       List a person's children.                                                  │
+│ list-event-people   List people attached to an event.                                          │
+│ list-parents        List a person's parents.                                                   │
+│ list-person-events  List all events for a person.                                              │
+│ list-unconnected    List people with no family connections (not a parent, spouse, or child in  │
+│                     any family).                                                               │
+│ rebuild-page        Copy static files and rebuild specific pages by ID or name.                │
+│ rm-event            Delete one or more events, removing all references from people and         │
+│                     families.                                                                  │
+│ rm-event-people     Remove one or more people from an event.                                   │
+│ rm-people           Delete one or more people from the database, cleaning up family            │
+│                     relationships.                                                             │
+│ search-place        Search for places in the database by name.                                 │
+│ update-person       Set or update event dates and places on a person.                          │
+╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+```
