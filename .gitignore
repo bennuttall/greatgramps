@@ -2,3 +2,4 @@
 www
 poetry.lock
 .env
+dist
