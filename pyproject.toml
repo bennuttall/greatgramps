@@ -5,6 +5,7 @@ description = "Family tree static site generator for GRAMPS databases"
 authors = [
     { name = "Ben Nuttall", email = "ben@bennuttall.com" }
 ]
+license = {file = "LICENSE.txt"}
 requires-python = ">=3.10"
 dependencies = [
     "chameleon (>=4.6.0,<5.0.0)",
@@ -20,6 +21,7 @@ grgr = "greatgramps.cli:app"
 
 [tool.poetry]
 packages = [{include = "greatgramps"}]
+include = ["LICENSE.txt"]
 
 [build-system]
 requires = ["poetry-core"]
