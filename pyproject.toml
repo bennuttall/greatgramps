@@ -18,6 +18,9 @@ dependencies = [
 [project.scripts]
 grgr = "greatgramps.cli:app"
 
+[tool.poetry]
+packages = [{include = "greatgramps"}]
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

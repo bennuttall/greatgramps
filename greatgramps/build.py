@@ -1,13 +1,30 @@
-#!/home/ben/.virtualenvs/gramps/bin/python
 import json
 import re
 import shutil
 import time
-import traceback
 from collections import Counter
 from datetime import date
+from pathlib import Path
 from PIL import Image
 from chameleon import PageTemplateLoader
+
+_PACKAGE_DIR = Path(__file__).parent
+
+
+class _FallbackTemplateLoader:
+    """Loads templates from a user directory, falling back to the bundled ones."""
+
+    def __init__(self, user_dir, builtin_dir):
+        self._user = PageTemplateLoader(str(user_dir)) if user_dir else None
+        self._builtin = PageTemplateLoader(str(builtin_dir))
+
+    def __getitem__(self, name):
+        if self._user:
+            try:
+                return self._user[name]
+            except KeyError:
+                pass
+        return self._builtin[name]
 from gramps.gen.lib.eventtype import EventType
 from .gramps_data import (
     open_db, collect_all_people, collect_ancestors,
@@ -15,7 +32,7 @@ from .gramps_data import (
     ancestors_with_distances, ancestors_with_ahnentafel, get_relation_to_me, is_related_by_marriage, get_by_marriage_relation,
     get_photos, get_occupations, get_all_person_pictures, place_data, build_place_event_index, build_event_list,
     build_event_pages_data, build_birthday_list, person_data,
-    collect_ancestor_tree, collect_descendant_tree, count_descendants,
+    collect_ancestor_tree, collect_descendant_tree,
     collect_all_descendants, group_descendants_by_generation,
     build_census_data, CENSUS_DATES, MONTHS, relationship_label, event_url_slug,
 )
@@ -167,7 +184,7 @@ def _make_shared_ctx(config, db):
         if s:
             by_surname.setdefault(s, []).append(gid)
 
-    templates = PageTemplateLoader(str(config.templates_dir))
+    templates = _FallbackTemplateLoader(config.templates_dir, _PACKAGE_DIR / 'templates')
     layout = templates['layout.pt'].macros['layout']
     person_header = templates['person_header.pt'].macros['person_header']
 
@@ -960,14 +977,21 @@ def _render_global_index(config, shared):
     print('Built index.html')
 
 
+def _copy_static(config):
+    for f in (_PACKAGE_DIR / 'static').iterdir():
+        shutil.copy2(f, config.output_dir / f.name)
+    if config.static_dir:
+        for f in config.static_dir.iterdir():
+            shutil.copy2(f, config.output_dir / f.name)
+
+
 def build():
     config = get_config()
     db = open_db()
 
     shared = _make_shared_ctx(config, db)
 
-    for f in config.static_dir.iterdir():
-        shutil.copy2(f, config.output_dir / f.name)
+    _copy_static(config)
 
     for root_id in config.roots:
         ctx = _make_root_ctx(shared, root_id)
@@ -1166,8 +1190,7 @@ def rebuild_pages(ids):
 
     shared = _make_shared_ctx(config, db)
 
-    for f in config.static_dir.iterdir():
-        shutil.copy2(f, config.output_dir / f.name)
+    _copy_static(config)
 
     non_global_ids = [i for i in ids if i != 'global-index']
     if non_global_ids:

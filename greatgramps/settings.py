@@ -17,8 +17,8 @@ class Config(BaseModel):
     db_path: Path
     roots: list[str]
     ancestry_tree_id: str | None = None
-    templates_dir: Path = Path('templates')
-    static_dir: Path = Path('static')
+    templates_dir: Path | None = None
+    static_dir: Path | None = None
     output_dir: Path = Path('www')
 
     @property
@@ -29,9 +29,13 @@ class Config(BaseModel):
 
     def model_post_init(self, _context):
         root = self.root_path
-        for attr in ('db_path', 'templates_dir', 'static_dir', 'output_dir'):
+        for attr in ('db_path', 'output_dir'):
             p = getattr(self, attr)
             if not p.is_absolute():
+                setattr(self, attr, root / p)
+        for attr in ('templates_dir', 'static_dir'):
+            p = getattr(self, attr)
+            if p is not None and not p.is_absolute():
                 setattr(self, attr, root / p)
 
 
