@@ -93,6 +93,14 @@ grgr rebuild-page I0001
 
 The output is written to `www/` by default.
 
+To browse the built site locally:
+
+```bash
+python -m http.server -d www
+```
+
+Then open http://localhost:8000 in your browser.
+
 ## Custom templates
 
 greatgramps ships with a default set of [Chameleon](https://chameleon.readthedocs.io/) page
