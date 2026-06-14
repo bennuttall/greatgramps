@@ -39,6 +39,8 @@ Then install the project and its dependencies:
 pip install greatgramps
 ```
 
+See [greatgramps on PyPI](https://pypi.org/project/greatgramps/)
+
 ## Configuration
 
 Create a `config.yml` pointing at your GRAMPS database and listing the GRAMPS IDs of the root
