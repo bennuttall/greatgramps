@@ -12,6 +12,8 @@ frontend for GRAMPS (like [gramps-web](https://github.com/gramps-project/gramps-
 read-only, but it produces a fairly rich browsable site for your tree. Once built, the site can be
 hosted with ease, with no Python or GRAMPS installation required.
 
+![](https://raw.githubusercontent.com/bennuttall/greatgramps/refs/heads/main/img/walter_small.png)
+
 ## Requirements
 
 - Python 3.10+
