@@ -7,6 +7,11 @@ the tree gets their own page with biographical details, family relationships, ev
 relationship label showing how they connect to a chosen root person. The site also includes index
 pages for people, places, events, census records, birthdays, and surnames.
 
+The site is built from the point of view of one or more root people — typically the living members
+of a family who each want to browse the tree as themselves. Each root person gets their own section
+of the site where relationship labels ("your grandmother", "your 2nd cousin") are calculated
+relative to them. A top-level index page lets you switch between roots.
+
 The site is generated once and served as plain HTML — no server-side code required. It's not a web
 frontend for GRAMPS (like [gramps-web](https://github.com/gramps-project/gramps-web)), in that it's
 read-only, but it produces a fairly rich browsable site for your tree. Once built, the site can be
@@ -36,14 +41,23 @@ pip install greatgramps
 
 ## Configuration
 
-Create a `config.yml` pointing at your GRAMPS database and listing the root person IDs (one per
-person you want to view the tree as):
+Create a `config.yml` pointing at your GRAMPS database and listing the GRAMPS IDs of the root
+people you want to browse the tree as:
 
 ```yaml
 db_path: /path/to/your/grampsdb/xxxxxxxx
 roots:
   - I0001
+  - I0002
 ```
+
+Root people are typically the living members of a family — for example, two siblings who both want
+their own view of the tree. Each root gets their own section of the site where relationship labels
+are calculated relative to them. You can add as many roots as you like; a top-level index page lets
+you switch between them.
+
+GRAMPS IDs (like `I0001`) are shown in GRAMPS on each person's record. You can also find them with
+`grgr list-ancestors` or by searching the database.
 
 Set the path to your config file via an environment variable or `.env` file:
 
@@ -56,7 +70,7 @@ GREATGRAMPS_CONFIG=config.yml
 | Key | Required | Default | Description |
 |-----|----------|---------|-------------|
 | `db_path` | yes | — | Path to your GRAMPS sqlite database directory |
-| `roots` | yes | — | List of GRAMPS person IDs to use as root people |
+| `roots` | yes | — | GRAMPS IDs of the people to build root views for |
 | `output_dir` | no | `www` | Directory to write the built site into |
 | `ancestry_tree_id` | no | — | Ancestry.com tree ID, used to generate profile links |
 | `templates_dir` | no | — | Directory of custom templates (see [Custom templates](#custom-templates)) |
