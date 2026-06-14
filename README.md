@@ -49,6 +49,19 @@ Set the path to your config file via an environment variable or `.env` file:
 GREATGRAMPS_CONFIG=config.yml
 ```
 
+### Config file reference
+
+| Key | Required | Default | Description |
+|-----|----------|---------|-------------|
+| `db_path` | yes | — | Path to your GRAMPS sqlite database directory |
+| `roots` | yes | — | List of GRAMPS person IDs to use as root people |
+| `output_dir` | no | `www` | Directory to write the built site into |
+| `ancestry_tree_id` | no | — | Ancestry.com tree ID, used to generate profile links |
+| `templates_dir` | no | — | Directory of custom templates (see [Custom templates](#custom-templates)) |
+| `static_dir` | no | — | Directory of custom static files (CSS etc.) |
+
+Relative paths are resolved relative to the config file's directory.
+
 ## Usage
 
 ```bash
@@ -63,6 +76,33 @@ grgr rebuild-page I0001
 ```
 
 The output is written to `www/` by default.
+
+## Custom templates
+
+greatgramps ships with a default set of [Chameleon](https://chameleon.readthedocs.io/) page
+templates. You can override any of them — or all of them — without touching the others.
+
+Point `templates_dir` in your config at a directory containing your custom templates:
+
+```yaml
+templates_dir: templates
+```
+
+Any template file found in that directory takes precedence over the bundled one of the same name.
+Templates you don't provide fall back to the bundled defaults, so you can override just one file if
+that's all you need.
+
+The bundled templates live in `greatgramps/templates/` in the source tree and can be used as a
+reference.
+
+### Custom static files
+
+The same layered approach applies to static files (CSS etc.). Point `static_dir` at a directory and
+its files will be copied into the output on top of the bundled ones:
+
+```yaml
+static_dir: static
+```
 
 ## CLI
 
