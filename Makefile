@@ -1,5 +1,6 @@
 PYTHON=python3
 GREATGRAMPS_CONFIG=config.yml
+POETRY=poetry
 
 .PHONY: develop html serve clean build release
 
