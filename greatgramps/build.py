@@ -1002,7 +1002,7 @@ def build():
     db.close()
 
 
-NAMED_PAGES = {'places', 'people', 'events', 'census', 'index', 'ancestor-records', 'census-records', 'global-index'}
+NAMED_PAGES = {'places', 'people', 'events', 'census', 'index', 'ancestor-records', 'census-records', 'birthdays', 'global-index'}
 
 
 def _rebuild_root_pages(ctx, ids):
@@ -1178,12 +1178,26 @@ def _rebuild_root_pages(ctx, ids):
     if 'census-records' in named:
         _render_ancestor_census_page(ctx)
 
+    if 'birthdays' in named:
+        render = ctx['render']
+        birthdays_dir = root_dir / 'birthdays'
+        birthdays_dir.mkdir(exist_ok=True)
+        birthday_months = build_birthday_list(db)
+        total_birthdays = sum(len(d['people']) for m in birthday_months for d in m['days'])
+        (birthdays_dir / 'index.html').write_text(
+            render('birthdays', page_title='Birthdays — Family Tree',
+                   birthday_months=birthday_months, total_birthdays=total_birthdays,
+                   ancestor_ids=set(my_ancestors) - {root_id},
+                   descendant_ids=my_descendants)
+        )
+        print(f'Rebuilt birthdays/index.html [{root_id}]')
+
 
 def rebuild_pages(ids):
     """Rebuild specific pages by ID or name and copy static files.
 
     Accepts person IDs (I…), event IDs (E…), place IDs (P…), and named
-    pages: places, people, events, census, index, global-index.
+    pages: places, people, events, census, index, birthdays, ancestor-records, census-records, global-index.
     """
     config = get_config()
     db = open_db()

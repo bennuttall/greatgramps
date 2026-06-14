@@ -3,7 +3,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   </tal:block>
   <div metal:fill-slot="content" tal:omit-tag="1">
-<tal:block tal:define="couple event['couple']">
+<tal:block tal:define="couple event['couple'] or (None, None)">
 
     <h1>
       Marriage

@@ -893,8 +893,9 @@ def _collect_photos(db, obj):
         if not mime.startswith('image/'):
             continue
         src = _resolve_media_path(media.get_path())
-        if not src.exists():
-            raise FileNotFoundError(f"Media file not found: {src} ({media.get_gramps_id()})")
+        if not src.is_file():
+            print(f"  WARNING: media file not found, skipping: {src} ({media.get_gramps_id()})")
+            continue
         photos.append({
             'media_id': media.get_gramps_id(),
             'src': src,

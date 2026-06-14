@@ -55,6 +55,10 @@
         const lis = r.querySelectorAll('li');
         r.hidden = lis.length > 0 && Array.from(lis).every(li => li.hidden);
       });
+      document.querySelectorAll('.events-table').forEach(table => {
+        const trs = table.querySelectorAll('tbody tr');
+        table.parentElement.hidden = trs.length > 0 && Array.from(trs).every(tr => tr.hidden);
+      });
     }
 
     function makeToggle(label, activate) {
