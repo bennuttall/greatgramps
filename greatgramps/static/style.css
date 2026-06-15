@@ -496,41 +496,10 @@ pre.event-note {
   line-height: 1.5;
 }
 
-/* Photos + occupations */
-.profile-media {
-  display: flex;
-  align-items: flex-start;
-  gap: 1.5rem;
-  margin: 1rem 0;
-  flex-wrap: wrap;
-}
-
 .photos {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-}
-
-.occupations {
-  background: #f0f5fb;
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-  min-width: 180px;
-}
-
-.occupations h3 {
-  margin: 0 0 0.4rem;
-}
-
-.occupations ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.occupations li {
-  font-size: 0.9rem;
-  padding: 0.15rem 0;
 }
 
 .person-photo {

@@ -95,16 +95,14 @@
             </ul>
           </div>
 
-          <div class="profile-media" tal:condition="occupations">
-            <div class="occupations">
-              <h3>Occupations</h3>
-              <ul>
-                <li tal:repeat="occ occupations">
-                  ${occ['label']}
-                  <span class="years" tal:condition="occ['year']">(${occ['year']})</span>
-                </li>
-              </ul>
-            </div>
+          <div class="occupations" tal:condition="occupations">
+            <h3>Occupations</h3>
+            <ul>
+              <li tal:repeat="occ occupations">
+                ${occ['label']}
+                <span class="years" tal:condition="occ['year']">(${occ['year']})</span>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
