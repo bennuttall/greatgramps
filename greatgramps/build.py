@@ -317,6 +317,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
     all_descendants = collect_all_descendants(db, p)
     for desc_gid, desc_data in all_descendants.items():
         desc_data['is_ancestor'] = desc_gid in my_ancestors and desc_gid != root_id
+        desc_data['is_descendant'] = desc_gid in my_descendants
         desc_data['is_me'] = desc_gid == root_id
     num_descendants = len(all_descendants)
     descendant_generations = group_descendants_by_generation(all_descendants)
@@ -328,16 +329,17 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         'person',
         page_title=f"{data['full_name']} — Family Tree",
         person=data,
-        father={**person_data(db, father_p), 'is_ancestor': father_p.get_gramps_id() in my_ancestors and father_p.get_gramps_id() != root_id, 'is_me': father_p.get_gramps_id() == root_id} if father_p else None,
-        mother={**person_data(db, mother_p), 'is_ancestor': mother_p.get_gramps_id() in my_ancestors and mother_p.get_gramps_id() != root_id, 'is_me': mother_p.get_gramps_id() == root_id} if mother_p else None,
+        father={**person_data(db, father_p), 'is_ancestor': father_p.get_gramps_id() in my_ancestors and father_p.get_gramps_id() != root_id, 'is_descendant': father_p.get_gramps_id() in my_descendants, 'is_me': father_p.get_gramps_id() == root_id} if father_p else None,
+        mother={**person_data(db, mother_p), 'is_ancestor': mother_p.get_gramps_id() in my_ancestors and mother_p.get_gramps_id() != root_id, 'is_descendant': mother_p.get_gramps_id() in my_descendants, 'is_me': mother_p.get_gramps_id() == root_id} if mother_p else None,
         children=sorted(
-            [{**person_data(db, c), 'is_ancestor': c.get_gramps_id() in my_ancestors and c.get_gramps_id() != root_id, 'is_me': c.get_gramps_id() == root_id} for c in children_p],
+            [{**person_data(db, c), 'is_ancestor': c.get_gramps_id() in my_ancestors and c.get_gramps_id() != root_id, 'is_descendant': c.get_gramps_id() in my_descendants, 'is_me': c.get_gramps_id() == root_id} for c in children_p],
             key=lambda c: c['birth_year'] or 9999,
         ),
-        siblings=[{**s, 'is_ancestor': s['gramps_id'] in my_ancestors and s['gramps_id'] != root_id, 'is_me': s['gramps_id'] == root_id} for s in get_siblings(db, p)],
-        spouses=[{**s, 'person': {**s['person'], 'is_ancestor': s['person']['gramps_id'] in my_ancestors and s['person']['gramps_id'] != root_id, 'is_me': s['person']['gramps_id'] == root_id} if s['person'] else None} for s in spouses],
+        siblings=[{**s, 'is_ancestor': s['gramps_id'] in my_ancestors and s['gramps_id'] != root_id, 'is_descendant': s['gramps_id'] in my_descendants, 'is_me': s['gramps_id'] == root_id} for s in get_siblings(db, p)],
+        spouses=[{**s, 'person': {**s['person'], 'is_ancestor': s['person']['gramps_id'] in my_ancestors and s['person']['gramps_id'] != root_id, 'is_descendant': s['person']['gramps_id'] in my_descendants, 'is_me': s['person']['gramps_id'] == root_id} if s['person'] else None} for s in spouses],
         events=events,
         is_ancestor=gid in my_ancestors and gid != root_id,
+        is_descendant=gid in my_descendants,
         is_me=gid == root_id,
         relation=relation,
         by_marriage=by_marriage,
@@ -377,6 +379,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         num_ancestors=num_ancestors,
         num_descendants=num_descendants,
         is_ancestor=gid in my_ancestors and gid != root_id,
+        is_descendant=gid in my_descendants,
         is_me=gid == root_id,
         relation=relation,
         by_marriage=by_marriage,
@@ -406,6 +409,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         num_ancestors=num_ancestors,
         num_descendants=num_descendants,
         is_ancestor=gid in my_ancestors and gid != root_id,
+        is_descendant=gid in my_descendants,
         is_me=gid == root_id,
         relation=relation,
         by_marriage=by_marriage,
@@ -428,6 +432,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         num_ancestors=num_ancestors,
         num_descendants=num_descendants,
         is_ancestor=gid in my_ancestors and gid != root_id,
+        is_descendant=gid in my_descendants,
         is_me=gid == root_id,
         relation=relation,
         by_marriage=by_marriage,
@@ -490,6 +495,7 @@ def _render_place_page(ctx, handle, events):
         place=pdata,
         events=events,
         ancestor_ids=set(my_ancestors) - {root_id},
+        descendant_ids=ctx['my_descendants'],
         has_map=bool(subject_marker or sub_place_markers),
         subject_marker_json=json.dumps(subject_marker),
         sub_place_markers_json=json.dumps(sub_place_markers),
@@ -527,8 +533,10 @@ def _render_event_page(ctx, slug, event_data, relation_map):
     base = ctx['base']
     render = ctx['render']
 
+    my_descendants = ctx['my_descendants']
     ancestor_ids = set(my_ancestors) - {root_id}
     is_ancestor_event = any(p['gramps_id'] in ancestor_ids for p in event_data['people'])
+    is_descendant_event = any(p['gramps_id'] in my_descendants for p in event_data['people'])
     pid = event_data['place_id']
     if pid and pid in place_lat_lon:
         lat, lon = place_lat_lon[pid]
@@ -587,7 +595,9 @@ def _render_event_page(ctx, slug, event_data, relation_map):
         couple_details=couple_details,
         children=event_data.get('children', []),
         is_ancestor_event=is_ancestor_event,
+        is_descendant_event=is_descendant_event,
         ancestor_ids=ancestor_ids,
+        descendant_ids=my_descendants,
         relation_map=relation_map,
         event_map_json=event_map_json,
     ))
@@ -908,7 +918,7 @@ def _build_root(ctx):
     for surname, gids in by_surname.items():
         people_on_page = sorted(
             [{**all_people[gid], 'is_ancestor': gid in my_ancestors and gid != root_id,
-              'is_me': gid == root_id} for gid in gids],
+              'is_descendant': gid in my_descendants, 'is_me': gid == root_id} for gid in gids],
             key=lambda p: (p['birth_year'] or 9999, p['surname'], p['given']),
         )
         slug = surname_slug(surname)

@@ -338,8 +338,16 @@ a:hover { color: #222; }
   white-space: nowrap;
 }
 
+.person-header-photo {
+  width: 160px;
+  min-height: 180px;
+  flex-shrink: 0;
+}
+
 .person-header-photo .person-photo {
-  max-height: 180px;
+  width: 160px;
+  height: 180px;
+  object-fit: cover;
   border-radius: 4px;
   display: block;
 }
@@ -426,6 +434,10 @@ a:hover { color: #222; }
 
 .ancestor-badge.unrelated {
   background: #bbb;
+}
+
+.ancestor-badge.descendant {
+  background: #1a5a7a;
 }
 
 .birthday-people {

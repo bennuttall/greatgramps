@@ -18,6 +18,7 @@
                tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
             <span class="ancestor-badge me" tal:condition="person['is_me']">me</span>
             <span class="ancestor-badge" tal:condition="person['is_ancestor']">ancestor</span>
+            <span class="ancestor-badge descendant" tal:condition="person['is_descendant']">descendant</span>
           </td>
           <td class="year">${person['birth_year'] or ''}</td>
           <td class="year">${person['death_year'] or ''}</td>

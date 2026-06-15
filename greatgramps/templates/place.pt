@@ -36,6 +36,7 @@
                   <a href="${base}people/${person['gramps_id']}/"
                      tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
                   <span class="ancestor-badge" tal:condition="person['gramps_id'] in ancestor_ids">ancestor</span>
+                  <span class="ancestor-badge descendant" tal:condition="person['gramps_id'] in descendant_ids">descendant</span>
                 </span>
                 <span tal:condition="event['couple'][0] and event['couple'][1]"> &amp; </span>
                 <span tal:condition="event['couple'][1]"
@@ -43,6 +44,7 @@
                   <a href="${base}people/${person['gramps_id']}/"
                      tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
                   <span class="ancestor-badge" tal:condition="person['gramps_id'] in ancestor_ids">ancestor</span>
+                  <span class="ancestor-badge descendant" tal:condition="person['gramps_id'] in descendant_ids">descendant</span>
                 </span>
               </span>
               <span tal:condition="not event['couple']">
@@ -50,6 +52,7 @@
                   <a href="${base}people/${person['gramps_id']}/"
                      tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
                   <span class="ancestor-badge" tal:condition="person['gramps_id'] in ancestor_ids">ancestor</span>
+                  <span class="ancestor-badge descendant" tal:condition="person['gramps_id'] in descendant_ids">descendant</span>
                 </span>
               </span>
             </td>

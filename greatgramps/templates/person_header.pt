@@ -29,9 +29,10 @@
       <tr tal:condition="not is_me">
         <td>
           <span class="ancestor-badge" tal:condition="is_ancestor">ancestor</span>
-          <span class="ancestor-badge relative" tal:condition="relation and not is_ancestor">relative</span>
+          <span class="ancestor-badge descendant" tal:condition="is_descendant">descendant</span>
+          <span class="ancestor-badge relative" tal:condition="relation and not is_ancestor and not is_descendant">relative</span>
           <span class="ancestor-badge by-marriage" tal:condition="by_marriage">related by marriage</span>
-          <span class="ancestor-badge unrelated" tal:condition="not relation and not by_marriage">unrelated</span>
+          <span class="ancestor-badge unrelated" tal:condition="not relation and not by_marriage and not is_descendant">unrelated</span>
         </td>
         <td tal:condition="relation">your ${relation}</td>
         <td tal:condition="by_marriage and marriage_relation">your ${marriage_relation}</td>
@@ -47,9 +48,11 @@
       </tr>
     </table>
   </div>
-  <div class="person-header-photo" tal:condition="photos">
-    <a href="${photos[0]['url']}">
-      <img src="${photos[0]['url']}" alt="${photos[0]['description']}" class="person-photo">
-    </a>
+  <div class="person-header-photo">
+    <tal:block tal:condition="photos">
+      <a href="${photos[0]['url']}">
+        <img src="${photos[0]['url']}" alt="${photos[0]['description']}" class="person-photo">
+      </a>
+    </tal:block>
   </div>
 </div>

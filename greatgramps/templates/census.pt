@@ -64,6 +64,7 @@
               <a href="${base}people/${person['gramps_id']}/"
                  tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
               <span class="ancestor-badge" tal:condition="person['gramps_id'] in ancestor_ids">ancestor</span>
+              <span class="ancestor-badge descendant" tal:condition="person['gramps_id'] in descendant_ids">descendant</span>
             </td>
             <td class="year">${person['birth_year'] or ''}</td>
             <td class="year" tal:condition="event['year'] and person['birth_year']">${max(0, event['year'] - person['birth_year'] - 1)}</td>

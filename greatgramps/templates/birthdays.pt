@@ -22,6 +22,7 @@
                      tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
                   <span class="years" tal:condition="person['birth_year']">(${person['birth_year']})</span>
                   <span class="ancestor-badge" tal:condition="person['gramps_id'] in ancestor_ids">ancestor</span>
+                  <span class="ancestor-badge descendant" tal:condition="person['gramps_id'] in descendant_ids">descendant</span>
                   <span class="ancestor-badge living" tal:condition="person['is_living']">living</span>
                   <span class="ancestor-badge deceased" tal:condition="not person['is_living']">deceased</span>
                 </li>

@@ -17,6 +17,7 @@
            tal:attributes="class 'male' if couple[1]['gender'] == 1 else ('female' if couple[1]['gender'] == 0 else None)">${couple[1]['full_name']}</a>
       </tal:block>
       <span class="ancestor-badge" tal:condition="is_ancestor_event">ancestor</span>
+      <span class="ancestor-badge descendant" tal:condition="is_descendant_event">descendant</span>
     </h1>
 
     <div class="photos" tal:condition="photos">

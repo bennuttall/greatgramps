@@ -22,12 +22,14 @@
                 <span class="years" tal:condition="father['birth_year'] or father['death_year']">(${father['birth_year'] or '?'}–${father['death_year'] or ''})</span>
                 <span class="ancestor-badge me" tal:condition="father['is_me']">me</span>
                 <span class="ancestor-badge" tal:condition="father['is_ancestor']">ancestor</span>
+                <span class="ancestor-badge descendant" tal:condition="father['is_descendant']">descendant</span>
               </li>
               <li tal:condition="mother">
                 <a class="female" href="${base}people/${mother['gramps_id']}/">${mother['full_name']}</a>
                 <span class="years" tal:condition="mother['birth_year'] or mother['death_year']">(${mother['birth_year'] or '?'}–${mother['death_year'] or ''})</span>
                 <span class="ancestor-badge me" tal:condition="mother['is_me']">me</span>
                 <span class="ancestor-badge" tal:condition="mother['is_ancestor']">ancestor</span>
+                <span class="ancestor-badge descendant" tal:condition="mother['is_descendant']">descendant</span>
               </li>
             </ul>
           </section>
@@ -43,6 +45,7 @@
                   <span class="years">${rel}</span>
                   <span class="ancestor-badge me" tal:condition="sibling['is_me']">me</span>
                   <span class="ancestor-badge" tal:condition="sibling['is_ancestor']">ancestor</span>
+                  <span class="ancestor-badge descendant" tal:condition="sibling['is_descendant']">descendant</span>
                 </tal:block>
               </li>
             </ul>
@@ -57,6 +60,7 @@
                      tal:attributes="class 'male' if s['person']['gender'] == 1 else ('female' if s['person']['gender'] == 0 else None)">${s['person']['full_name']}</a>
                   <span class="ancestor-badge me" tal:condition="s['person']['is_me']">me</span>
                   <span class="ancestor-badge" tal:condition="s['person']['is_ancestor']">ancestor</span>
+                  <span class="ancestor-badge descendant" tal:condition="s['person']['is_descendant']">descendant</span>
                   <span class="years" tal:condition="s['rel_type'] != 'Unknown'">${s['rel_type']}</span>
                   <span class="years" tal:condition="s['marriage'] and s['marriage']['date']">
                     ${s['marriage']['date']}<span tal:condition="s['marriage']['place']">, ${s['marriage']['place']}</span>
@@ -75,6 +79,7 @@
                 <span class="years" tal:condition="child['birth_year'] or child['death_year']">(${child['birth_year'] or '?'}–${child['death_year'] or ''})</span>
                 <span class="ancestor-badge me" tal:condition="child['is_me']">me</span>
                 <span class="ancestor-badge" tal:condition="child['is_ancestor']">ancestor</span>
+                <span class="ancestor-badge descendant" tal:condition="child['is_descendant']">descendant</span>
               </li>
             </ul>
           </section>
@@ -243,6 +248,7 @@
                 </span>
                 <span class="ancestor-badge me" tal:condition="person['is_me']">me</span>
                 <span class="ancestor-badge" tal:condition="person['is_ancestor']">ancestor</span>
+                <span class="ancestor-badge descendant" tal:condition="person['is_descendant']">descendant</span>
               </li>
             </ul>
           </div>
