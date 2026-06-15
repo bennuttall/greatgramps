@@ -19,6 +19,11 @@ hosted with ease, with no Python or GRAMPS installation required.
 
 ![](https://raw.githubusercontent.com/bennuttall/greatgramps/refs/heads/main/img/walter_small.png)
 
+## Demo
+
+A demo is available at [gramps.bennuttall.com](https://gramps.bennuttall.com/) which features a
+generated family tree showcasing what greatgramps can build from a GRAMPS database.
+
 ## Requirements
 
 - Python 3.10+
