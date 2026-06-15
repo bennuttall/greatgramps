@@ -2,8 +2,7 @@
   <div metal:fill-slot="content" tal:omit-tag="1">
     <h1>People</h1>
     <input type="search" id="search" placeholder="Search by name…" autofocus>
-    <label><input type="checkbox" id="ancestors-only"> Ancestors only</label>
-    <label><input type="checkbox" id="descendants-only"> Descendants only</label>
+    <div id="filters" class="event-filters"></div>
     <p id="count"></p>
     <table id="people-table">
       <thead>
@@ -19,11 +18,13 @@
       <tbody>
         <tr tal:repeat="row rows"
             tal:attributes="data-ancestor 1 if row['is_ancestor'] else None;
-                            data-descendant 1 if row['is_descendant'] else None">
+                            data-descendant 1 if row['is_descendant'] else None;
+                            data-living 1 if row['is_living'] else None">
           <td tal:attributes="data-name row['full_name'] + (' ' + ' '.join(row['alt_surnames']) if row['alt_surnames'] else '')">
             <a href="${row['gramps_id']}/"
                tal:attributes="class 'male' if row['gender'] == 1 else ('female' if row['gender'] == 0 else None)">${row['full_name']}</a>
             <span class="ancestor-badge" tal:condition="row['is_ancestor']">ancestor</span>
+            <span class="ancestor-badge descendant" tal:condition="row['is_descendant']">descendant</span>
             <span class="alt-surnames" tal:condition="row['alt_surnames']">
               also ${', '.join(row['alt_surnames'])}
             </span>
@@ -51,16 +52,19 @@
     }
     updateCount(total);
 
+    let ancestorsOnly = false;
+    let descendantsOnly = false;
+    let livingOnly = false;
+
     function applyFilters() {
       const words = document.getElementById('search').value.toLowerCase().split(/\s+/).filter(Boolean);
-      const ancestorsOnly = document.getElementById('ancestors-only').checked;
-      const descendantsOnly = document.getElementById('descendants-only').checked;
       let visible = 0;
       rows.forEach(row => {
         const name = (row.cells[0].dataset.name || row.cells[0].textContent).toLowerCase();
         const show = words.every(w => name.includes(w))
           && (!ancestorsOnly || row.dataset.ancestor)
-          && (!descendantsOnly || row.dataset.descendant);
+          && (!descendantsOnly || row.dataset.descendant)
+          && (!livingOnly || row.dataset.living);
         row.hidden = !show;
         if (show) visible++;
       });
@@ -68,14 +72,39 @@
     }
 
     document.getElementById('search').addEventListener('input', applyFilters);
-    document.getElementById('ancestors-only').addEventListener('change', () => {
-      if (document.getElementById('ancestors-only').checked) document.getElementById('descendants-only').checked = false;
-      applyFilters();
-    });
-    document.getElementById('descendants-only').addEventListener('change', () => {
-      if (document.getElementById('descendants-only').checked) document.getElementById('ancestors-only').checked = false;
-      applyFilters();
-    });
+
+    const hasAncestors = rows.some(r => r.dataset.ancestor);
+    const hasDescendants = rows.some(r => r.dataset.descendant);
+    const hasLiving = rows.some(r => r.dataset.living);
+
+    function makeToggle(label, activate) {
+      const btn = document.createElement('button');
+      btn.textContent = label;
+      btn.className = 'filter-btn toggle-btn';
+      btn.addEventListener('click', () => {
+        activate(btn);
+        applyFilters();
+      });
+      return btn;
+    }
+
+    const filtersEl = document.getElementById('filters');
+    const ancestorBtn = hasAncestors ? makeToggle('Ancestors only', btn => {
+      ancestorsOnly = !ancestorsOnly;
+      if (ancestorsOnly) { descendantsOnly = false; descendantBtn && descendantBtn.classList.remove('active'); }
+      btn.classList.toggle('active', ancestorsOnly);
+    }) : null;
+    const descendantBtn = hasDescendants ? makeToggle('Descendants only', btn => {
+      descendantsOnly = !descendantsOnly;
+      if (descendantsOnly) { ancestorsOnly = false; ancestorBtn && ancestorBtn.classList.remove('active'); }
+      btn.classList.toggle('active', descendantsOnly);
+    }) : null;
+    if (ancestorBtn) filtersEl.appendChild(ancestorBtn);
+    if (descendantBtn) filtersEl.appendChild(descendantBtn);
+    if (hasLiving) filtersEl.appendChild(makeToggle('Living only', btn => {
+      livingOnly = !livingOnly;
+      btn.classList.toggle('active', livingOnly);
+    }));
 
     // Sort
     let sortCol = null, sortAsc = true;
