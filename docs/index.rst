@@ -9,6 +9,9 @@ the tree gets their own page with biographical details, family relationships, ev
 relationship label showing how they connect to a chosen root person. The site also includes index
 pages for people, places, events, census records, birthdays, and surnames.
 
+This approach lets you manage your own tree using open source software, while still making it easy
+to share your tree with your family on the web.
+
 Links
 =====
 
@@ -28,8 +31,8 @@ Table of Contents
     :maxdepth: 4
     :titlesonly:
 
-    overview
-    config
-    templates
+    overview/index
+    config/index
+    templates/index
     cli/index
     changelog/index

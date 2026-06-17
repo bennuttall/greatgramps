@@ -14,8 +14,11 @@ people you want to browse the tree as:
     - I0001
     - I0002
 
-The location of the config file must be set as an environment variable called
-``GREATGRAMPS_CONFIG``.
+The location of the config file must be set as with an environment variable:
+
+.. code-block::
+
+    GREATGRAMPS_CONFIG=config.yml
 
 Config file reference
 =====================
