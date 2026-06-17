@@ -1,8 +1,9 @@
 PYTHON=python3
 GREATGRAMPS_CONFIG=config.yml
 POETRY=poetry
+HTML_DOCS=docs/_build/html
 
-.PHONY: develop html serve clean build release
+.PHONY: develop html serve clean build release doc doc-serve
 
 develop:
 	$(PIP) install -U pip
@@ -25,3 +26,9 @@ build:
 
 release: build
 	$(POETRY) run twine upload dist/*
+
+doc:
+	$(POETRY) run sphinx-build -b html docs $(HTML_DOCS)
+
+doc-serve:
+	$(POETRY) run python -m http.server -d $(HTML_DOCS)
