@@ -213,7 +213,8 @@ def _make_root_ctx(shared, root_id):
     me = db.get_person_from_gramps_id(root_id)
     my_ancestors = collect_ancestors(db, me)
     me_ancestor_distances = ancestors_with_distances(db, me)
-    my_descendants = set(collect_all_descendants(db, me)) - {root_id}
+    my_descendants_data = collect_all_descendants(db, me)
+    my_descendants = set(my_descendants_data) - {root_id}
 
     root_dir = config.output_dir / root_id
     root_dir.mkdir(parents=True, exist_ok=True)
@@ -235,11 +236,12 @@ def _make_root_ctx(shared, root_id):
     surname_page_url = {s: f'{base}surnames/{surname_slug(s)}/' for s in by_surname}
 
     root_first_name = shared['all_people'][root_id]['given'].split()[0]
+    root_full_name = f"{root_first_name} {shared['all_people'][root_id]['surname']}".strip()
 
     def render(template_name, page_title, **kwargs):
         return templates[f'{template_name}.pt'](
             layout=layout, base=base, page_title=page_title,
-            me_id=root_id, root_first_name=root_first_name,
+            me_id=root_id, root_first_name=root_first_name, root_full_name=root_full_name,
             person_header=person_header, **kwargs
         )
 
@@ -248,6 +250,7 @@ def _make_root_ctx(shared, root_id):
         'me': me,
         'my_ancestors': my_ancestors,
         'my_descendants': my_descendants,
+        'my_descendants_data': my_descendants_data,
         'me_ancestor_distances': me_ancestor_distances,
         'root_id': root_id,
         'root_dir': root_dir,
@@ -772,6 +775,7 @@ def _build_root(ctx):
     all_people = ctx['all_people']
     my_ancestors = ctx['my_ancestors']
     my_descendants = ctx['my_descendants']
+    my_descendants_data = ctx['my_descendants_data']
     me_ancestor_distances = ctx['me_ancestor_distances']
     all_places = ctx['all_places']
     place_lat_lon = ctx['place_lat_lon']
@@ -804,6 +808,7 @@ def _build_root(ctx):
     summary = {
         'total_people': len(all_people),
         'total_ancestors': sum(1 for gid in my_ancestors if gid != root_id),
+        'total_descendants': len(my_descendants_data),
         'total_places': len(all_places),
         'total_events': sum(1 for _ in db.iter_events()),
         'year_from': min(all_years) if all_years else None,
@@ -812,6 +817,7 @@ def _build_root(ctx):
         'top_male_given': male_given.most_common(10),
         'top_female_given': female_given.most_common(10),
         'generations': group_by_generation(my_ancestors),
+        'descendant_generations': group_descendants_by_generation(my_descendants_data),
     }
     (root_dir / 'index.html').write_text(
         render('index', page_title='Family Tree', summary=summary)
@@ -1022,6 +1028,7 @@ def _rebuild_root_pages(ctx, ids):
     all_places = ctx['all_places']
     my_ancestors = ctx['my_ancestors']
     my_descendants = ctx['my_descendants']
+    my_descendants_data = ctx['my_descendants_data']
     me_ancestor_distances = ctx['me_ancestor_distances']
     root_id = ctx['root_id']
     root_dir = ctx['root_dir']
@@ -1168,6 +1175,7 @@ def _rebuild_root_pages(ctx, ids):
         summary = {
             'total_people': len(all_people),
             'total_ancestors': sum(1 for gid in my_ancestors if gid != root_id),
+            'total_descendants': len(my_descendants_data),
             'total_places': len(all_places),
             'total_events': sum(1 for _ in db.iter_events()),
             'year_from': min(all_years) if all_years else None,
@@ -1176,6 +1184,7 @@ def _rebuild_root_pages(ctx, ids):
             'top_male_given': male_given.most_common(10),
             'top_female_given': female_given.most_common(10),
             'generations': group_by_generation(my_ancestors),
+            'descendant_generations': group_descendants_by_generation(my_descendants_data),
         }
         (root_dir / 'index.html').write_text(
             render('index', page_title='Family Tree', summary=summary)
