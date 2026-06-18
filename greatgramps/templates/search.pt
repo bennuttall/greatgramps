@@ -19,7 +19,9 @@
         <tr tal:repeat="row rows"
             tal:attributes="data-ancestor 1 if row['is_ancestor'] else None;
                             data-descendant 1 if row['is_descendant'] else None;
-                            data-living 1 if row['is_living'] else None">
+                            data-living 1 if row['is_living'] else None;
+                            data-male 1 if row['gender'] == 1 else None;
+                            data-female 1 if row['gender'] == 0 else None">
           <td tal:attributes="data-name row['full_name'] + (' ' + ' '.join(row['alt_surnames']) if row['alt_surnames'] else '')">
             <a href="${row['gramps_id']}/"
                tal:attributes="class 'male' if row['gender'] == 1 else ('female' if row['gender'] == 0 else None)">${row['full_name']}</a>
@@ -55,6 +57,8 @@
     let ancestorsOnly = false;
     let descendantsOnly = false;
     let livingOnly = false;
+    let maleOnly = false;
+    let femaleOnly = false;
 
     function applyFilters() {
       const words = document.getElementById('search').value.toLowerCase().split(/\s+/).filter(Boolean);
@@ -64,7 +68,9 @@
         const show = words.every(w => name.includes(w))
           && (!ancestorsOnly || row.dataset.ancestor)
           && (!descendantsOnly || row.dataset.descendant)
-          && (!livingOnly || row.dataset.living);
+          && (!livingOnly || row.dataset.living)
+          && (!maleOnly || row.dataset.male)
+          && (!femaleOnly || row.dataset.female);
         row.hidden = !show;
         if (show) visible++;
       });
@@ -76,6 +82,8 @@
     const hasAncestors = rows.some(r => r.dataset.ancestor);
     const hasDescendants = rows.some(r => r.dataset.descendant);
     const hasLiving = rows.some(r => r.dataset.living);
+    const hasMale = rows.some(r => r.dataset.male);
+    const hasFemale = rows.some(r => r.dataset.female);
 
     function makeToggle(label, activate) {
       const btn = document.createElement('button');
@@ -89,22 +97,34 @@
     }
 
     const filtersEl = document.getElementById('filters');
-    const ancestorBtn = hasAncestors ? makeToggle('Ancestors only', btn => {
+    const ancestorBtn = hasAncestors ? makeToggle('Ancestors', btn => {
       ancestorsOnly = !ancestorsOnly;
       if (ancestorsOnly) { descendantsOnly = false; descendantBtn && descendantBtn.classList.remove('active'); }
       btn.classList.toggle('active', ancestorsOnly);
     }) : null;
-    const descendantBtn = hasDescendants ? makeToggle('Descendants only', btn => {
+    const descendantBtn = hasDescendants ? makeToggle('Descendants', btn => {
       descendantsOnly = !descendantsOnly;
       if (descendantsOnly) { ancestorsOnly = false; ancestorBtn && ancestorBtn.classList.remove('active'); }
       btn.classList.toggle('active', descendantsOnly);
     }) : null;
     if (ancestorBtn) filtersEl.appendChild(ancestorBtn);
     if (descendantBtn) filtersEl.appendChild(descendantBtn);
-    if (hasLiving) filtersEl.appendChild(makeToggle('Living only', btn => {
+    if (hasLiving) filtersEl.appendChild(makeToggle('Living', btn => {
       livingOnly = !livingOnly;
       btn.classList.toggle('active', livingOnly);
     }));
+    const maleBtn = hasMale ? makeToggle('Male', btn => {
+      maleOnly = !maleOnly;
+      if (maleOnly) { femaleOnly = false; femaleBtn && femaleBtn.classList.remove('active'); }
+      btn.classList.toggle('active', maleOnly);
+    }) : null;
+    const femaleBtn = hasFemale ? makeToggle('Female', btn => {
+      femaleOnly = !femaleOnly;
+      if (femaleOnly) { maleOnly = false; maleBtn && maleBtn.classList.remove('active'); }
+      btn.classList.toggle('active', femaleOnly);
+    }) : null;
+    if (maleBtn) filtersEl.appendChild(maleBtn);
+    if (femaleBtn) filtersEl.appendChild(femaleBtn);
 
     // Sort
     let sortCol = null, sortAsc = true;

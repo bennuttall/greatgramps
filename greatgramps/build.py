@@ -179,10 +179,16 @@ def _make_shared_ctx(config, db):
         ]
 
     by_surname = {}
+    married_by_surname = {}
     for gid, data in all_people.items():
         s = data['surname']
         if s:
             by_surname.setdefault(s, []).append(gid)
+        for alt in data['alt_names']:
+            if alt['type'] != 'Married Name' or not alt['surname']:
+                continue
+            by_surname.setdefault(alt['surname'], []).append(gid)
+            married_by_surname.setdefault(alt['surname'], set()).add(gid)
 
     templates = _FallbackTemplateLoader(config.templates_dir, _PACKAGE_DIR / 'templates')
     layout = templates['layout.pt'].macros['layout']
@@ -198,6 +204,7 @@ def _make_shared_ctx(config, db):
         'place_lat_lon': place_lat_lon,
         'person_place_events': person_place_events,
         'by_surname': by_surname,
+        'married_by_surname': married_by_surname,
         'media_dir': media_dir,
         'templates': templates,
         'layout': layout,
@@ -238,11 +245,13 @@ def _make_root_ctx(shared, root_id):
     root_first_name = shared['all_people'][root_id]['given'].split()[0]
     root_full_name = f"{root_first_name} {shared['all_people'][root_id]['surname']}".strip()
 
+    has_custom_css = shared['has_custom_css']
+
     def render(template_name, page_title, **kwargs):
         return templates[f'{template_name}.pt'](
             layout=layout, base=base, page_title=page_title,
             me_id=root_id, root_first_name=root_first_name, root_full_name=root_full_name,
-            person_header=person_header, **kwargs
+            person_header=person_header, has_custom_css=has_custom_css, **kwargs
         )
 
     return {
@@ -768,6 +777,50 @@ def _report(label, total, errors, elapsed):
         print(f'    ERROR {e}')
 
 
+def _render_surname_pages(ctx):
+    """Render the surnames index and one page per surname."""
+    all_people = ctx['all_people']
+    my_ancestors = ctx['my_ancestors']
+    my_descendants = ctx['my_descendants']
+    by_surname = ctx['by_surname']
+    married_by_surname = ctx['married_by_surname']
+    root_id = ctx['root_id']
+    root_dir = ctx['root_dir']
+    render = ctx['render']
+
+    surnames_dir = root_dir / 'surnames'
+    surnames_dir.mkdir(exist_ok=True)
+    surnames_list = sorted(
+        [{'surname': s, 'count': len(gids), 'slug': surname_slug(s)} for s, gids in by_surname.items()],
+        key=lambda x: (-x['count'], x['surname']),
+    )
+    (surnames_dir / 'index.html').write_text(
+        render('surnames', page_title='Surnames — Family Tree', surnames=surnames_list)
+    )
+    print(f'Building {len(by_surname)} surname pages...')
+    t = time.time()
+    surname_errors = []
+    for surname, gids in by_surname.items():
+        married_gids = married_by_surname.get(surname, set())
+        people_on_page = sorted(
+            [{**all_people[gid], 'is_ancestor': gid in my_ancestors and gid != root_id,
+              'is_descendant': gid in my_descendants, 'is_me': gid == root_id,
+              'married_name': gid in married_gids} for gid in gids],
+            key=lambda p: (p['birth_year'] or 9999, p['surname'], p['given']),
+        )
+        slug = surname_slug(surname)
+        surname_out = surnames_dir / slug
+        surname_out.mkdir(exist_ok=True)
+        try:
+            (surname_out / 'index.html').write_text(
+                render('surname', page_title=f'{surname} — Family Tree',
+                       surname=surname, people=people_on_page)
+            )
+        except Exception as e:
+            surname_errors.append(f'{surname!r}: {type(e).__name__}: {e}')
+    _report('surname pages', len(by_surname), surname_errors, time.time() - t)
+
+
 def _build_root(ctx):
     """Build all pages for one root person."""
     config = ctx['config']
@@ -779,7 +832,6 @@ def _build_root(ctx):
     me_ancestor_distances = ctx['me_ancestor_distances']
     all_places = ctx['all_places']
     place_lat_lon = ctx['place_lat_lon']
-    by_surname = ctx['by_surname']
     root_id = ctx['root_id']
     root_dir = ctx['root_dir']
     render = ctx['render']
@@ -909,35 +961,7 @@ def _build_root(ctx):
     print(f'Built birthdays/index.html ({total_birthdays} birthdays)')
 
     # Surname pages
-    surnames_dir = root_dir / 'surnames'
-    surnames_dir.mkdir(exist_ok=True)
-    surnames_list = sorted(
-        [{'surname': s, 'count': len(gids), 'slug': surname_slug(s)} for s, gids in by_surname.items()],
-        key=lambda x: x['surname'],
-    )
-    (surnames_dir / 'index.html').write_text(
-        render('surnames', page_title='Surnames — Family Tree', surnames=surnames_list)
-    )
-    print(f'Building {len(by_surname)} surname pages...')
-    t = time.time()
-    surname_errors = []
-    for surname, gids in by_surname.items():
-        people_on_page = sorted(
-            [{**all_people[gid], 'is_ancestor': gid in my_ancestors and gid != root_id,
-              'is_descendant': gid in my_descendants, 'is_me': gid == root_id} for gid in gids],
-            key=lambda p: (p['birth_year'] or 9999, p['surname'], p['given']),
-        )
-        slug = surname_slug(surname)
-        surname_out = surnames_dir / slug
-        surname_out.mkdir(exist_ok=True)
-        try:
-            (surname_out / 'index.html').write_text(
-                render('surname', page_title=f'{surname} — Family Tree',
-                       surname=surname, people=people_on_page)
-            )
-        except Exception as e:
-            surname_errors.append(f'{surname!r}: {type(e).__name__}: {e}')
-    _report('surname pages', len(by_surname), surname_errors, time.time() - t)
+    _render_surname_pages(ctx)
 
     # Census pages
     census_data = build_census_data(db)
@@ -988,7 +1012,7 @@ def _render_global_index(config, shared):
     templates = shared['templates']
     all_people = shared['all_people']
     roots = [all_people[root_id] for root_id in config.roots if root_id in all_people]
-    html = templates['global_index.pt'](page_title='Family Tree', roots=roots)
+    html = templates['global_index.pt'](page_title='Family Tree', roots=roots, has_custom_css=shared['has_custom_css'])
     (config.output_dir / 'index.html').write_text(html)
     print('Built index.html')
 
@@ -1008,6 +1032,7 @@ def build():
     shared = _make_shared_ctx(config, db)
 
     _copy_static(config)
+    shared['has_custom_css'] = (config.output_dir / 'custom.css').exists()
 
     for root_id in config.roots:
         ctx = _make_root_ctx(shared, root_id)
@@ -1018,7 +1043,7 @@ def build():
     db.close()
 
 
-NAMED_PAGES = {'places', 'people', 'events', 'census', 'index', 'ancestor-records', 'census-records', 'birthdays', 'global-index'}
+NAMED_PAGES = {'places', 'people', 'events', 'census', 'index', 'ancestor-records', 'census-records', 'birthdays', 'surnames', 'global-index'}
 
 
 def _rebuild_root_pages(ctx, ids):
@@ -1053,31 +1078,64 @@ def _rebuild_root_pages(ctx, ids):
         by_marriage = not relation and gid != root_id and (marriage_relation is not None or is_related_by_marriage(db, me_ancestor_distances, p))
         _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation)
 
-    if event_ids:
+    if event_ids or 'events' in named:
         relation_map = {
             gid: get_relation_to_me(db, me_ancestor_distances, db.get_person_from_gramps_id(gid), data['gender'])
             for gid, data in all_people.items()
         }
-        all_event_data = build_event_pages_data(db)
-        by_gramps_id = {ed['gramps_id']: (slug, ed) for slug, ed in all_event_data.items() if slug}
-        for event_id in event_ids:
-            if event_id not in by_gramps_id:
-                print(f'Event {event_id!r} not found')
-                continue
-            slug, event_data = by_gramps_id[event_id]
-            _render_event_page(ctx, slug, event_data, relation_map)
+        if 'events' in named:
+            events_dir = ctx['events_dir']
+            render = ctx['render']
+            ancestor_events = [
+                {**e, 'is_descendant_event': any(p['gramps_id'] in my_descendants for p in e['people'])}
+                for e in build_event_list(db, set(my_ancestors) - {root_id})
+            ]
+            (events_dir / 'index.html').write_text(
+                render('events', page_title='Events — Family Tree',
+                       events=ancestor_events, relation_map=relation_map)
+            )
+            all_event_data = build_event_pages_data(db)
+            valid_events = {slug: ed for slug, ed in all_event_data.items() if slug}
+            t = time.time()
+            event_errors = []
+            for slug, event_data in valid_events.items():
+                try:
+                    _render_event_page(ctx, slug, event_data, relation_map)
+                except Exception as e:
+                    event_errors.append(f'{event_data["gramps_id"]}: {type(e).__name__}: {e}')
+            _report('event pages', len(valid_events), event_errors, time.time() - t)
+            print(f'Rebuilt events/index.html [{root_id}]')
+        else:
+            all_event_data = build_event_pages_data(db)
+            by_gramps_id = {ed['gramps_id']: (slug, ed) for slug, ed in all_event_data.items() if slug}
+            for event_id in event_ids:
+                if event_id not in by_gramps_id:
+                    print(f'Event {event_id!r} not found')
+                    continue
+                slug, event_data = by_gramps_id[event_id]
+                _render_event_page(ctx, slug, event_data, relation_map)
 
     if place_ids or 'places' in named:
         places_with_events, place_events = _compute_place_events(ctx)
         handle_by_id = {pdata['gramps_id']: handle for handle, pdata in all_places.items()}
-        for pid in place_ids:
-            handle = handle_by_id.get(pid)
-            if not handle:
-                print(f'Place {pid!r} not found')
-                continue
-            _render_place_page(ctx, handle, place_events[handle])
         if 'places' in named:
+            t = time.time()
+            place_errors = []
+            for handle in all_places:
+                try:
+                    _render_place_page(ctx, handle, place_events[handle])
+                except Exception as e:
+                    place_errors.append(f'{all_places[handle]["gramps_id"]}: {type(e).__name__}: {e}')
+            _report('place pages', len(all_places), place_errors, time.time() - t)
             _render_places_index(ctx, places_with_events)
+            print(f'Rebuilt places/index.html [{root_id}]')
+        else:
+            for pid in place_ids:
+                handle = handle_by_id.get(pid)
+                if not handle:
+                    print(f'Place {pid!r} not found')
+                    continue
+                _render_place_page(ctx, handle, place_events[handle])
 
     if 'people' in named:
         search_rows = []
@@ -1097,23 +1155,6 @@ def _rebuild_root_pages(ctx, ids):
             render('search', page_title='People — Family Tree', rows=search_rows)
         )
         print(f'Rebuilt people/index.html [{root_id}]')
-
-    if 'events' in named:
-        events_dir = ctx['events_dir']
-        render = ctx['render']
-        relation_map = {
-            gid: get_relation_to_me(db, me_ancestor_distances, db.get_person_from_gramps_id(gid), data['gender'])
-            for gid, data in all_people.items()
-        }
-        ancestor_events = [
-            {**e, 'is_descendant_event': any(p['gramps_id'] in my_descendants for p in e['people'])}
-            for e in build_event_list(db, set(my_ancestors) - {root_id})
-        ]
-        (events_dir / 'index.html').write_text(
-            render('events', page_title='Events — Family Tree',
-                   events=ancestor_events, relation_map=relation_map)
-        )
-        print(f'Rebuilt events/index.html [{root_id}]')
 
     if 'census' in named:
         render = ctx['render']
@@ -1197,6 +1238,10 @@ def _rebuild_root_pages(ctx, ids):
     if 'census-records' in named:
         _render_ancestor_census_page(ctx)
 
+    if 'surnames' in named:
+        _render_surname_pages(ctx)
+        print(f'Rebuilt surnames/index.html [{root_id}]')
+
     if 'birthdays' in named:
         render = ctx['render']
         birthdays_dir = root_dir / 'birthdays'
@@ -1216,7 +1261,7 @@ def rebuild_pages(ids):
     """Rebuild specific pages by ID or name and copy static files.
 
     Accepts person IDs (I…), event IDs (E…), place IDs (P…), and named
-    pages: places, people, events, census, index, birthdays, ancestor-records, census-records, global-index.
+    pages: places, people, events, census, index, birthdays, surnames, ancestor-records, census-records, global-index.
     """
     config = get_config()
     db = open_db()
@@ -1224,6 +1269,7 @@ def rebuild_pages(ids):
     shared = _make_shared_ctx(config, db)
 
     _copy_static(config)
+    shared['has_custom_css'] = (config.output_dir / 'custom.css').exists()
 
     non_global_ids = [i for i in ids if i != 'global-index']
     if non_global_ids:

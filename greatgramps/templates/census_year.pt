@@ -111,7 +111,7 @@
     }
 
     const ancestorBtn = document.createElement('button');
-    ancestorBtn.textContent = 'Ancestors only';
+    ancestorBtn.textContent = 'Ancestors';
     ancestorBtn.className = 'filter-btn toggle-btn';
     ancestorBtn.addEventListener('click', () => {
       ancestorOnly = !ancestorOnly;
@@ -122,7 +122,7 @@
     document.getElementById('filters').appendChild(ancestorBtn);
 
     const descendantBtn = document.createElement('button');
-    descendantBtn.textContent = 'Descendants only';
+    descendantBtn.textContent = 'Descendants';
     descendantBtn.className = 'filter-btn toggle-btn';
     descendantBtn.addEventListener('click', () => {
       descendantOnly = !descendantOnly;

@@ -2,26 +2,35 @@
   <div metal:fill-slot="content" tal:omit-tag="1">
     <h1>${surname} <span class="years">(${format(len(people), ',')})</span></h1>
     <input type="search" id="search" placeholder="Search…">
+    <div id="filters" class="event-filters"></div>
     <p id="count"></p>
     <table id="people-table">
       <thead>
         <tr>
-          <th>Name</th>
-          <th>Born</th>
-          <th>Died</th>
+          <th data-col="0" class="sortable sort-asc">Name</th>
+          <th data-col="1" class="sortable">Born</th>
+          <th data-col="2" class="sortable">Died</th>
         </tr>
       </thead>
       <tbody>
-        <tr tal:repeat="person people">
-          <td>
+        <tr tal:repeat="person people"
+            tal:attributes="data-ancestor 1 if person['is_ancestor'] else None;
+                            data-descendant 1 if person['is_descendant'] else None;
+                            data-living 1 if person['is_living'] else None;
+                            data-male 1 if person['gender'] == 1 else None;
+                            data-female 1 if person['gender'] == 0 else None;
+                            data-married 1 if person['married_name'] else None;
+                            data-birth 1 if not person['married_name'] else None">
+          <td data-val="${person['full_name']}">
             <a href="${base}people/${person['gramps_id']}/"
                tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
+            <span class="ancestor-badge by-marriage" tal:condition="person['married_name']">married name</span>
             <span class="ancestor-badge me" tal:condition="person['is_me']">me</span>
             <span class="ancestor-badge" tal:condition="person['is_ancestor']">ancestor</span>
             <span class="ancestor-badge descendant" tal:condition="person['is_descendant']">descendant</span>
           </td>
-          <td class="year">${person['birth_year'] or ''}</td>
-          <td class="year">${person['death_year'] or ''}</td>
+          <td class="year" data-val="${person['birth_year'] or ''}">${person['birth_year'] or ''}</td>
+          <td class="year" data-val="${person['death_year'] or ''}">${person['death_year'] or ''}</td>
         </tr>
       </tbody>
     </table>
@@ -38,15 +47,122 @@
     }
     updateCount(total);
 
-    document.getElementById('search').addEventListener('input', function() {
-      const q = this.value.toLowerCase();
+    let ancestorsOnly = false;
+    let descendantsOnly = false;
+    let livingOnly = false;
+    let maleOnly = false;
+    let femaleOnly = false;
+    let marriedOnly = false;
+    let birthOnly = false;
+
+    function applyFilters() {
+      const q = document.getElementById('search').value.toLowerCase();
       let visible = 0;
       rows.forEach(row => {
-        const show = row.cells[0].textContent.toLowerCase().includes(q);
+        const show = row.cells[0].textContent.toLowerCase().includes(q)
+          && (!ancestorsOnly || row.dataset.ancestor)
+          && (!descendantsOnly || row.dataset.descendant)
+          && (!livingOnly || row.dataset.living)
+          && (!maleOnly || row.dataset.male)
+          && (!femaleOnly || row.dataset.female)
+          && (!marriedOnly || row.dataset.married)
+          && (!birthOnly || row.dataset.birth);
         row.hidden = !show;
         if (show) visible++;
       });
       updateCount(visible);
+    }
+
+    document.getElementById('search').addEventListener('input', applyFilters);
+
+    const hasAncestors = rows.some(r => r.dataset.ancestor);
+    const hasDescendants = rows.some(r => r.dataset.descendant);
+    const hasLiving = rows.some(r => r.dataset.living);
+    const hasMale = rows.some(r => r.dataset.male);
+    const hasFemale = rows.some(r => r.dataset.female);
+    const hasMarried = rows.some(r => r.dataset.married);
+    const hasBirth = rows.some(r => r.dataset.birth);
+
+    function makeToggle(label, activate) {
+      const btn = document.createElement('button');
+      btn.textContent = label;
+      btn.className = 'filter-btn toggle-btn';
+      btn.addEventListener('click', () => {
+        activate(btn);
+        applyFilters();
+      });
+      return btn;
+    }
+
+    const filtersEl = document.getElementById('filters');
+    const ancestorBtn = hasAncestors ? makeToggle('Ancestors', btn => {
+      ancestorsOnly = !ancestorsOnly;
+      if (ancestorsOnly) { descendantsOnly = false; descendantBtn && descendantBtn.classList.remove('active'); }
+      btn.classList.toggle('active', ancestorsOnly);
+    }) : null;
+    const descendantBtn = hasDescendants ? makeToggle('Descendants', btn => {
+      descendantsOnly = !descendantsOnly;
+      if (descendantsOnly) { ancestorsOnly = false; ancestorBtn && ancestorBtn.classList.remove('active'); }
+      btn.classList.toggle('active', descendantsOnly);
+    }) : null;
+    if (ancestorBtn) filtersEl.appendChild(ancestorBtn);
+    if (descendantBtn) filtersEl.appendChild(descendantBtn);
+    if (hasLiving) filtersEl.appendChild(makeToggle('Living', btn => {
+      livingOnly = !livingOnly;
+      btn.classList.toggle('active', livingOnly);
+    }));
+    const maleBtn = hasMale ? makeToggle('Male', btn => {
+      maleOnly = !maleOnly;
+      if (maleOnly) { femaleOnly = false; femaleBtn && femaleBtn.classList.remove('active'); }
+      btn.classList.toggle('active', maleOnly);
+    }) : null;
+    const femaleBtn = hasFemale ? makeToggle('Female', btn => {
+      femaleOnly = !femaleOnly;
+      if (femaleOnly) { maleOnly = false; maleBtn && maleBtn.classList.remove('active'); }
+      btn.classList.toggle('active', femaleOnly);
+    }) : null;
+    if (maleBtn) filtersEl.appendChild(maleBtn);
+    if (femaleBtn) filtersEl.appendChild(femaleBtn);
+    const marriedBtn = hasMarried ? makeToggle('Married name', btn => {
+      marriedOnly = !marriedOnly;
+      if (marriedOnly) { birthOnly = false; birthBtn && birthBtn.classList.remove('active'); }
+      btn.classList.toggle('active', marriedOnly);
+    }) : null;
+    const birthBtn = hasBirth ? makeToggle('Birth name', btn => {
+      birthOnly = !birthOnly;
+      if (birthOnly) { marriedOnly = false; marriedBtn && marriedBtn.classList.remove('active'); }
+      btn.classList.toggle('active', birthOnly);
+    }) : null;
+    if (marriedBtn) filtersEl.appendChild(marriedBtn);
+    if (birthBtn) filtersEl.appendChild(birthBtn);
+
+    let sortCol = null, sortAsc = true;
+    document.querySelectorAll('#people-table th').forEach(th => {
+      th.style.cursor = 'pointer';
+      th.addEventListener('click', () => {
+        const col = parseInt(th.dataset.col);
+        sortAsc = sortCol === col ? !sortAsc : true;
+        sortCol = col;
+
+        document.querySelectorAll('#people-table th').forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+        th.classList.add(sortAsc ? 'sort-asc' : 'sort-desc');
+
+        rows.sort((a, b) => {
+          const aCell = a.cells[col];
+          const bCell = b.cells[col];
+          const aVal = aCell.dataset.val !== undefined ? aCell.dataset.val : aCell.textContent;
+          const bVal = bCell.dataset.val !== undefined ? bCell.dataset.val : bCell.textContent;
+          const aNum = parseFloat(aVal), bNum = parseFloat(bVal);
+          let cmp;
+          if (!isNaN(aNum) && !isNaN(bNum)) {
+            cmp = aNum - bNum;
+          } else {
+            cmp = aVal.localeCompare(bVal);
+          }
+          return sortAsc ? cmp : -cmp;
+        });
+        rows.forEach(r => tbody.appendChild(r));
+      });
     });
     </script>
   </tal:block>

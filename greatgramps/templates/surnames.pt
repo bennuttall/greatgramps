@@ -6,8 +6,8 @@
     <table id="surnames-table">
       <thead>
         <tr>
-          <th data-col="0" class="sortable sort-asc">Surname</th>
-          <th data-col="1" class="sortable">People</th>
+          <th data-col="0" class="sortable">Surname</th>
+          <th data-col="1" class="sortable sort-desc">People</th>
         </tr>
       </thead>
       <tbody>
@@ -41,7 +41,7 @@
       updateCount(visible);
     });
 
-    let sortCol = null, sortAsc = true;
+    let sortCol = 1, sortAsc = false;
     document.querySelectorAll('#surnames-table th').forEach(th => {
       th.addEventListener('click', () => {
         const col = parseInt(th.dataset.col);

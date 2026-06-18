@@ -75,11 +75,11 @@
     }
 
     const filtersEl = document.getElementById('filters');
-    const ancestorToggle   = hasAncestors   ? makeToggle('Ancestors only',   () => { ancestorsOnly   = !ancestorsOnly;   if (ancestorsOnly)   { descendantsOnly = false; descendantToggle && descendantToggle.classList.remove('active'); } }) : null;
-    const descendantToggle = hasDescendants ? makeToggle('Descendants only', () => { descendantsOnly = !descendantsOnly; if (descendantsOnly) { ancestorsOnly   = false; ancestorToggle   && ancestorToggle.classList.remove('active');   } }) : null;
+    const ancestorToggle   = hasAncestors   ? makeToggle('Ancestors',   () => { ancestorsOnly   = !ancestorsOnly;   if (ancestorsOnly)   { descendantsOnly = false; descendantToggle && descendantToggle.classList.remove('active'); } }) : null;
+    const descendantToggle = hasDescendants ? makeToggle('Descendants', () => { descendantsOnly = !descendantsOnly; if (descendantsOnly) { ancestorsOnly   = false; ancestorToggle   && ancestorToggle.classList.remove('active');   } }) : null;
     if (ancestorToggle)   filtersEl.appendChild(ancestorToggle);
     if (descendantToggle) filtersEl.appendChild(descendantToggle);
-    if (hasLiving)        filtersEl.appendChild(makeToggle('Living only', () => { livingOnly = !livingOnly; }));
+    if (hasLiving)        filtersEl.appendChild(makeToggle('Living', () => { livingOnly = !livingOnly; }));
     </script>
   </tal:block>
 </div>

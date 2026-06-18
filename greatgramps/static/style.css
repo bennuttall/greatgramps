@@ -241,7 +241,7 @@ header span.secondary a:hover { color: #333; }
 .tag-icon.conflict { color: #c0392b; }
 
 /* Search page */
-#search, #name-search {
+#search, #name-search, #people-search {
   font-size: 1rem;
   font-family: inherit;
   padding: 0.4rem 0.6rem;

@@ -695,6 +695,15 @@ def build_place_event_index(db):
         etype = int(event.get_type())
         parties = event_parties.get(event.get_handle(), {'people': [], 'couple': None})
         gid = event.get_gramps_id()
+        all_people = list(parties['people']) + [p for p in parties['couple'] if p] if parties['couple'] else list(parties['people'])
+        has_photo = any(
+            db.get_media_from_handle(ref.get_reference_handle()).get_mime_type().startswith('image/')
+            for ref in event.get_media_list()
+        )
+        grave_url = None
+        if etype == int(EventType.BURIAL):
+            grave_url = next((p['grave_url'] for p in all_people if p.get('grave_url')), None)
+        tag_names = {db.get_tag_from_handle(h).get_name() for h in event.get_tag_list()}
         entry = {
             'type': EVENT_TYPE_LABELS.get(etype, str(event.get_type())),
             'date': format_date(event.get_date_object()),
@@ -703,6 +712,10 @@ def build_place_event_index(db):
             'couple': parties['couple'],
             'gramps_id': gid,
             'url_slug': event_url_slug(gid),
+            'has_photo': has_photo,
+            'grave_url': grave_url,
+            'is_interesting': 'Interesting' in tag_names,
+            'is_conflict': 'Conflict' in tag_names,
         }
         place_index.setdefault(ph, []).append(entry)
 
