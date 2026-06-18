@@ -1,9 +1,14 @@
 from functools import cache
 from pathlib import Path
+from typing import Literal
 
 import yaml
 from pydantic import BaseModel, FilePath
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+NavPage = Literal['people', 'places', 'events', 'census', 'birthdays', 'surnames']
+
+DEFAULT_NAV_PAGES: list[NavPage] = ['people', 'places', 'events', 'census', 'birthdays', 'surnames']
 
 
 class Settings(BaseSettings):
@@ -20,6 +25,7 @@ class Config(BaseModel):
     templates_dir: Path | None = None
     static_dir: Path | None = None
     output_dir: Path = Path('www')
+    nav_pages: list[NavPage] = DEFAULT_NAV_PAGES
 
     @property
     def validated_db_path(self) -> Path:

@@ -10,6 +10,15 @@ from chameleon import PageTemplateLoader
 
 _PACKAGE_DIR = Path(__file__).parent
 
+NAV_LABELS = {
+    'people': 'People',
+    'places': 'Places',
+    'events': 'Events',
+    'census': 'Census',
+    'birthdays': 'Birthdays',
+    'surnames': 'Surnames',
+}
+
 
 class _FallbackTemplateLoader:
     """Loads templates from a user directory, falling back to the bundled ones."""
@@ -246,12 +255,13 @@ def _make_root_ctx(shared, root_id):
     root_full_name = f"{root_first_name} {shared['all_people'][root_id]['surname']}".strip()
 
     has_custom_css = shared['has_custom_css']
+    nav_items = [{'slug': p, 'label': NAV_LABELS[p]} for p in config.nav_pages]
 
     def render(template_name, page_title, **kwargs):
         return templates[f'{template_name}.pt'](
             layout=layout, base=base, page_title=page_title,
             me_id=root_id, root_first_name=root_first_name, root_full_name=root_full_name,
-            person_header=person_header, has_custom_css=has_custom_css, **kwargs
+            person_header=person_header, has_custom_css=has_custom_css, nav_items=nav_items, **kwargs
         )
 
     return {

@@ -55,5 +55,20 @@ Config file reference
      - no
      - —
      - Directory of custom static files (CSS etc.)
+   * - ``nav_pages``
+     - no
+     - ``[people, places, events, census, birthdays, surnames]``
+     - Which pages to show in the nav bar, and in what order
 
 Relative paths are resolved relative to the config file's directory.
+
+The ``nav_pages`` list controls which links appear in the nav bar alongside **Me**, and in what
+order. Choose any subset of ``people``, ``places``, ``events``, ``census``, ``birthdays``,
+``surnames``:
+
+.. code-block:: yaml
+
+    nav_pages:
+    - people
+    - events
+    - surnames

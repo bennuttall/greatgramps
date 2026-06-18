@@ -16,12 +16,7 @@
       <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" onclick="var l=document.getElementById('nav-links');var o=l.classList.toggle('open');this.setAttribute('aria-expanded',o)">&#9776;</button>
       <div id="nav-links" class="nav-links">
         <a class="secondary" tal:condition="me_id" href="${base}people/${me_id}/">Me</a>
-        <a class="secondary" href="${base}people/">People</a>
-        <a class="secondary" href="${base}places/">Places</a>
-        <a class="secondary" href="${base}events/">Events</a>
-        <a class="secondary" href="${base}census/">Census</a>
-        <a class="secondary" href="${base}birthdays/">Birthdays</a>
-        <a class="secondary" href="${base}surnames/">Surnames</a>
+        <a class="secondary" tal:repeat="item nav_items" href="${base}${item['slug']}/">${item['label']}</a>
         <span class="secondary">Viewing as ${root_first_name} &mdash; <a href="/">switch</a></span>
       </div>
     </nav>
