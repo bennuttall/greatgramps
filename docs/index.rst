@@ -56,11 +56,10 @@ extras for the features you need:
 
 .. code-block:: bash
 
-    pip install greatgramps[html,cli,pdf]
+    pip install greatgramps[cli,html,pdf]
 
 - ``cli`` — the ``grgr`` command-line tool
-- ``html`` — the command for generating the static site (with ``python -m greatgramps.build`` or
-  ``grgr build`` if you have the CLI extra installed)
+- ``html`` — the ``grgr build`` / ``grgr rebuild-page`` commands for generating the static site
 - ``pdf`` — the ``grgr pdf`` commands (also requires `Ghostscript <https://www.ghostscript.com/>`_)
 
 If you only have the ``html`` extra installed (no ``cli``), build the site with ``python -m

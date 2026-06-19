@@ -53,12 +53,12 @@ Then install the project. The core package only handles reading the GRAMPS datab
 extras for the features you need:
 
 ```bash
-pip install greatgramps[cli,pdf,html]
+pip install greatgramps[cli,html,pdf]
 ```
 
 - `cli` — the `grgr` command-line tool
-- `pdf` — the `grgr pdf` commands (also requires [Ghostscript](https://www.ghostscript.com/))
 - `html` — the `grgr build` / `grgr rebuild-page` commands for generating the static site
+- `pdf` — the `grgr pdf` commands (also requires [Ghostscript](https://www.ghostscript.com/))
 
 If you only have the `html` extra installed (no `cli`), build the site with
 `python -m greatgramps.build` instead of `grgr build` — it has no dependency on `typer` or `rich`.
@@ -70,7 +70,6 @@ If you only have the `html` extra installed (no `cli`), build the site with
 - [Demo](https://gramps.bennuttall.com/I0000/people/I0000/)
 - [Documentation](https://greatgramps.readthedocs.io/)
 
-Licence
-=======
+## Licence
 
 - [BSD-3-Clause](https://github.com/bennuttall/greatgramps/blob/main/LICENSE.txt)
