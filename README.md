@@ -36,14 +36,10 @@ which features a generated family tree showcasing what greatgramps can build fro
 
 ## Installation
 
-Install GRAMPS first:
+Install GRAMPS first. See the [GRAMPS installation instructions](https://gramps-project.org/wiki/index.php/Download).
 
-```bash
-sudo apt install gramps
-```
-
-Also install PyICU for locale-aware sorting (otherwise GRAMPS logs a warning and falls back to
-less accurate sorting of names and places):
+Also install PyICU for locale-aware sorting, via your platform's package manager (otherwise GRAMPS
+logs a warning and falls back to less accurate sorting of names and places). On Debian/Ubuntu:
 
 ```bash
 sudo apt install python3-icu

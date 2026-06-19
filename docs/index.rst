@@ -44,8 +44,8 @@ Installation
 Install GRAMPS first. See the `GRAMPS installation instructions
 <https://gramps-project.org/wiki/index.php/Download>`_.
 
-Also install PyICU for locale-aware sorting (otherwise GRAMPS logs a warning and falls back to
-less accurate sorting of names and places):
+Also install PyICU for locale-aware sorting, via your platform's package manager (otherwise GRAMPS
+logs a warning and falls back to less accurate sorting of names and places). On Debian/Ubuntu:
 
 .. code-block:: bash
 
