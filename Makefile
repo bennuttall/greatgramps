@@ -1,3 +1,4 @@
+PIP=pip3
 PYTHON=python3
 GREATGRAMPS_CONFIG=config.yml
 POETRY=poetry
