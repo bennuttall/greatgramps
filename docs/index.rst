@@ -51,6 +51,12 @@ less accurate sorting of names and places):
 
     sudo apt install python3-icu
 
+.. note::
+
+   greatgramps does not install GRAMPS itself — it imports the system-installed ``gramps`` Python
+   package. If you install greatgramps in a virtualenv, create it with ``--system-site-packages``
+   (or otherwise enable site packages), so it can find the system-installed ``gramps`` package.
+
 Then install the project. The core package only handles reading the GRAMPS database; pick the
 extras for the features you need:
 
