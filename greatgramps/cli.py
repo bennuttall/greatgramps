@@ -20,8 +20,8 @@ from gramps.gen.lib import (
 )
 from gramps.plugins.db.dbapi.sqlite import SQLite
 
-from .build import build, rebuild_pages
-from .gramps_data import CENSUS_DATES, format_date, get_event, get_year, ancestors_with_distances, get_children
+from .gramps_data import CENSUS_DATES, format_date, get_event, get_year, ancestors_with_distances, get_children, collect_all_descendants
+from .paper_sizes import PAPER_SIZE_NAMES
 from .settings import get_config
 
 
@@ -57,6 +57,11 @@ def _open_db(write=False):
     db = SQLite()
     db.load(str(config.validated_db_path), mode=DBMODE_W if write else DBMODE_R)
     return db
+
+
+def _require_extra(extra: str):
+    console.print(f"[red]This command requires the '{extra}' extra. Install with: pip install greatgramps\\[{extra}][/red]")
+    raise typer.Exit(1)
 
 
 def _to_media_path(gallery: Path) -> str:
@@ -1205,6 +1210,10 @@ def add_place(
 @app.command("build")
 def build_site():
     """Build the full site."""
+    try:
+        from .build import build
+    except ImportError:
+        _require_extra("html")
     build()
 
 
@@ -1399,6 +1408,36 @@ def list_children(
         db.close()
 
 
+@app.command("list-descendants", no_args_is_help=True)
+def list_descendants(
+    person_id: str = typer.Argument(..., help="Person ID"),
+    generations: Optional[int] = typer.Option(None, "-n", "--generations", help="Limit to this many generations"),
+):
+    """List descendants of a person grouped by generation."""
+    db = _open_db()
+    try:
+        person = db.get_person_from_gramps_id(person_id)
+        if not person:
+            console.print(f"[red]Person {person_id!r} not found[/red]")
+            raise typer.Exit(1)
+        descendants = collect_all_descendants(db, person)
+        console.print(f"[bold]{person_id}: {_person_name(person)}[/bold]\n")
+
+        table = Table()
+        table.add_column("ID")
+        table.add_column("Name")
+        table.add_column("Generation", justify="right")
+
+        for gid, data in sorted(descendants.items(), key=lambda x: (x[1]['generation'], x[0])):
+            if generations is not None and data['generation'] > generations:
+                continue
+            table.add_row(gid, data['full_name'], str(data['generation']))
+
+        console.print(table)
+    finally:
+        db.close()
+
+
 @app.command("list-event-people", no_args_is_help=True)
 def list_event_people(
     event_id: str = typer.Argument(..., help="Event ID"),
@@ -1549,6 +1588,10 @@ def rebuild_page(
     Accepts person IDs (I…), event IDs (E…), place IDs (P…), and named
     pages: places, people, events, census, index, birthdays, surnames, ancestor-records, census-records, global-index.
     """
+    try:
+        from .build import rebuild_pages
+    except ImportError:
+        _require_extra("html")
     rebuild_pages(ids)
 
 
@@ -1735,6 +1778,117 @@ def search_place(query: str = typer.Argument(..., help="Name to search for")):
             return
         console.print(f"{len(matches)} place(s) matching [bold]{query!r}[/bold]:")
         console.print(_place_table(matches))
+    finally:
+        db.close()
+
+
+pdf_app = typer.Typer(help="Generate PDF pedigree, descendant, and hourglass charts.", no_args_is_help=True)
+app.add_typer(pdf_app, name="pdf")
+
+
+def _import_pdf_extra():
+    try:
+        import greatgramps.tree_pdf as tree_pdf
+    except ImportError:
+        _require_extra("pdf")
+    return tree_pdf
+
+
+def _resolve_paper(paper: str, PAPER_SIZES):
+    if paper not in PAPER_SIZES:
+        console.print(f"[red]Unknown paper size {paper!r} — choose from: {', '.join(PAPER_SIZES)}[/red]")
+        raise typer.Exit(1)
+    return PAPER_SIZES[paper]
+
+
+def _get_person_or_exit(db, person_id):
+    person = db.get_person_from_gramps_id(person_id)
+    if not person:
+        console.print(f"[red]Person {person_id!r} not found[/red]")
+        raise typer.Exit(1)
+    return person
+
+
+@pdf_app.command("ancestors", no_args_is_help=True)
+def pdf_ancestors(
+    person_id: str = typer.Argument(..., help="Person ID (root of the pedigree chart)"),
+    generations: int = typer.Argument(..., help="Number of generations to show (minimum 2)"),
+    output: Optional[Path] = typer.Argument(None, help="Output PDF filename (default: ancestor_tree_PERSONID_Ngen.pdf)"),
+    color: bool = typer.Option(True, "--color/--no-color", help="Use colour boxes (default: color)"),
+    paper: str = typer.Option("A4", "--paper", help=f"Paper size ({'|'.join(PAPER_SIZE_NAMES)})"),
+):
+    """Generate a printable PDF ancestor pedigree chart."""
+    tree_pdf = _import_pdf_extra()
+    if generations < 2:
+        console.print("[red]Minimum 2 generations.[/red]")
+        raise typer.Exit(1)
+    page_size = _resolve_paper(paper, tree_pdf.PAPER_SIZES)
+    output = output or Path(f"ancestor_tree_{person_id}_{generations}gen.pdf")
+
+    db = _open_db()
+    try:
+        _get_person_or_exit(db, person_id)
+        warning = tree_pdf.generate_ancestor_pdf(db, person_id, generations, output, color=color, page_size=page_size)
+        if warning:
+            console.print(f"[yellow]{warning}[/yellow]")
+        console.print(f"Saved: {output}")
+    finally:
+        db.close()
+
+
+@pdf_app.command("descendants", no_args_is_help=True)
+def pdf_descendants(
+    person_id: str = typer.Argument(..., help="Person ID (root of the descendant chart)"),
+    generations: int = typer.Argument(..., help="Number of generations to show (minimum 2)"),
+    output: Optional[Path] = typer.Argument(None, help="Output PDF filename (default: descendant_tree_PERSONID_Ngen.pdf)"),
+    color: bool = typer.Option(True, "--color/--no-color", help="Use colour boxes (default: color)"),
+    paper: str = typer.Option("A4", "--paper", help=f"Paper size ({'|'.join(PAPER_SIZE_NAMES)})"),
+):
+    """Generate a printable PDF descendant tree chart."""
+    tree_pdf = _import_pdf_extra()
+    if generations < 2:
+        console.print("[red]Minimum 2 generations.[/red]")
+        raise typer.Exit(1)
+    page_size = _resolve_paper(paper, tree_pdf.PAPER_SIZES)
+    output = output or Path(f"descendant_tree_{person_id}_{generations}gen.pdf")
+
+    db = _open_db()
+    try:
+        _get_person_or_exit(db, person_id)
+        warning = tree_pdf.generate_descendant_pdf(db, person_id, generations, output, color=color, page_size=page_size)
+        if warning:
+            console.print(f"[yellow]{warning}[/yellow]")
+        console.print(f"Saved: {output}")
+    finally:
+        db.close()
+
+
+@pdf_app.command("hourglass", no_args_is_help=True)
+def pdf_hourglass(
+    person_id: str = typer.Argument(..., help="Person ID (root of the hourglass chart)"),
+    ancestor_generations: int = typer.Argument(..., help="Number of ancestor generations to show (minimum 2)"),
+    descendant_generations: int = typer.Argument(..., help="Number of descendant generations to show (minimum 2)"),
+    output: Optional[Path] = typer.Argument(None, help="Output PDF filename (default: hourglass_PERSONID_AxDgen.pdf)"),
+    color: bool = typer.Option(True, "--color/--no-color", help="Use colour boxes (default: color)"),
+    paper: str = typer.Option("A4", "--paper", help=f"Paper size ({'|'.join(PAPER_SIZE_NAMES)})"),
+):
+    """Generate a printable PDF hourglass chart (ancestors above, descendants below)."""
+    tree_pdf = _import_pdf_extra()
+    if ancestor_generations < 2 or descendant_generations < 2:
+        console.print("[red]Minimum 2 generations in each direction.[/red]")
+        raise typer.Exit(1)
+    page_size = _resolve_paper(paper, tree_pdf.PAPER_SIZES)
+    output = output or Path(f"hourglass_{person_id}_{ancestor_generations}x{descendant_generations}gen.pdf")
+
+    db = _open_db()
+    try:
+        _get_person_or_exit(db, person_id)
+        warning = tree_pdf.generate_hourglass_pdf(
+            db, person_id, ancestor_generations, descendant_generations, output, color=color, page_size=page_size,
+        )
+        if warning:
+            console.print(f"[yellow]{warning}[/yellow]")
+        console.print(f"Saved: {output}")
     finally:
         db.close()
 
