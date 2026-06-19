@@ -24,3 +24,28 @@ and its files will be copied into the output on top of the bundled ones:
 .. code-block:: yaml
 
     static_dir: static
+
+Custom CSS
+==========
+
+If a file named ``custom.css`` is found in your ``static_dir``, it's copied into the output and
+linked from every page, right after the bundled ``style.css``. This lets you override or extend the
+default styles without having to override ``style.css`` itself:
+
+.. code-block:: yaml
+
+    static_dir: static
+
+.. code-block:: css
+
+    /* static/custom.css */
+    body { background: #fafafa; }
+
+If ``custom.css`` isn't present, no extra stylesheet link is added.
+
+404 page
+========
+
+A bundled ``404.html`` is copied into the output alongside the other static files. It can be
+overridden the same way as any other static file, by placing your own ``404.html`` in
+``static_dir``.

@@ -3,7 +3,7 @@ GREATGRAMPS_CONFIG=config.yml
 POETRY=poetry
 HTML_DOCS=docs/_build/html
 
-.PHONY: develop html serve clean build release doc doc-serve
+.PHONY: develop html serve clean build release doc doc-serve freeze-rtd-requirements
 
 develop:
 	$(PIP) install -U pip
@@ -32,3 +32,7 @@ doc:
 
 doc-serve:
 	$(POETRY) run python -m http.server -d $(HTML_DOCS)
+
+freeze-rtd-requirements:
+	echo "." > rtd_requirements.txt
+	$(POETRY) run pip freeze | grep -iE "sphinx|autodoc" >> rtd_requirements.txt

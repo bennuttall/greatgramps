@@ -46,11 +46,14 @@ Run ``grgr --help`` for a list of available commands and options.
     │                     'Enclosed by' relationship).                         │
     │ list-ancestors      List ancestors of a person grouped by generation.    │
     │ list-children       List a person's children.                            │
+    │ list-descendants    List descendants of a person grouped by generation.  │
     │ list-event-people   List people attached to an event.                    │
     │ list-parents        List a person's parents.                             │
     │ list-person-events  List all events for a person.                        │
     │ list-unconnected    List people with no family connections (not a        │
     │                     parent, spouse, or child in any family).             │
+    │ pdf                 Generate PDF pedigree, descendant, and hourglass     │
+    │                     charts.                                              │
     │ rebuild-page        Copy static files and rebuild specific pages by ID   │
     │                     or name.                                             │
     │ rm-event            Delete one or more events, removing all references   │
@@ -63,31 +66,33 @@ Run ``grgr --help`` for a list of available commands and options.
     ╰──────────────────────────────────────────────────────────────────────────╯
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
-   add-ancestry-link
-   add-census
-   add-child
-   add-event
-   add-event-people
-   add-event-place
-   add-family
-   add-grave-link
-   add-parents
-   add-person
-   add-place
-   build
-   census-check
-   enclose-place
-   list-ancestors
-   list-children
-   list-event-people
-   list-parents
-   list-person-events
-   list-unconnected
-   rebuild-page
-   rm-event
-   rm-event-people
-   rm-people
-   search-place
-   update-person
+   add-ancestry-link/index.rst
+   add-census/index.rst
+   add-child/index.rst
+   add-event/index.rst
+   add-event-people/index.rst
+   add-event-place/index.rst
+   add-family/index.rst
+   add-grave-link/index.rst
+   add-parents/index.rst
+   add-person/index.rst
+   add-place/index.rst
+   build/index.rst
+   census-check/index.rst
+   enclose-place/index.rst
+   list-ancestors/index.rst
+   list-children/index.rst
+   list-descendants/index.rst
+   list-event-people/index.rst
+   list-parents/index.rst
+   list-person-events/index.rst
+   list-unconnected/index.rst
+   pdf/index.rst
+   rebuild-page/index.rst
+   rm-event/index.rst
+   rm-event-people/index.rst
+   rm-people/index.rst
+   search-place/index.rst
+   update-person/index.rst
