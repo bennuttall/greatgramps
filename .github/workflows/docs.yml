@@ -1,0 +1,22 @@
+name: Docs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install docs requirements
+        run: pip install -r rtd_requirements.txt
+
+      - name: Build docs
+        run: python -m sphinx -b html docs docs/_build/html
