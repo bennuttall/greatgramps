@@ -26,6 +26,7 @@ class Config(BaseModel):
     static_dir: Path | None = None
     output_dir: Path = Path('www')
     nav_pages: list[NavPage] = DEFAULT_NAV_PAGES
+    site_title: str = 'Family tree'
 
     @property
     def validated_db_path(self) -> Path:

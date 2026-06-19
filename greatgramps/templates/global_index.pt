@@ -9,7 +9,7 @@
 </head>
 <body>
   <main>
-    <h1>Family Tree</h1>
+    <h1>${page_title}</h1>
     <p>View as:</p>
     <ul class="root-people">
       <li tal:repeat="root roots">

@@ -59,6 +59,10 @@ Config file reference
      - no
      - ``[people, places, events, census, birthdays, surnames]``
      - Which pages to show in the nav bar, and in what order
+   * - ``site_title``
+     - no
+     - ``Family tree``
+     - Title used in the HTML ``<title>`` and the ``<h1>`` on the top-level index page
 
 Relative paths are resolved relative to the config file's directory.
 
@@ -72,3 +76,10 @@ order. Choose any subset of ``people``, ``places``, ``events``, ``census``, ``bi
     - people
     - events
     - surnames
+
+By default, the top-level index page (listing the available roots) is titled "Family tree". Set
+``site_title`` to override it:
+
+.. code-block:: yaml
+
+    site_title: The Nuttall Family
