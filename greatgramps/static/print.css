@@ -109,8 +109,8 @@ tr { page-break-inside: avoid; }
 }
 
 /* No gender colours in print */
-a.male:not(.pedigree-cell), td.male,
-a.female:not(.pedigree-cell), td.female { color: #000; }
+a.male:not(.pedigree-cell)::after,
+a.female:not(.pedigree-cell)::after { color: #000; }
 .ancestor-badge.male, .ancestor-badge.female { background: #ddd; color: #333; }
 .pedigree-cell.male, .pedigree-cell.female { background: none; border-color: #aaa; }
 
