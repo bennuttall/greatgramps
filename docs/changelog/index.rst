@@ -22,3 +22,12 @@ Changelog
 * Split installation into ``cli``, ``pdf``, and ``html`` extras so each install only pulls in what
   it needs
 * Add a Sphinx documentation site
+
+0.2.1 (2026-06-19)
+==================
+
+* Add a ``site_title`` config option to customise the site name shown in every page's ``<title>``
+  and the home page's ``<h1>``
+* Hide the ancestor/descendant badge on person profiles when it's already obvious from context
+* Replace gender colour-coding on names with a small symbol, so it no longer reads as a
+  visited/unvisited link

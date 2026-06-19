@@ -1,6 +1,6 @@
 [project]
 name = "greatgramps"
-version = "0.2.0"
+version = "0.2.1"
 description = "Family tree static site generator for GRAMPS databases"
 authors = [
     { name = "Ben Nuttall", email = "ben@bennuttall.com" }
@@ -40,6 +40,8 @@ grgr = "greatgramps.cli:app"
 Source = "https://github.com/bennuttall/greatgramps"
 Issues = "https://github.com/bennuttall/greatgramps/issues"
 Documentation = "https://greatgramps.readthedocs.io"
+Changelog = "https://greatgramps.readthedocs.io/en/latest/changelog"
+Demo = "https://gramps.bennuttall.com/I0000/people/I0000/"
 
 [tool.poetry]
 packages = [{include = "greatgramps"}]
