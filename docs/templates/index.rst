@@ -49,3 +49,16 @@ If ``custom.css`` isn't present, no extra stylesheet link is added.
 A bundled ``404.html`` is copied into the output alongside the other static files. It can be
 overridden the same way as any other static file, by placing your own ``404.html`` in
 ``static_dir``.
+
+You can configure your web server to serve this page for any 404 errors. For example, with
+nginx:
+
+.. code-block:: nginx
+
+    error_page 404 /404.html;
+
+Or with Apache:
+
+.. code-block:: apache
+
+    ErrorDocument 404 /404.html
