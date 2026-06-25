@@ -100,6 +100,20 @@ event page, and an icon indicates an event has associated images.
 
 `Demo <https://gramps.bennuttall.com/I0000/census/>`_
 
+Cemeteries
+==========
+
+View a list of cemeteries in the tree, showing the number of burials at each, along with a map.
+Click on a cemetery name to view its place page.
+
+`Demo <https://gramps.bennuttall.com/I0000/cemeteries/>`_
+
+.. note::
+
+   This page is populated from places with the type set to ``Cemetery`` in GRAMPS. Places whose
+   name contains the word "cemetery" are also included. Coordinates are required for a cemetery to
+   appear on the map.
+
 Birthdays
 =========
 

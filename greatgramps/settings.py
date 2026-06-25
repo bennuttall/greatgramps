@@ -6,9 +6,9 @@ import yaml
 from pydantic import BaseModel, FilePath
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-NavPage = Literal['people', 'places', 'events', 'census', 'birthdays', 'surnames']
+NavPage = Literal['people', 'places', 'events', 'census', 'cemeteries', 'birthdays', 'surnames']
 
-DEFAULT_NAV_PAGES: list[NavPage] = ['people', 'places', 'events', 'census', 'birthdays', 'surnames']
+DEFAULT_NAV_PAGES: list[NavPage] = ['people', 'places', 'events', 'census', 'cemeteries', 'birthdays', 'surnames']
 
 
 class Settings(BaseSettings):

@@ -15,6 +15,7 @@ NAV_LABELS = {
     'places': 'Places',
     'events': 'Events',
     'census': 'Census',
+    'cemeteries': 'Cemeteries',
     'birthdays': 'Birthdays',
     'surnames': 'Surnames',
 }
@@ -629,6 +630,43 @@ def _render_event_page(ctx, slug, event_data, relation_map):
     ))
 
 
+def _render_cemeteries_page(ctx):
+    config = ctx['config']
+    all_places = ctx['all_places']
+    place_event_index = ctx['place_event_index']
+    root_dir = ctx['root_dir']
+    render = ctx['render']
+
+    cemeteries = []
+    for handle, pdata in all_places.items():
+        is_cemetery_type = pdata['type'].lower() == 'cemetery'
+        is_cemetery_name = 'cemetery' in pdata['name'].lower()
+        if not (is_cemetery_type or is_cemetery_name):
+            continue
+        burial_count = sum(
+            1 for e in place_event_index.get(handle, [])
+            if e['type'] == 'Burial'
+        )
+        cemeteries.append({**pdata, 'burial_count': burial_count})
+
+    cemeteries.sort(key=lambda p: p['name'].lower())
+
+    mappable = [p for p in cemeteries if p['lat'] and p['lon']]
+    mappable_json = json.dumps([
+        {'lat': p['lat'], 'lon': p['lon'], 'name': p['name'],
+         'url': f'{p["gramps_id"]}/', 'count': p['burial_count']}
+        for p in mappable
+    ])
+
+    cemeteries_dir = root_dir / 'cemeteries'
+    cemeteries_dir.mkdir(exist_ok=True)
+    (cemeteries_dir / 'index.html').write_text(
+        render('cemeteries', page_title=f'Cemeteries — {config.site_title}',
+               cemeteries=cemeteries, mappable_json=mappable_json)
+    )
+    print(f'Built cemeteries/index.html ({len(cemeteries)} cemeteries)')
+
+
 def _render_ancestor_records_page(ctx):
     config = ctx['config']
     db = ctx['db']
@@ -1018,6 +1056,7 @@ def _build_root(ctx):
     _report('census pages', len(census_data), census_errors, time.time() - t)
     print('Built census/index.html')
 
+    _render_cemeteries_page(ctx)
     _render_ancestor_records_page(ctx)
     _render_ancestor_census_page(ctx)
 
@@ -1060,7 +1099,7 @@ def build():
     db.close()
 
 
-NAMED_PAGES = {'places', 'people', 'events', 'census', 'index', 'ancestor-records', 'census-records', 'birthdays', 'surnames', 'global-index'}
+NAMED_PAGES = {'places', 'people', 'events', 'census', 'index', 'ancestor-records', 'census-records', 'birthdays', 'surnames', 'cemeteries', 'global-index'}
 
 
 def _rebuild_root_pages(ctx, ids):
@@ -1249,6 +1288,9 @@ def _rebuild_root_pages(ctx, ids):
             render('index', page_title=config.site_title, summary=summary)
         )
         print(f'Rebuilt index.html [{root_id}]')
+
+    if 'cemeteries' in named:
+        _render_cemeteries_page(ctx)
 
     if 'ancestor-records' in named:
         _render_ancestor_records_page(ctx)
