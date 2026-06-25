@@ -1154,21 +1154,42 @@ def add_person(
 def add_place(
     query: str = typer.Argument(..., help="Location to geocode and add"),
     enclose: Optional[str] = typer.Option(None, "--enclose", help="Enclose new place within this place ID or name"),
+    latlong: Optional[str] = typer.Option(None, "--latlong", help="Skip geocoding and use these coordinates, as 'lat,lon'"),
+    type_: Optional[str] = typer.Option(None, "--type", help="Override the place type, e.g. 'Town' or a custom type like 'Cemetery'"),
     yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
 ):
     """Geocode a location and add it as a Place in the database."""
-    console.print(f"Geocoding: [bold]{query}[/bold]")
-    results = _geocode(query)
-    if not results:
-        console.print(f"[red]No results found for {query!r}[/red]")
-        raise typer.Exit(1)
+    if latlong:
+        try:
+            lat_str, lon_str = (part.strip() for part in latlong.split(','))
+            lat, lon = float(lat_str), float(lon_str)
+        except ValueError:
+            console.print(f"[red]Invalid --latlong {latlong!r}, expected 'lat,lon'[/red]")
+            raise typer.Exit(1)
+        name = query
+        display_name = query
+        addresstype = 'manual'
+        place_type_int = PlaceType.UNKNOWN
+    else:
+        console.print(f"Geocoding: [bold]{query}[/bold]")
+        results = _geocode(query)
+        if not results:
+            console.print(f"[red]No results found for {query!r}[/red]")
+            raise typer.Exit(1)
 
-    result = results[0]
-    lat, lon = result['lat'], result['lon']
-    display_name = result['display_name']
-    addresstype = result.get('addresstype', result.get('type', ''))
-    place_type_int = NOMINATIM_TYPE_MAP.get(addresstype, PlaceType.UNKNOWN)
-    name = display_name.split(',')[0].strip()
+        result = results[0]
+        lat, lon = result['lat'], result['lon']
+        display_name = result['display_name']
+        addresstype = result.get('addresstype', result.get('type', ''))
+        place_type_int = NOMINATIM_TYPE_MAP.get(addresstype, PlaceType.UNKNOWN)
+        name = display_name.split(',')[0].strip()
+
+    place_type = PlaceType(place_type_int)
+    if type_:
+        builtin_types = {v.lower(): k for k, v in PlaceType().get_map().items() if k != PlaceType.CUSTOM}
+        builtin_int = builtin_types.get(type_.lower())
+        place_type = PlaceType(builtin_int if builtin_int is not None else (PlaceType.CUSTOM, type_))
+        addresstype = type_
 
     summary = Table(show_header=False)
     summary.add_column("Field", style="bold")
@@ -1192,7 +1213,7 @@ def add_place(
         place.set_name(pn)
         place.set_latitude(str(lat))
         place.set_longitude(str(lon))
-        place.set_type(PlaceType(place_type_int))
+        place.set_type(place_type)
         if parent:
             pref = PlaceRef()
             pref.set_reference_handle(parent.get_handle())
