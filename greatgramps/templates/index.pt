@@ -107,6 +107,15 @@
           </tr>
         </table>
       </section>
+
+      <section class="full-width" tal:condition="pdf_links">
+        <h2>PDF charts</h2>
+        <ul class="pdf-links">
+          <li tal:repeat="pdf pdf_links">
+            <a href="${pdf['filename']}">${pdf['label']}</a>
+          </li>
+        </ul>
+      </section>
     </div>
   </div>
 </div>

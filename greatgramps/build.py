@@ -36,6 +36,8 @@ class _FallbackTemplateLoader:
                 pass
         return self._builtin[name]
 from gramps.gen.lib.eventtype import EventType
+from reportlab.lib import pagesizes
+from .tree_pdf import generate_ancestor_pdf, generate_descendant_pdf, generate_hourglass_pdf
 from .gramps_data import (
     open_db, collect_all_people, collect_ancestors,
     get_parents, get_children, get_siblings, get_spouses, get_all_events,
@@ -876,6 +878,52 @@ def _render_surname_pages(ctx):
     _report('surname pages', len(by_surname), surname_errors, time.time() - t)
 
 
+def _pdf_gen_counts(ctx):
+    """Return (ancestor_gens, descendant_gens, hourglass_anc, hourglass_desc)."""
+    my_ancestors = ctx['my_ancestors']
+    my_descendants_data = ctx['my_descendants_data']
+
+    ancestor_gens = min(6, max(
+        (data['generation'] for data in my_ancestors.values()),
+        default=0,
+    ))
+    descendant_gens = min(6, max(
+        (data['generation'] for data in my_descendants_data.values()),
+        default=0,
+    ))
+
+    hourglass_desc = min(descendant_gens, 5) if ancestor_gens else descendant_gens
+    hourglass_anc = min(ancestor_gens, 6 - hourglass_desc)
+
+    return ancestor_gens, descendant_gens, hourglass_anc, hourglass_desc
+
+
+def _build_pdfs(ctx):
+    db = ctx['db']
+    root_id = ctx['root_id']
+    root_dir = ctx['root_dir']
+    page_size = pagesizes.A4
+
+    ancestor_gens, descendant_gens, hourglass_anc, hourglass_desc = _pdf_gen_counts(ctx)
+
+    links = []
+    generate_ancestor_pdf(db, root_id, ancestor_gens + 1, root_dir / 'ancestors.pdf', color=True, page_size=page_size)
+    links.append({'label': 'Ancestor tree', 'filename': 'ancestors.pdf'})
+    print(f'Built {root_id}/ancestors.pdf ({ancestor_gens} generations)')
+
+    if descendant_gens:
+        generate_descendant_pdf(db, root_id, descendant_gens + 1, root_dir / 'descendants.pdf', color=True, page_size=page_size)
+        links.append({'label': 'Descendant tree', 'filename': 'descendants.pdf'})
+        print(f'Built {root_id}/descendants.pdf ({descendant_gens} generations)')
+
+        if ancestor_gens:
+            generate_hourglass_pdf(db, root_id, hourglass_anc + 1, hourglass_desc + 1, root_dir / 'hourglass.pdf', color=True, page_size=page_size)
+            links.append({'label': 'Hourglass tree', 'filename': 'hourglass.pdf'})
+            print(f'Built {root_id}/hourglass.pdf ({hourglass_anc}+{hourglass_desc} generations)')
+
+    return links
+
+
 def _build_root(ctx):
     """Build all pages for one root person."""
     config = ctx['config']
@@ -912,6 +960,7 @@ def _build_root(ctx):
         else:
             female_given[name] = total
     all_years = [y for d in all_people.values() for y in [d['birth_year'], d['death_year']] if y]
+    pdf_links = _build_pdfs(ctx)
     summary = {
         'total_people': len(all_people),
         'total_ancestors': sum(1 for gid in my_ancestors if gid != root_id),
@@ -927,7 +976,7 @@ def _build_root(ctx):
         'descendant_generations': group_descendants_by_generation(my_descendants_data),
     }
     (root_dir / 'index.html').write_text(
-        render('index', page_title=config.site_title, summary=summary)
+        render('index', page_title=config.site_title, summary=summary, pdf_links=pdf_links)
     )
     print('Built index.html')
 
@@ -1135,6 +1184,9 @@ def _rebuild_root_pages(ctx, ids):
         by_marriage = not relation and gid != root_id and (marriage_relation is not None or is_related_by_marriage(db, me_ancestor_distances, p))
         _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation)
 
+    if root_id in person_ids:
+        _build_pdfs(ctx)
+
     if event_ids or 'events' in named:
         relation_map = {
             gid: get_relation_to_me(db, me_ancestor_distances, db.get_person_from_gramps_id(gid), data['gender'])
@@ -1284,8 +1336,14 @@ def _rebuild_root_pages(ctx, ids):
             'generations': group_by_generation(my_ancestors),
             'descendant_generations': group_descendants_by_generation(my_descendants_data),
         }
+        ancestor_gens, descendant_gens, _, _ = _pdf_gen_counts(ctx)
+        pdf_links = [{'label': 'Ancestor tree', 'filename': 'ancestors.pdf'}]
+        if descendant_gens:
+            pdf_links.append({'label': 'Descendant tree', 'filename': 'descendants.pdf'})
+        if ancestor_gens and descendant_gens:
+            pdf_links.append({'label': 'Hourglass tree', 'filename': 'hourglass.pdf'})
         (root_dir / 'index.html').write_text(
-            render('index', page_title=config.site_title, summary=summary)
+            render('index', page_title=config.site_title, summary=summary, pdf_links=pdf_links)
         )
         print(f'Rebuilt index.html [{root_id}]')
 

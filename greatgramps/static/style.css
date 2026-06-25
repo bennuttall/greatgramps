@@ -689,6 +689,16 @@ a.female:not(.pedigree-cell)::after { content: " \2640"; color: #9a3a6f; }
   color: #888;
 }
 
+ul.pdf-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+ul.pdf-links li {
+  margin-bottom: 0.25rem;
+}
+
 .summary-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
