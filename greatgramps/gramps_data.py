@@ -96,6 +96,7 @@ def person_data(db, person):
     death = get_event(db, person, EventType.DEATH)
     name = person.get_primary_name()
     urls = {str(u.get_type()): u.get_path() for u in person.get_url_list()}
+    tag_names = sorted(db.get_tag_from_handle(h).get_name() for h in person.get_tag_list())
     return {
         'gramps_id': person.get_gramps_id(),
         'given': name.get_first_name(),
@@ -114,6 +115,7 @@ def person_data(db, person):
         ),
         'is_living': probably_alive(person, db),
         'alt_names': _alt_names(db, person, name),
+        'tags': tag_names,
     }
 
 

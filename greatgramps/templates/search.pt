@@ -21,7 +21,8 @@
                             data-descendant 1 if row['is_descendant'] else None;
                             data-living 1 if row['is_living'] else None;
                             data-male 1 if row['gender'] == 1 else None;
-                            data-female 1 if row['gender'] == 0 else None">
+                            data-female 1 if row['gender'] == 0 else None;
+                            data-tags ' '.join(row['tags']) if row.get('tags') else None">
           <td tal:attributes="data-name row['full_name'] + (' ' + ' '.join(row['alt_surnames']) if row['alt_surnames'] else '')">
             <a href="${row['gramps_id']}/"
                tal:attributes="class 'male' if row['gender'] == 1 else ('female' if row['gender'] == 0 else None)">${row['full_name']}</a>
@@ -59,18 +60,22 @@
     let livingOnly = false;
     let maleOnly = false;
     let femaleOnly = false;
+    const activeTags = new Set();
 
     function applyFilters() {
       const words = document.getElementById('search').value.toLowerCase().split(/\s+/).filter(Boolean);
       let visible = 0;
       rows.forEach(row => {
         const name = (row.cells[0].dataset.name || row.cells[0].textContent).toLowerCase();
+        const rowTags = row.dataset.tags ? row.dataset.tags.split(' ') : [];
+        const tagMatch = activeTags.size === 0 || [...activeTags].every(t => rowTags.includes(t));
         const show = words.every(w => name.includes(w))
           && (!ancestorsOnly || row.dataset.ancestor)
           && (!descendantsOnly || row.dataset.descendant)
           && (!livingOnly || row.dataset.living)
           && (!maleOnly || row.dataset.male)
-          && (!femaleOnly || row.dataset.female);
+          && (!femaleOnly || row.dataset.female)
+          && tagMatch;
         row.hidden = !show;
         if (show) visible++;
       });
@@ -125,6 +130,22 @@
     }) : null;
     if (maleBtn) filtersEl.appendChild(maleBtn);
     if (femaleBtn) filtersEl.appendChild(femaleBtn);
+
+    const allTags = [...new Set(rows.flatMap(r => r.dataset.tags ? r.dataset.tags.split(' ') : []))].sort();
+    if (allTags.length) {
+      filtersEl.appendChild(document.createElement('span'));
+      allTags.forEach(tag => {
+        const btn = document.createElement('button');
+        btn.textContent = tag;
+        btn.className = 'filter-btn toggle-btn';
+        btn.addEventListener('click', () => {
+          if (activeTags.has(tag)) { activeTags.delete(tag); } else { activeTags.add(tag); }
+          btn.classList.toggle('active', activeTags.has(tag));
+          applyFilters();
+        });
+        filtersEl.appendChild(btn);
+      });
+    }
 
     // Sort
     let sortCol = null, sortAsc = true;
