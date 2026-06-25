@@ -282,6 +282,7 @@ def _make_root_ctx(shared, root_id):
         'base': base,
         'place_url': place_url,
         'surname_page_url': surname_page_url,
+        'root_full_name': root_full_name,
         'render': render,
     }
 
@@ -976,8 +977,10 @@ def _build_root(ctx):
         'generations': group_by_generation(my_ancestors),
         'descendant_generations': group_descendants_by_generation(my_descendants_data),
     }
+    apostrophe = "'" if root_full_name[-1].lower() == 's' else "'s"
+    index_title = f"{root_full_name}{apostrophe} family tree"
     (root_dir / 'index.html').write_text(
-        render('index', page_title=config.site_title, summary=summary, pdf_links=pdf_links)
+        render('index', page_title=index_title, summary=summary, pdf_links=pdf_links)
     )
     print('Built index.html')
 
@@ -1345,8 +1348,11 @@ def _rebuild_root_pages(ctx, ids):
             pdf_links.append({'label': 'Descendant tree', 'filename': 'descendants.pdf'})
         if ancestor_gens and descendant_gens:
             pdf_links.append({'label': 'Hourglass tree', 'filename': 'hourglass.pdf'})
+        _root_full_name = ctx['root_full_name']
+        apostrophe = "'" if _root_full_name[-1].lower() == 's' else "'s"
+        index_title = f"{_root_full_name}{apostrophe} family tree"
         (root_dir / 'index.html').write_text(
-            render('index', page_title=config.site_title, summary=summary, pdf_links=pdf_links)
+            render('index', page_title=index_title, summary=summary, pdf_links=pdf_links)
         )
         print(f'Rebuilt index.html [{root_id}]')
 
