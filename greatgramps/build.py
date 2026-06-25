@@ -907,9 +907,10 @@ def _build_pdfs(ctx):
     ancestor_gens, descendant_gens, hourglass_anc, hourglass_desc = _pdf_gen_counts(ctx)
 
     links = []
-    generate_ancestor_pdf(db, root_id, ancestor_gens + 1, root_dir / 'ancestors.pdf', color=True, page_size=page_size)
-    links.append({'label': 'Ancestor tree', 'filename': 'ancestors.pdf'})
-    print(f'Built {root_id}/ancestors.pdf ({ancestor_gens} generations)')
+    if ancestor_gens:
+        generate_ancestor_pdf(db, root_id, ancestor_gens + 1, root_dir / 'ancestors.pdf', color=True, page_size=page_size)
+        links.append({'label': 'Ancestor tree', 'filename': 'ancestors.pdf'})
+        print(f'Built {root_id}/ancestors.pdf ({ancestor_gens} generations)')
 
     if descendant_gens:
         generate_descendant_pdf(db, root_id, descendant_gens + 1, root_dir / 'descendants.pdf', color=True, page_size=page_size)
@@ -1337,7 +1338,9 @@ def _rebuild_root_pages(ctx, ids):
             'descendant_generations': group_descendants_by_generation(my_descendants_data),
         }
         ancestor_gens, descendant_gens, _, _ = _pdf_gen_counts(ctx)
-        pdf_links = [{'label': 'Ancestor tree', 'filename': 'ancestors.pdf'}]
+        pdf_links = []
+        if ancestor_gens:
+            pdf_links.append({'label': 'Ancestor tree', 'filename': 'ancestors.pdf'})
         if descendant_gens:
             pdf_links.append({'label': 'Descendant tree', 'filename': 'descendants.pdf'})
         if ancestor_gens and descendant_gens:
