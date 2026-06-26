@@ -330,6 +330,7 @@ def _generate_landscape_pdf(db, root, tree, max_gen, output_path, color, page_si
     c = rl_canvas.Canvas(str(output_path), pagesize=(pw, ph))
 
     root_name, _ = _person_text(db, root)
+    c.setTitle(f"{title} — {root_name}")
     c.setFont("Helvetica-Bold", 11)
     c.setFillColor(C_TITLE)
     c.drawString(margin, ph - margin - 4 * mm, f"{title} — {root_name}   ({max_gen} generations)")
@@ -415,6 +416,7 @@ def generate_hourglass_pdf(db, root_gid, ancestor_gen, descendant_gen, output_pa
     c = rl_canvas.Canvas(str(output_path), pagesize=(pw, ph))
 
     root_name, _ = _person_text(db, root)
+    c.setTitle(f"Ancestors & Descendants — {root_name}")
     c.setFont("Helvetica-Bold", 11)
     c.setFillColor(C_TITLE)
     c.drawCentredString(
