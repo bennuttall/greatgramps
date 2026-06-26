@@ -548,12 +548,21 @@ def _compute_place_events(ctx):
 def _render_place_page(ctx, handle, events):
     """Render a single place's page."""
     config = ctx['config']
+    db = ctx['db']
     all_places = ctx['all_places']
     places_dir = ctx['places_dir']
     my_ancestors = ctx['my_ancestors']
     root_id = ctx['root_id']
     render = ctx['render']
     pdata = all_places[handle]
+    place_obj = db.get_place_from_handle(handle)
+    alt_names = [n.get_value() for n in place_obj.get_alternative_names()]
+    notes = []
+    for nh in place_obj.get_note_list():
+        note = db.get_note_from_handle(nh)
+        text = str(note.get()).strip()
+        if text:
+            notes.append(text)
     sub_place_markers = [
         {'lat': sub['lat'], 'lon': sub['lon'], 'name': sub['name'], 'gramps_id': sub['gramps_id']}
         for sub in pdata['sub_places']
@@ -569,6 +578,8 @@ def _render_place_page(ctx, handle, events):
         page_title=f"{pdata['name']} — {config.site_title}",
         place=pdata,
         events=events,
+        alt_names=alt_names,
+        notes=notes,
         ancestor_ids=set(my_ancestors) - {root_id},
         descendant_ids=ctx['my_descendants'],
         has_map=bool(subject_marker or sub_place_markers),

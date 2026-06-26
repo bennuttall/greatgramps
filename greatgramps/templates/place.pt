@@ -11,6 +11,18 @@
       </tal:block>
     </p>
 
+    <p class="person-alt-names" tal:condition="alt_names">
+      Also known as:
+      <tal:block tal:repeat="name alt_names">
+        <tal:block tal:condition="not repeat.name.start">, </tal:block>${name}
+      </tal:block>
+    </p>
+
+    <tal:block tal:condition="notes">
+      <h2>Notes</h2>
+      <pre class="event-note" tal:repeat="note notes">${note}</pre>
+    </tal:block>
+
     <div id="map" tal:condition="has_map"></div>
 
     <section tal:condition="events">
