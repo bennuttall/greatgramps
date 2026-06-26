@@ -1,0 +1,155 @@
+<div metal:use-macro="layout">
+  <tal:block metal:fill-slot="head_extra">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  </tal:block>
+  <div metal:fill-slot="content" tal:omit-tag="1">
+    <h1>${place['name']} <span class="place-type">${place['type']}</span></h1>
+    <p class="place-enclosing" tal:condition="place['enclosing']">
+      Part of
+      <tal:block tal:repeat="enc place['enclosing']">
+        <a href="${base}places/${enc['gramps_id']}/">${enc['name']}</a><tal:block tal:condition="not repeat.enc.end"> &rsaquo; </tal:block>
+      </tal:block>
+    </p>
+
+    <div id="map" tal:condition="has_map"></div>
+
+    <section tal:condition="events">
+      <h2>Burials (${format(len(events), ',')})</h2>
+      <input type="search" id="people-search" placeholder="Search people…">
+      <div id="filters" class="event-filters"></div>
+      <table class="events-table" id="places-events-table">
+        <thead>
+          <tr>
+            <th>Year</th>
+            <th>Person</th>
+            <th>Find A Grave</th>
+            <th tal:condition="place['sub_places']">Place</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr tal:repeat="event events" data-type="${event['type']}">
+            <td class="year">${event['year'] or ''}</td>
+            <td>
+              <span tal:condition="event['couple']">
+                <span tal:condition="event['couple'][0]"
+                      tal:define="person event['couple'][0]">
+                  <a href="${base}people/${person['gramps_id']}/"
+                     tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
+                  <span class="ancestor-badge" tal:condition="person['gramps_id'] in ancestor_ids">ancestor</span>
+                  <span class="ancestor-badge descendant" tal:condition="person['gramps_id'] in descendant_ids">descendant</span>
+                </span>
+                <span tal:condition="event['couple'][0] and event['couple'][1]"> &amp; </span>
+                <span tal:condition="event['couple'][1]"
+                      tal:define="person event['couple'][1]">
+                  <a href="${base}people/${person['gramps_id']}/"
+                     tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
+                  <span class="ancestor-badge" tal:condition="person['gramps_id'] in ancestor_ids">ancestor</span>
+                  <span class="ancestor-badge descendant" tal:condition="person['gramps_id'] in descendant_ids">descendant</span>
+                </span>
+              </span>
+              <span tal:condition="not event['couple']">
+                <span tal:repeat="person event['people']">
+                  <a href="${base}people/${person['gramps_id']}/"
+                     tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
+                  <span class="ancestor-badge" tal:condition="person['gramps_id'] in ancestor_ids">ancestor</span>
+                  <span class="ancestor-badge descendant" tal:condition="person['gramps_id'] in descendant_ids">descendant</span>
+                </span>
+              </span>
+            </td>
+            <td>
+              <a tal:condition="event['grave_url']" href="${event['grave_url']}">Find a Grave</a>
+            </td>
+            <td tal:condition="place['sub_places']">
+              <a tal:condition="event['sub_place']"
+                 href="${base}places/${event['sub_place_id']}/">${event['sub_place']}</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section tal:condition="place['sub_places']">
+      <h2>Places within ${place['name']}</h2>
+      <ul>
+        <li tal:repeat="sub place['sub_places']">
+          <a href="${base}places/${sub['gramps_id']}/">${sub['name']}</a>
+          <span class="place-type">${sub['type']}</span>
+        </li>
+      </ul>
+    </section>
+  </div>
+  <tal:block metal:fill-slot="scripts">
+    <script tal:condition="has_map"
+            src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script tal:condition="has_map">
+    var map = L.map('map');
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+
+    var allMarkers = [];
+
+    var subject = ${structure: subject_marker_json};
+    if (subject) {
+      var sm = L.circleMarker([subject.lat, subject.lon], {
+        radius: 9, color: '#b91c1c', fillColor: '#ef4444', fillOpacity: 0.9, weight: 2
+      }).bindTooltip(subject.name).addTo(map);
+      allMarkers.push(sm);
+    }
+
+    var subPlaces = ${structure: sub_place_markers_json};
+    subPlaces.forEach(function(p) {
+      var m = L.circleMarker([p.lat, p.lon], {
+        radius: 7, color: '#1a6ab0', fillColor: '#3388ff', fillOpacity: 0.85, weight: 2
+      }).bindTooltip(p.name).addTo(map);
+      allMarkers.push(m);
+    });
+
+    if (allMarkers.length === 1) {
+      map.setView(allMarkers[0].getLatLng(), 11);
+    } else {
+      map.fitBounds(L.featureGroup(allMarkers).getBounds().pad(0.2));
+    }
+    </script>
+    <script>
+    const rows = Array.from(document.querySelectorAll('#places-events-table tbody tr'));
+    const filtersEl = document.getElementById('filters');
+
+    rows.forEach(r => { if (r.querySelector('.ancestor-badge')) r.dataset.ancestor = 'true'; });
+    const hasAncestors = rows.some(r => r.dataset.ancestor);
+
+    let active = null;
+    const peopleSearch = document.getElementById('people-search');
+
+    function applyFilter() {
+      const q = peopleSearch.value.toLowerCase();
+      rows.forEach(r => {
+        const typeMatch = active === null ? true : r.dataset.ancestor;
+        const peopleMatch = r.cells[1].textContent.toLowerCase().includes(q);
+        r.hidden = !(typeMatch && peopleMatch);
+      });
+    }
+
+    peopleSearch.addEventListener('input', applyFilter);
+
+    function makeButton(label, value) {
+      const btn = document.createElement('button');
+      btn.textContent = label;
+      btn.className = 'filter-btn';
+      if (value === null) btn.classList.add('active');
+      btn.addEventListener('click', () => {
+        active = value;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        applyFilter();
+      });
+      return btn;
+    }
+
+    if (hasAncestors) {
+      filtersEl.appendChild(makeButton('All', null));
+      filtersEl.appendChild(makeButton('Ancestors', 'ancestors'));
+    }
+    </script>
+  </tal:block>
+</div>

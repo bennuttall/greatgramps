@@ -525,8 +525,9 @@ def _render_place_page(ctx, handle, events):
         {'lat': pdata['lat'], 'lon': pdata['lon'], 'name': pdata['name']}
         if pdata['lat'] and pdata['lon'] else None
     )
+    is_cemetery = pdata['type'].lower() == 'cemetery' or 'cemetery' in pdata['name'].lower()
     html = render(
-        'place',
+        'cemetery_place' if is_cemetery else 'place',
         page_title=f"{pdata['name']} — {config.site_title}",
         place=pdata,
         events=events,
