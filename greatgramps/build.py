@@ -977,8 +977,9 @@ def _build_root(ctx):
         'generations': group_by_generation(my_ancestors),
         'descendant_generations': group_descendants_by_generation(my_descendants_data),
     }
-    apostrophe = "'" if root_full_name[-1].lower() == 's' else "'s"
-    index_title = f"{root_full_name}{apostrophe} family tree"
+    _root_full_name = ctx['root_full_name']
+    apostrophe = "'" if _root_full_name[-1].lower() == 's' else "'s"
+    index_title = f"{_root_full_name}{apostrophe} family tree"
     (root_dir / 'index.html').write_text(
         render('index', page_title=index_title, summary=summary, pdf_links=pdf_links)
     )
