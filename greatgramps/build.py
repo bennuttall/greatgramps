@@ -261,7 +261,7 @@ def _make_root_ctx(shared, root_id):
     nav_items = [{'slug': p, 'label': NAV_LABELS[p]} for p in config.nav_pages]
     all_people = shared['all_people']
     switch_roots = [
-        {'id': rid, 'name': all_people[rid]['given'].split()[0]}
+        {'id': rid, 'name': all_people[rid]['full_name']}
         for rid in config.roots
         if rid in all_people
     ]
