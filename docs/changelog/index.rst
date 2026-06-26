@@ -2,6 +2,14 @@
 Changelog
 =========
 
+0.3.0 (2026-06-26)
+==================
+
+* Add a ``site_root`` config option for sites served from a subdirectory rather than the domain root
+* Add a **More** tab to person pages showing notes and attributes recorded in GRAMPS; attributes are
+  grouped by type
+* Show alternative names and notes on place pages
+
 0.2.2 (2026-06-26)
 ==================
 
