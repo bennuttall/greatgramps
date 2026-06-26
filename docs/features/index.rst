@@ -17,7 +17,13 @@ View the tree from the point of view of the selected root person. When browsing 
 relationships are described relative to the selected root person. The homepage for a person includes
 some stats about the tree and a summary of their ancestors and descendants.
 
-`Demo <https://gramps.bennuttall.com/I0000/>`_
+PDF charts are generated for the root person's ancestors, descendants, and an hourglass view
+combining both. Links to these charts are shown on the homepage.
+
+* `Demo <https://gramps.bennuttall.com/I0000/>`_
+* `Ancestor tree PDF <https://gramps.bennuttall.com/I0000/ancestors.pdf>`_
+* `Descendant tree PDF <https://gramps.bennuttall.com/I0000/descendants.pdf>`_
+* `Hourglass tree PDF <https://gramps.bennuttall.com/I0000/hourglass.pdf>`_
 
 People
 ======

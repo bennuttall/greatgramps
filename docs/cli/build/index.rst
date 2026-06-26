@@ -6,6 +6,8 @@ grgr build
 
 Build the full site.
 
+`Demo <https://gramps.bennuttall.com/I0000/>`_
+
 .. code-block:: text
 
     Usage: grgr build [OPTIONS]

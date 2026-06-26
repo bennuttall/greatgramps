@@ -6,6 +6,8 @@ grgr rebuild-page
 
 Copy static files and rebuild specific pages by ID or name.
 
+`Demo <https://gramps.bennuttall.com/I0000/>`_
+
 Accepts person IDs (``I…``), event IDs (``E…``), place IDs (``P…``), and named pages:
 ``places``, ``people``, ``events``, ``census``, ``index``, ``birthdays``, ``surnames``,
 ``ancestor-records``, ``census-records``, ``global-index``.

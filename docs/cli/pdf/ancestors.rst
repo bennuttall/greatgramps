@@ -6,6 +6,8 @@ grgr pdf ancestors
 
 Generate a printable PDF ancestor pedigree chart.
 
+`Demo <https://gramps.bennuttall.com/I0000/ancestors.pdf>`_
+
 .. code-block:: text
 
     Usage: grgr pdf ancestors [OPTIONS] PERSON_ID GENERATIONS [OUTPUT]

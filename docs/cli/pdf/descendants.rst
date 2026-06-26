@@ -6,6 +6,8 @@ grgr pdf descendants
 
 Generate a printable PDF descendant tree chart.
 
+`Demo <https://gramps.bennuttall.com/I0000/descendants.pdf>`_
+
 .. code-block:: text
 
     Usage: grgr pdf descendants [OPTIONS] PERSON_ID GENERATIONS [OUTPUT]

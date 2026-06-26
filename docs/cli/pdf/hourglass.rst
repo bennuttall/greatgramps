@@ -6,6 +6,8 @@ grgr pdf hourglass
 
 Generate a printable PDF hourglass chart: ancestors above, descendants below the given person.
 
+`Demo <https://gramps.bennuttall.com/I0000/hourglass.pdf>`_
+
 .. code-block:: text
 
     Usage: grgr pdf hourglass [OPTIONS] PERSON_ID ANCESTOR_GENERATIONS
