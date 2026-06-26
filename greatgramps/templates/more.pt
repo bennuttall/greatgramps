@@ -1,0 +1,29 @@
+<div metal:use-macro="layout">
+  <div metal:fill-slot="content" tal:omit-tag="1">
+    <article class="person-detail">
+      <tal:block metal:use-macro="person_header"></tal:block>
+      <nav class="person-tabs">
+        <a href="${base}people/${person['gramps_id']}/">Profile</a>
+        <a href="${base}people/${person['gramps_id']}/ancestors/">Ancestors <span class="tab-count">(${format(num_ancestors, ',')})</span></a>
+        <a href="${base}people/${person['gramps_id']}/descendants/">Descendants <span class="tab-count">(${format(num_descendants, ',')})</span></a>
+        <a tal:condition="num_pictures" href="${base}people/${person['gramps_id']}/pictures/">Pictures <span class="tab-count">(${format(num_pictures, ',')})</span></a>
+        <span class="active">More</span>
+      </nav>
+
+      <section tal:condition="notes">
+        <h2>Notes</h2>
+        <pre class="event-note" tal:repeat="note notes">${note}</pre>
+      </section>
+
+      <section tal:condition="attributes">
+        <h2>Attributes</h2>
+        <tal:block tal:repeat="group attributes">
+          <h3>${group['type']}</h3>
+          <ul>
+            <li tal:repeat="value group['values']">${value}</li>
+          </ul>
+        </tal:block>
+      </section>
+    </article>
+  </div>
+</div>

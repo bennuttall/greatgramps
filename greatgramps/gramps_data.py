@@ -920,6 +920,23 @@ def _collect_photos(db, obj):
     return photos
 
 
+def get_person_notes(db, person) -> list[str]:
+    notes = []
+    for handle in person.get_note_list():
+        note = db.get_note_from_handle(handle)
+        text = str(note.get()).strip()
+        if text:
+            notes.append(text)
+    return notes
+
+
+def get_person_attributes(person) -> list[dict]:
+    return [
+        {'type': str(attr.get_type()), 'value': attr.get_value()}
+        for attr in person.get_attribute_list()
+    ]
+
+
 def get_occupations(person) -> list[dict]:
     occupations = []
     for attr in person.get_attribute_list():

@@ -42,7 +42,7 @@ from .gramps_data import (
     open_db, collect_all_people, collect_ancestors,
     get_parents, get_children, get_siblings, get_spouses, get_all_events,
     ancestors_with_distances, ancestors_with_ahnentafel, get_relation_to_me, is_related_by_marriage, get_by_marriage_relation,
-    get_photos, get_occupations, get_all_person_pictures, place_data, build_place_event_index, build_event_list,
+    get_photos, get_occupations, get_person_notes, get_person_attributes, get_all_person_pictures, place_data, build_place_event_index, build_event_list,
     build_event_pages_data, build_birthday_list, person_data,
     collect_ancestor_tree, collect_descendant_tree,
     collect_all_descendants, group_descendants_by_generation,
@@ -80,6 +80,13 @@ def surname_slug(name):
     slug = re.sub(r"['']", '', name)
     slug = re.sub(r'[^\w-]', '-', slug)
     return re.sub(r'-+', '-', slug).strip('-') or 'unknown'
+
+
+def _group_attributes(attributes):
+    grouped = {}
+    for attr in attributes:
+        grouped.setdefault(attr['type'], []).append(attr['value'])
+    return [{'type': t, 'values': vs} for t, vs in grouped.items()]
 
 
 def group_by_generation(ancestors):
@@ -328,6 +335,9 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         for pic in get_all_person_pictures(db, p)
     ]
     occupations = get_occupations(p)
+    notes = get_person_notes(db, p)
+    attributes = get_person_attributes(p)
+    num_more = len(notes) + len(attributes)
     events = [
         {**e, 'description_url': base + e['description_url'][1:] if (e.get('description_url') or '').startswith('/people/') else e.get('description_url')}
         for e in get_all_events(db, p)
@@ -391,6 +401,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         num_ancestors=num_ancestors,
         num_descendants=num_descendants,
         num_pictures=len(all_pictures),
+        num_more=num_more,
     )
     person_out = people_dir / gid
     person_out.mkdir(exist_ok=True)
@@ -425,6 +436,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         current_year=date.today().year,
         ancestors_map_json=ancestors_map_json,
         num_pictures=len(all_pictures),
+        num_more=num_more,
     ))
 
     desc_nodes, desc_rows, desc_cols = collect_descendant_tree(db, p)
@@ -455,6 +467,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         current_year=date.today().year,
         descendants_map_json=descendants_map_json,
         num_pictures=len(all_pictures),
+        num_more=num_more,
     ))
 
     pictures_dir = person_out / 'pictures'
@@ -477,6 +490,31 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         alt_surname_urls=alt_surname_urls,
         current_year=date.today().year,
         num_pictures=len(all_pictures),
+        num_more=num_more,
+    ))
+
+    more_dir = person_out / 'more'
+    more_dir.mkdir(exist_ok=True)
+    (more_dir / 'index.html').write_text(render(
+        'more',
+        page_title=f"{data['full_name']} — More",
+        person=data,
+        notes=notes,
+        attributes=_group_attributes(attributes),
+        num_ancestors=num_ancestors,
+        num_descendants=num_descendants,
+        is_ancestor=gid in my_ancestors and gid != root_id,
+        is_descendant=gid in my_descendants,
+        is_me=gid == root_id,
+        relation=relation,
+        by_marriage=by_marriage,
+        marriage_relation=marriage_relation,
+        photos=photos,
+        surname_url=surname_page_url.get(data['surname']),
+        alt_surname_urls=alt_surname_urls,
+        current_year=date.today().year,
+        num_pictures=len(all_pictures),
+        num_more=num_more,
     ))
 
     return {**data, 'num_children': len(children_p), 'num_spouses': len(spouses),

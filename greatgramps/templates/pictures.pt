@@ -7,6 +7,7 @@
         <a href="${base}people/${person['gramps_id']}/ancestors/">Ancestors <span class="tab-count">(${format(num_ancestors, ',')})</span></a>
         <a href="${base}people/${person['gramps_id']}/descendants/">Descendants <span class="tab-count">(${format(num_descendants, ',')})</span></a>
         <span class="active">Pictures <span class="tab-count">(${format(num_pictures, ',')})</span></span>
+        <a tal:condition="num_more" href="${base}people/${person['gramps_id']}/more/">More</a>
       </nav>
       <div class="pictures-grid">
         <a tal:repeat="pic pictures" href="${pic['page_url']}" class="picture-item">
