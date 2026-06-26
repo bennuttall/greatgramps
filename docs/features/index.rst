@@ -8,6 +8,10 @@ View as
 The homepage includes a list of people the site is built for. Click a person's name to view the tree
 from their point of view.
 
+When viewing a tree, a dropdown in the nav bar shows the current root person and allows switching to
+another root person's view. Switching from within a page (e.g. a person's ancestor tree) takes you
+to the same page in the other root's view.
+
 `Demo <https://gramps.bennuttall.com/>`_
 
 My tree
@@ -19,6 +23,9 @@ some stats about the tree and a summary of their ancestors and descendants.
 
 PDF charts are generated for the root person's ancestors, descendants, and an hourglass view
 combining both. Links to these charts are shown on the homepage.
+
+The homepage also includes a map of all places associated with ancestors and descendants, filterable
+by ancestors, descendants, and birth events.
 
 * `Demo <https://gramps.bennuttall.com/I0000/>`_
 * `Ancestor tree PDF <https://gramps.bennuttall.com/I0000/ancestors.pdf>`_
