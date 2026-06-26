@@ -1,4 +1,7 @@
 <div metal:use-macro="layout">
+  <tal:block metal:fill-slot="head_extra" tal:condition="index_map_json != '[]'">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  </tal:block>
   <div metal:fill-slot="content" tal:omit-tag="1">
     <h1>${root_full_name}${"'" if root_full_name[-1].lower() == 's' else "'s"} family tree</h1>
 
@@ -116,6 +119,72 @@
           </li>
         </ul>
       </section>
+
+      <section class="full-width" tal:condition="index_map_json != '[]'">
+        <h2>Map</h2>
+        <div class="event-filters">
+          <button class="filter-btn active" id="map-ancestors">Ancestors</button>
+          <button class="filter-btn active" id="map-descendants" tal:condition="summary['total_descendants']">Descendants</button>
+          <button class="filter-btn" id="map-births">Births</button>
+        </div>
+        <div id="index-map"></div>
+      </section>
     </div>
   </div>
+  <tal:block metal:fill-slot="scripts">
+    <script tal:condition="index_map_json != '[]'"
+            src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script tal:condition="index_map_json != '[]'">
+    var points = ${structure: index_map_json};
+    var map = L.map('index-map');
+    var bounds = points.map(function(p) { return [parseFloat(p.lat), parseFloat(p.lon)]; });
+    map.fitBounds(bounds, {padding: [20, 20], maxZoom: 8});
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+    var markers = points.map(function(p) {
+      var marker = L.circleMarker([parseFloat(p.lat), parseFloat(p.lon)], {
+        radius: Math.max(4, Math.min(14, 3 + p.people.length * 2)),
+        color: '#5a3e28',
+        fillColor: '#5a3e28',
+        fillOpacity: 0.6,
+        weight: 1,
+      }).bindPopup(function() {
+        var birthsOnly = birthBtn.classList.contains('active');
+        var people = birthsOnly
+          ? p.people.filter(function(person) { return person.types.indexOf('Birth') !== -1; })
+          : p.people;
+        var peopleHtml = people.map(function(person) {
+          var types = birthsOnly ? ['Birth'] : person.types;
+          return '<a href="' + person.url + '">' + person.name + '</a>: ' + types.join(', ');
+        }).join('<br>');
+        return '<strong><a href="' + p.url + '">' + p.name + '</a></strong><br>' + peopleHtml;
+      });
+      marker._data = p;
+      return marker;
+    });
+    var markerLayer = L.layerGroup(markers).addTo(map);
+    var ancBtn = document.getElementById('map-ancestors');
+    var descBtn = document.getElementById('map-descendants');
+    var birthBtn = document.getElementById('map-births');
+    function applyFilter() {
+      var showAnc = ancBtn.classList.contains('active');
+      var showDesc = descBtn && descBtn.classList.contains('active');
+      var birthsOnly = birthBtn.classList.contains('active');
+      markers.forEach(function(marker) {
+        var d = marker._data;
+        var personMatch = (showAnc && d.has_ancestor) || (showDesc && d.has_descendant);
+        var typeMatch = !birthsOnly || d.people.some(function(p) { return p.types.indexOf('Birth') !== -1; });
+        if (personMatch && typeMatch) {
+          markerLayer.addLayer(marker);
+        } else {
+          markerLayer.removeLayer(marker);
+        }
+      });
+    }
+    ancBtn.addEventListener('click', function() { ancBtn.classList.toggle('active'); applyFilter(); });
+    if (descBtn) descBtn.addEventListener('click', function() { descBtn.classList.toggle('active'); applyFilter(); });
+    birthBtn.addEventListener('click', function() { birthBtn.classList.toggle('active'); applyFilter(); });
+    </script>
+  </tal:block>
 </div>

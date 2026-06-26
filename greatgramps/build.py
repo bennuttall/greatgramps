@@ -934,6 +934,57 @@ def _build_pdfs(ctx):
     return links
 
 
+def _make_index_map_json(ctx):
+    """Build map JSON for the index page, tagging each place by ancestor/descendant."""
+    all_people = ctx['all_people']
+    my_ancestors = ctx['my_ancestors']
+    my_descendants = ctx['my_descendants']
+    person_place_events = ctx['person_place_events']
+    place_lat_lon = ctx['place_lat_lon']
+    base = ctx['base']
+    places = {}
+    for gid, events in person_place_events.items():
+        is_anc = gid in my_ancestors
+        is_desc = gid in my_descendants
+        if not (is_anc or is_desc):
+            continue
+        person = all_people[gid]
+        for event in events:
+            pid = event['place_id']
+            if pid not in places:
+                lat, lon = place_lat_lon[pid]
+                places[pid] = {
+                    'lat': lat, 'lon': lon,
+                    'name': event['place'],
+                    'url': f'{base}places/{pid}/',
+                    'has_ancestor': False,
+                    'has_descendant': False,
+                    'people': {},
+                }
+            pt = places[pid]
+            if is_anc:
+                pt['has_ancestor'] = True
+            if is_desc:
+                pt['has_descendant'] = True
+            ppl = pt['people']
+            if gid not in ppl:
+                ppl[gid] = {'name': person['full_name'], 'url': f'{base}people/{gid}/', 'types': []}
+            ppl[gid]['types'].append(event['type'])
+    return json.dumps([
+        {
+            'lat': pt['lat'], 'lon': pt['lon'],
+            'name': pt['name'], 'url': pt['url'],
+            'has_ancestor': pt['has_ancestor'],
+            'has_descendant': pt['has_descendant'],
+            'people': [
+                {'name': p['name'], 'url': p['url'], 'types': list(dict.fromkeys(p['types']))}
+                for p in pt['people'].values()
+            ],
+        }
+        for pt in places.values()
+    ])
+
+
 def _build_root(ctx):
     """Build all pages for one root person."""
     config = ctx['config']
@@ -985,11 +1036,14 @@ def _build_root(ctx):
         'generations': group_by_generation(my_ancestors),
         'descendant_generations': group_descendants_by_generation(my_descendants_data),
     }
+    index_map_json = _make_index_map_json(ctx)
+
     _root_full_name = ctx['root_full_name']
     apostrophe = "'" if _root_full_name[-1].lower() == 's' else "'s"
     index_title = f"{_root_full_name}{apostrophe} family tree"
     (root_dir / 'index.html').write_text(
-        render('index', page_title=index_title, summary=summary, pdf_links=pdf_links)
+        render('index', page_title=index_title, summary=summary, pdf_links=pdf_links,
+               index_map_json=index_map_json)
     )
     print('Built index.html')
 
@@ -1361,7 +1415,8 @@ def _rebuild_root_pages(ctx, ids):
         apostrophe = "'" if _root_full_name[-1].lower() == 's' else "'s"
         index_title = f"{_root_full_name}{apostrophe} family tree"
         (root_dir / 'index.html').write_text(
-            render('index', page_title=index_title, summary=summary, pdf_links=pdf_links)
+            render('index', page_title=index_title, summary=summary, pdf_links=pdf_links,
+                   index_map_json=_make_index_map_json(ctx))
         )
         print(f'Rebuilt index.html [{root_id}]')
 
