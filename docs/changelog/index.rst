@@ -2,11 +2,27 @@
 Changelog
 =========
 
-0.1.0 (2026-06-14)
+0.2.2 (2026-06-26)
 ==================
 
-* First release of the project. This version includes the initial implementation of core features
-  and functionalities.
+* Add a root-switching dropdown to the nav bar; switching from within a page takes you to the same
+  page in the other root's view
+* Add a cemeteries page listing burial counts per cemetery with a map, search, sortable columns,
+  and an ancestors filter
+* Add a map to the root person's homepage, filterable by ancestors, descendants, and birth events
+* Add tag filter buttons and tag icons to the People page
+* Add PDF chart links to the root person's homepage (hidden when no ancestors or descendants exist)
+* Add ``--latlong`` and ``--type`` options to ``grgr add-place``
+* Fix homepage ``<title>`` to match the ``<h1>``
+
+0.2.1 (2026-06-19)
+==================
+
+* Add a ``site_title`` config option to customise the site name shown in every page's ``<title>``
+  and the home page's ``<h1>``
+* Hide the ancestor/descendant badge on person profiles when it's already obvious from context
+* Replace gender colour-coding on names with a small symbol, so it no longer reads as a
+  visited/unvisited link
 
 0.2.0 (2026-06-19)
 ==================
@@ -23,11 +39,8 @@ Changelog
   it needs
 * Add a Sphinx documentation site
 
-0.2.1 (2026-06-19)
+0.1.0 (2026-06-14)
 ==================
 
-* Add a ``site_title`` config option to customise the site name shown in every page's ``<title>``
-  and the home page's ``<h1>``
-* Hide the ancestor/descendant badge on person profiles when it's already obvious from context
-* Replace gender colour-coding on names with a small symbol, so it no longer reads as a
-  visited/unvisited link
+* First release of the project. This version includes the initial implementation of core features
+  and functionalities.

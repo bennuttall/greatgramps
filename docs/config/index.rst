@@ -23,62 +23,93 @@ The location of the config file must be set with an environment variable:
 Config file reference
 =====================
 
+Relative paths are resolved relative to the config file's directory.
+
 .. list-table::
    :header-rows: 1
-   :widths: 20 10 15 55
+   :widths: 20 10 15
 
    * - Key
      - Required
      - Default
-     - Description
    * - ``db_path``
      - yes
      - —
-     - Path to your GRAMPS sqlite database directory
    * - ``roots``
      - yes
      - —
-     - GRAMPS IDs of the people to build root views for
    * - ``output_dir``
      - no
      - ``www``
-     - Directory to write the built site into
    * - ``ancestry_tree_id``
      - no
      - —
-     - Ancestry.com tree ID, used to generate profile links
    * - ``templates_dir``
      - no
      - —
-     - Directory of custom Chameleon templates
    * - ``static_dir``
      - no
      - —
-     - Directory of custom static files (CSS etc.)
    * - ``nav_pages``
      - no
-     - ``[people, places, events, census, birthdays, surnames]``
-     - Which pages to show in the nav bar, and in what order
+     - ``[people, places, events, census, cemeteries, birthdays, surnames]``
    * - ``site_title``
      - no
      - ``Family tree``
-     - Title used in the HTML ``<title>`` and the ``<h1>`` on the top-level index page
 
-Relative paths are resolved relative to the config file's directory.
+``db_path``
+-----------
 
-The ``nav_pages`` list controls which links appear in the nav bar alongside **Me**, and in what
-order. Choose any subset of ``people``, ``places``, ``events``, ``census``, ``birthdays``,
-``surnames``:
+Path to your GRAMPS sqlite database directory.
+
+``roots``
+---------
+
+GRAMPS IDs of the people to build root views for.
+
+``output_dir``
+--------------
+
+Directory to write the built site into. Defaults to ``www``.
+
+``ancestry_tree_id``
+--------------------
+
+Ancestry.com tree ID, used to generate profile links for people in the tree.
+
+``templates_dir``
+-----------------
+
+Directory of custom Chameleon templates. Any template found here takes precedence over the bundled
+one of the same name. See :doc:`../templates/index`.
+
+``static_dir``
+--------------
+
+Directory of custom static files (CSS etc.). Files here are copied into the output on top of the
+bundled ones. See :doc:`../templates/index`.
+
+``nav_pages``
+-------------
+
+Which pages to show in the nav bar alongside **Me**, and in what order. All pages are included by
+default; remove any that your database doesn't make use of. For example, omit ``cemeteries`` if
+you have no places of type Cemetery, or ``census`` if you have no census events:
 
 .. code-block:: yaml
 
     nav_pages:
     - people
+    - places
     - events
+    - birthdays
     - surnames
 
-By default, the top-level index page (listing the available roots) is titled "Family tree". Set
-``site_title`` to override it:
+``site_title``
+--------------
+
+Title used in the HTML ``<title>`` and the ``<h1>`` on the top-level index page. Defaults to
+``Family tree``:
 
 .. code-block:: yaml
 

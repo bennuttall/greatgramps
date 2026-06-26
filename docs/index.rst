@@ -16,8 +16,8 @@ relative to them. A top-level index page lets you switch between roots.
 
 The site is generated once and served as plain HTML — no server-side code required. It's not a web
 frontend for GRAMPS (like `gramps-web <https://github.com/gramps-project/gramps-web>`_), in that
-it's read-only, but it produces a fairly rich browsable site for your tree. Once built, the site can
-be hosted with ease, with no Python or GRAMPS installation required.
+it's read-only, but it produces a rich browsable site for your tree. Once built, the site can be
+hosted with ease, with no Python or GRAMPS installation required.
 
 This approach lets you manage your own tree using open source software without relying on
 subscription or proprietary services, while still making it easy to share your tree with your family

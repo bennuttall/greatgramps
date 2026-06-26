@@ -66,7 +66,7 @@ Run ``grgr --help`` for a list of available commands and options.
     ╰──────────────────────────────────────────────────────────────────────────╯
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    add-ancestry-link/index.rst
    add-census/index.rst
