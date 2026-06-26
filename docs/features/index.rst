@@ -45,6 +45,8 @@ Person
 A person's page shows their names and birth/death years, their age, their relationship to the
 selected root person, and includes a set of tabs:
 
+`Demo <https://gramps.bennuttall.com/I0000/people/I0000/>`_
+
 Profile
 -------
 
@@ -56,11 +58,15 @@ The biographical information section also includes any external links associated
 starting with their **Ancestry.com** and **findagrave.com** links if available. Other links can
 be added in GRAMPS.
 
+`Demo <https://gramps.bennuttall.com/I0000/people/I0000/>`_
+
 Ancestors
 ---------
 
 An interactive tree view of a person's ancestors. Navigate between people in the tree view by
 clicking on each person.
+
+`Demo <https://gramps.bennuttall.com/I0000/people/I0000/ancestors/>`_
 
 Descendants
 -----------
@@ -68,11 +74,15 @@ Descendants
 An interactive tree view of a person's descendants. Navigate between people in the tree view by
 clicking on each person.
 
+`Demo <https://gramps.bennuttall.com/I0000/people/I0000/descendants/>`_
+
 Pictures
 --------
 
 A collection of images associated with the person and their events. Click an image to view it full
 size.
+
+`Demo <https://gramps.bennuttall.com/I0000/people/I0000/pictures/>`_
 
 Places
 ======
@@ -116,16 +126,20 @@ event page, and an icon indicates an event has associated images.
 Cemeteries
 ==========
 
-View a list of cemeteries in the tree, showing the number of burials at each, along with a map.
-Click on a cemetery name to view its place page.
+View a list of cemeteries in the tree showing the number of burials at each, the enclosing place,
+and a map. Cemetery markers on the map are sized by burial count. Click a cemetery name to view its
+place page. The list can be searched by name and sorted by column.
+
+An **Ancestors** filter button is shown when any ancestor burials exist, allowing the list to be
+filtered to cemeteries where ancestors are buried, with burial counts updated to reflect ancestors
+only.
 
 `Demo <https://gramps.bennuttall.com/I0000/cemeteries/>`_
 
 .. note::
 
-   This page is populated from places with the type set to ``Cemetery`` in GRAMPS. Places whose
-   name contains the word "cemetery" are also included. Coordinates are required for a cemetery to
-   appear on the map.
+   This page is populated from places with the type set to ``Cemetery`` in GRAMPS. Coordinates are
+   required for a cemetery to appear on the map.
 
 Birthdays
 =========

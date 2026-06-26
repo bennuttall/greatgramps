@@ -525,7 +525,7 @@ def _render_place_page(ctx, handle, events):
         {'lat': pdata['lat'], 'lon': pdata['lon'], 'name': pdata['name']}
         if pdata['lat'] and pdata['lon'] else None
     )
-    is_cemetery = pdata['type'].lower() == 'cemetery' or 'cemetery' in pdata['name'].lower()
+    is_cemetery = pdata['type'].lower() == 'cemetery'
     html = render(
         'cemetery_place' if is_cemetery else 'place',
         page_title=f"{pdata['name']} — {config.site_title}",
@@ -654,8 +654,7 @@ def _render_cemeteries_page(ctx):
     cemeteries = []
     for handle, pdata in all_places.items():
         is_cemetery_type = pdata['type'].lower() == 'cemetery'
-        is_cemetery_name = 'cemetery' in pdata['name'].lower()
-        if not (is_cemetery_type or is_cemetery_name):
+        if not is_cemetery_type:
             continue
         burial_count = 0
         ancestor_burial_count = 0
