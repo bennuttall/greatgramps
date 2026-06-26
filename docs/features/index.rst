@@ -84,6 +84,12 @@ size.
 
 `Demo <https://gramps.bennuttall.com/I0000/people/I0000/pictures/>`_
 
+More
+----
+
+Shown when a person has notes or attributes recorded in GRAMPS. Notes are displayed as-is, and
+attributes are grouped by type with a heading for each.
+
 Places
 ======
 
@@ -91,6 +97,9 @@ View a list of places associated with events in the tree, and a map of those pla
 place name to view the events associated with that place, search the people involved, and filter by
 event type. Note places can be enclosed by other places, for example a town can be enclosed by a
 county, which is enclosed by a country.
+
+Alternative names recorded in GRAMPS are shown below the place name as "Also known as: …". Notes
+are shown below that.
 
 Events on a place's page show the same icons as the events list — a photo icon for events with
 images, a link to Find a Grave for burial events, and tag icons for events marked interesting or
