@@ -56,6 +56,9 @@ Relative paths are resolved relative to the config file's directory.
    * - ``site_title``
      - no
      - ``Family tree``
+   * - ``site_root``
+     - no
+     - ``/``
 
 ``db_path``
 -----------
@@ -114,3 +117,17 @@ Title used in the HTML ``<title>`` and the ``<h1>`` on the top-level index page.
 .. code-block:: yaml
 
     site_title: The Nuttall Family
+
+``site_root``
+-------------
+
+URL root of the site. Set this when the site is served from a subdirectory rather than the domain
+root. Defaults to ``/``. A leading and trailing ``/`` are added automatically if omitted.
+
+This controls URL generation only — set ``output_dir`` independently to write files into the
+matching subdirectory. For example, to serve the site at ``/family/``:
+
+.. code-block:: yaml
+
+    output_dir: www/family/
+    site_root: /family/

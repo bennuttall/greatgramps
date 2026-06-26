@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${page_title}</title>
-  <link rel="stylesheet" href="/style.css">
-  <link rel="stylesheet" href="/custom.css" tal:condition="has_custom_css">
+  <link rel="stylesheet" href="${site_root}style.css">
+  <link rel="stylesheet" href="${site_root}custom.css" tal:condition="has_custom_css">
 </head>
 <body>
   <main>
@@ -13,7 +13,7 @@
     <p>View as:</p>
     <ul class="root-people">
       <li tal:repeat="root roots">
-        <a href="/${root['gramps_id']}/"
+        <a href="${site_root}${root['gramps_id']}/"
            tal:attributes="class 'male' if root['gender'] == 1 else ('female' if root['gender'] == 0 else None)">${root['full_name']}</a>
         <span class="years" tal:condition="root['birth_year'] or root['death_year']">
           (${root['birth_year'] or '?'}–${root['death_year'] or ''})

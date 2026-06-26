@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${page_title}</title>
-  <link rel="stylesheet" href="/style.css">
-  <link rel="stylesheet" href="/custom.css" tal:condition="has_custom_css">
-  <link rel="stylesheet" media="print" href="/print.css">
+  <link rel="stylesheet" href="${site_root}style.css">
+  <link rel="stylesheet" href="${site_root}custom.css" tal:condition="has_custom_css">
+  <link rel="stylesheet" media="print" href="${site_root}print.css">
   <tal:block metal:define-slot="head_extra"></tal:block>
 </head>
 <body>
@@ -21,7 +21,7 @@
           <summary>Viewing as ${root_first_name} &mdash; switch</summary>
           <ul>
             <li tal:repeat="root python: [r for r in switch_roots if r['id'] != me_id]">
-              <a tal:attributes="href '/' + root['id'] + '/'" tal:content="root['name']"></a>
+              <a tal:attributes="href site_root + root['id'] + '/'" tal:content="root['name']"></a>
             </li>
           </ul>
         </details>
@@ -41,7 +41,7 @@
   if (viewAs) {
     var currentId = viewAs.dataset.current;
     var path = window.location.pathname;
-    var prefix = '/' + currentId + '/';
+    var prefix = '${site_root}' + currentId + '/';
     var pagePath = path.startsWith(prefix) ? path.slice(prefix.length) : '';
     viewAs.querySelectorAll('a[href]').forEach(function(a) {
       a.href = a.getAttribute('href') + pagePath;

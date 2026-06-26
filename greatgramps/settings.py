@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Literal
 
 import yaml
-from pydantic import BaseModel, FilePath
+from pydantic import BaseModel, FilePath, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 NavPage = Literal['people', 'places', 'events', 'census', 'cemeteries', 'birthdays', 'surnames']
@@ -27,6 +27,16 @@ class Config(BaseModel):
     output_dir: Path = Path('www')
     nav_pages: list[NavPage] = DEFAULT_NAV_PAGES
     site_title: str = 'Family tree'
+    site_root: str = '/'
+
+    @field_validator('site_root')
+    @classmethod
+    def normalise_site_root(cls, v: str) -> str:
+        if not v.startswith('/'):
+            v = '/' + v
+        if not v.endswith('/'):
+            v = v + '/'
+        return v
 
     @property
     def validated_db_path(self) -> Path:

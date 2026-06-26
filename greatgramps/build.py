@@ -55,7 +55,7 @@ def _clean_name_token(s):
     return re.sub(r"[^\w''-]", '', s)
 
 
-def process_photo(photo, media_dir, person_id):
+def process_photo(photo, media_dir, person_id, site_root='/'):
     """Copy or crop a photo into media_dir, return the web path."""
     src = photo['src']
     rect = photo['rect']
@@ -73,7 +73,7 @@ def process_photo(photo, media_dir, person_id):
             ))
         img.save(dest, quality=85)
 
-    return f'/media/{filename}'
+    return f'{site_root}media/{filename}'
 
 
 def surname_slug(name):
@@ -244,7 +244,7 @@ def _make_root_ctx(shared, root_id):
     places_dir = root_dir / 'places'
     places_dir.mkdir(exist_ok=True)
 
-    base = f'/{root_id}/'
+    base = f'{config.site_root}{root_id}/'
     all_places = shared['all_places']
     by_surname = shared['by_surname']
     layout = shared['layout']
@@ -269,7 +269,7 @@ def _make_root_ctx(shared, root_id):
 
     def render(template_name, page_title, **kwargs):
         return templates[f'{template_name}.pt'](
-            layout=layout, base=base, page_title=page_title,
+            layout=layout, base=base, site_root=config.site_root, page_title=page_title,
             me_id=root_id, root_first_name=root_first_name, root_full_name=root_full_name,
             person_header=person_header, has_custom_css=has_custom_css, nav_items=nav_items,
             switch_roots=switch_roots, switch_roots_json=switch_roots_json, **kwargs
@@ -319,11 +319,11 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
     spouses = sorted(get_spouses(db, p), key=lambda s: (s['marriage'] or {}).get('year') or 9999)
     person_ancestors = collect_ancestors(db, p)
     photos = [
-        {**photo, 'url': process_photo(photo, media_dir, gid)}
+        {**photo, 'url': process_photo(photo, media_dir, gid, config.site_root)}
         for photo in get_photos(db, p)
     ]
     all_pictures = [
-        {**pic, 'url': process_photo(pic, media_dir, gid),
+        {**pic, 'url': process_photo(pic, media_dir, gid, config.site_root),
          'page_url': base + pic['page_url'][1:] if (pic.get('page_url') or '').startswith('/') else pic.get('page_url')}
         for pic in get_all_person_pictures(db, p)
     ]
@@ -587,7 +587,7 @@ def _render_event_page(ctx, slug, event_data, relation_map):
     else:
         event_map_json = '[]'
     photos = [
-        {**photo, 'url': process_photo(photo, media_dir, event_data['gramps_id'])}
+        {**photo, 'url': process_photo(photo, media_dir, event_data['gramps_id'], config.site_root)}
         for photo in event_data['photos']
     ]
     event_out = events_dir / slug
@@ -616,7 +616,7 @@ def _render_event_page(ctx, slug, event_data, relation_map):
             p_obj = db.get_person_from_gramps_id(pd['gramps_id'])
             father_obj, mother_obj = get_parents(db, p_obj) if p_obj else (None, None)
             person_photos = [
-                {**photo, 'url': process_photo(photo, media_dir, pd['gramps_id'])}
+                {**photo, 'url': process_photo(photo, media_dir, pd['gramps_id'], config.site_root)}
                 for photo in (get_photos(db, p_obj) if p_obj else [])
             ]
             couple_details.append({
@@ -1196,7 +1196,7 @@ def _render_global_index(config, shared):
     templates = shared['templates']
     all_people = shared['all_people']
     roots = [all_people[root_id] for root_id in config.roots if root_id in all_people]
-    html = templates['global_index.pt'](page_title=config.site_title, roots=roots, has_custom_css=shared['has_custom_css'])
+    html = templates['global_index.pt'](page_title=config.site_title, roots=roots, has_custom_css=shared['has_custom_css'], site_root=config.site_root)
     (config.output_dir / 'index.html').write_text(html)
     print('Built index.html')
 
