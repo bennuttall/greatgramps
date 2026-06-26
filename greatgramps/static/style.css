@@ -60,6 +60,47 @@ header span.secondary a {
 
 header span.secondary a:hover { color: #333; }
 
+header details.secondary > summary {
+  font-size: 0.75rem;
+  color: #888;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+header details.secondary > summary::-webkit-details-marker { display: none; }
+header details.secondary > summary::marker { display: none; }
+
+header details.secondary {
+  position: relative;
+}
+
+header details.secondary > ul {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 0.3rem 0;
+  list-style: none;
+  margin: 0.2rem 0 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  white-space: nowrap;
+}
+
+header details.secondary > ul > li > a {
+  display: block;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.75rem;
+  font-weight: normal;
+  color: #888;
+  text-decoration: none;
+}
+
+header details.secondary > ul > li > a:hover { color: #333; }
+
 .nav-links { display: contents; }
 
 .nav-toggle {

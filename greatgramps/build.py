@@ -259,12 +259,20 @@ def _make_root_ctx(shared, root_id):
 
     has_custom_css = shared['has_custom_css']
     nav_items = [{'slug': p, 'label': NAV_LABELS[p]} for p in config.nav_pages]
+    all_people = shared['all_people']
+    switch_roots = [
+        {'id': rid, 'name': all_people[rid]['given'].split()[0]}
+        for rid in config.roots
+        if rid in all_people
+    ]
+    switch_roots_json = json.dumps(switch_roots)
 
     def render(template_name, page_title, **kwargs):
         return templates[f'{template_name}.pt'](
             layout=layout, base=base, page_title=page_title,
             me_id=root_id, root_first_name=root_first_name, root_full_name=root_full_name,
-            person_header=person_header, has_custom_css=has_custom_css, nav_items=nav_items, **kwargs
+            person_header=person_header, has_custom_css=has_custom_css, nav_items=nav_items,
+            switch_roots=switch_roots, switch_roots_json=switch_roots_json, **kwargs
         )
 
     return {
