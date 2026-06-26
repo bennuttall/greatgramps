@@ -8,6 +8,7 @@
     <div id="map"></div>
 
     <input type="search" id="search" placeholder="Search cemeteries…">
+    <div id="filters" class="event-filters"></div>
     <p id="count"></p>
     <table id="cemeteries-table" class="events-table">
       <thead>
@@ -21,7 +22,10 @@
         <tr tal:repeat="cemetery cemeteries">
           <td><a href="${base}places/${cemetery['gramps_id']}/">${cemetery['name']}</a></td>
           <td>${', '.join(p['name'] for p in cemetery['enclosing'])}</td>
-          <td class="year" data-val="${cemetery['burial_count']}">${cemetery['burial_count']}</td>
+          <td class="year"
+              data-val="${cemetery['burial_count']}"
+              data-total="${cemetery['burial_count']}"
+              data-ancestor="${cemetery['ancestor_burial_count']}">${cemetery['burial_count']}</td>
         </tr>
       </tbody>
     </table>
@@ -56,18 +60,47 @@
     function updateCount(visible) {
       countEl.textContent = visible === total ? `$${total.toLocaleString()} cemeteries` : `$${visible.toLocaleString()} of $${total.toLocaleString()} cemeteries`;
     }
-    updateCount(total);
 
-    document.getElementById('search').addEventListener('input', function() {
-      const q = this.value.toLowerCase();
+    let ancestorsOnly = false;
+
+    function applyFilters() {
+      const q = document.getElementById('search').value.toLowerCase();
       let visible = 0;
       rows.forEach(row => {
-        const show = [0, 1].some(i => row.cells[i].textContent.toLowerCase().includes(q));
+        const nameMatch = [0, 1].some(i => row.cells[i].textContent.toLowerCase().includes(q));
+        const burialsCell = row.cells[2];
+        const ancestorCount = parseInt(burialsCell.dataset.ancestor);
+        const show = nameMatch && (!ancestorsOnly || ancestorCount > 0);
         row.hidden = !show;
         if (show) visible++;
+        const count = ancestorsOnly ? ancestorCount : parseInt(burialsCell.dataset.total);
+        burialsCell.textContent = count;
+        burialsCell.dataset.val = count;
       });
       updateCount(visible);
-    });
+    }
+    updateCount(total);
+
+    document.getElementById('search').addEventListener('input', applyFilters);
+
+    const hasAncestors = rows.some(r => parseInt(r.cells[2].dataset.ancestor) > 0);
+    if (hasAncestors) {
+      const filtersEl = document.getElementById('filters');
+      function makeCemBtn(label, value) {
+        const btn = document.createElement('button');
+        btn.textContent = label;
+        btn.className = 'filter-btn' + (value ? '' : ' active');
+        btn.addEventListener('click', () => {
+          ancestorsOnly = value;
+          filtersEl.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          applyFilters();
+        });
+        return btn;
+      }
+      filtersEl.appendChild(makeCemBtn('All', false));
+      filtersEl.appendChild(makeCemBtn('Ancestors', true));
+    }
 
     let sortCol = null, sortAsc = true;
     document.querySelectorAll('#cemeteries-table th').forEach(th => {

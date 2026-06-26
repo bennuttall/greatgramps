@@ -646,6 +646,8 @@ def _render_cemeteries_page(ctx):
     config = ctx['config']
     all_places = ctx['all_places']
     place_event_index = ctx['place_event_index']
+    my_ancestors = ctx['my_ancestors']
+    root_id = ctx['root_id']
     root_dir = ctx['root_dir']
     render = ctx['render']
 
@@ -655,11 +657,19 @@ def _render_cemeteries_page(ctx):
         is_cemetery_name = 'cemetery' in pdata['name'].lower()
         if not (is_cemetery_type or is_cemetery_name):
             continue
-        burial_count = sum(
-            1 for e in place_event_index.get(handle, [])
-            if e['type'] == 'Burial'
-        )
-        cemeteries.append({**pdata, 'burial_count': burial_count})
+        burial_count = 0
+        ancestor_burial_count = 0
+        for e in place_event_index.get(handle, []):
+            if e['type'] != 'Burial':
+                continue
+            burial_count += 1
+            people = list(e['people'] or [])
+            if e['couple']:
+                people += [p for p in e['couple'] if p]
+            if any(p['gramps_id'] in my_ancestors and p['gramps_id'] != root_id for p in people):
+                ancestor_burial_count += 1
+        cemeteries.append({**pdata, 'burial_count': burial_count,
+                           'ancestor_burial_count': ancestor_burial_count})
 
     cemeteries.sort(key=lambda p: p['name'].lower())
 
