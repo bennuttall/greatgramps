@@ -18,7 +18,7 @@
         <a class="secondary" tal:condition="me_id" href="${base}people/${me_id}/">Me</a>
         <a class="secondary" tal:repeat="item nav_items" href="${base}${item['slug']}/">${item['label']}</a>
         <details class="secondary view-as" tal:condition="python: len(switch_roots) > 1" tal:attributes="data-current me_id">
-          <summary>Viewing as ${root_first_name}</summary>
+          <summary>Viewing as ${root_first_name} &mdash; switch</summary>
           <ul>
             <li tal:repeat="root python: [r for r in switch_roots if r['id'] != me_id]">
               <a tal:attributes="href '/' + root['id'] + '/'" tal:content="root['name']"></a>
