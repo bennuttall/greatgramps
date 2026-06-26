@@ -968,7 +968,8 @@ def _make_index_map_json(ctx):
                 pt['has_descendant'] = True
             ppl = pt['people']
             if gid not in ppl:
-                ppl[gid] = {'name': person['full_name'], 'url': f'{base}people/{gid}/', 'types': []}
+                ppl[gid] = {'name': person['full_name'], 'url': f'{base}people/{gid}/', 'types': [],
+                            'is_ancestor': is_anc, 'is_descendant': is_desc}
             ppl[gid]['types'].append(event['type'])
     return json.dumps([
         {
@@ -977,7 +978,8 @@ def _make_index_map_json(ctx):
             'has_ancestor': pt['has_ancestor'],
             'has_descendant': pt['has_descendant'],
             'people': [
-                {'name': p['name'], 'url': p['url'], 'types': list(dict.fromkeys(p['types']))}
+                {'name': p['name'], 'url': p['url'], 'types': list(dict.fromkeys(p['types'])),
+                 'is_ancestor': p['is_ancestor'], 'is_descendant': p['is_descendant']}
                 for p in pt['people'].values()
             ],
         }

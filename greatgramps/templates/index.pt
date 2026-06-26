@@ -150,10 +150,14 @@
         fillOpacity: 0.6,
         weight: 1,
       }).bindPopup(function() {
+        var showAnc = ancBtn.classList.contains('active');
+        var showDesc = descBtn && descBtn.classList.contains('active');
         var birthsOnly = birthBtn.classList.contains('active');
-        var people = birthsOnly
-          ? p.people.filter(function(person) { return person.types.indexOf('Birth') !== -1; })
-          : p.people;
+        var people = p.people.filter(function(person) {
+          var personMatch = (showAnc && person.is_ancestor) || (showDesc && person.is_descendant);
+          var typeMatch = !birthsOnly || person.types.indexOf('Birth') !== -1;
+          return personMatch && typeMatch;
+        });
         var peopleHtml = people.map(function(person) {
           var types = birthsOnly ? ['Birth'] : person.types;
           return '<a href="' + person.url + '">' + person.name + '</a>: ' + types.join(', ');
