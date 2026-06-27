@@ -724,7 +724,8 @@ def _render_cemeteries_page(ctx):
     mappable = [p for p in cemeteries if p['lat'] and p['lon']]
     mappable_json = json.dumps([
         {'lat': p['lat'], 'lon': p['lon'], 'name': p['name'],
-         'url': f'{p["gramps_id"]}/', 'count': p['burial_count']}
+         'url': f'{p["gramps_id"]}/', 'count': p['burial_count'],
+         'ancestor_count': p['ancestor_burial_count']}
         for p in mappable
     ])
 

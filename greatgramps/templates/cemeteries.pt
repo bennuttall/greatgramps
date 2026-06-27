@@ -40,7 +40,7 @@
 
     var places = ${structure: mappable_json};
 
-    places.forEach(function(p) {
+    var markers = places.map(function(p) {
       var marker = L.circleMarker([p.lat, p.lon], {
         radius: Math.max(4, Math.min(14, 3 + p.count / 2)),
         color: '#5a3e28',
@@ -49,7 +49,21 @@
         weight: 1,
       }).addTo(map);
       marker.bindPopup('<a href="' + p.url + '">' + p.name + '</a> (' + p.count + ' burials)');
+      return {marker: marker, p: p};
     });
+
+    function updateMap() {
+      markers.forEach(function(m) {
+        var count = ancestorsOnly ? m.p.ancestor_count : m.p.count;
+        if (count > 0) {
+          m.marker.setRadius(Math.max(4, Math.min(14, 3 + count / 2)));
+          m.marker.setPopupContent('<a href="' + m.p.url + '">' + m.p.name + '</a> (' + count + ' burials)');
+          if (!map.hasLayer(m.marker)) m.marker.addTo(map);
+        } else {
+          if (map.hasLayer(m.marker)) m.marker.remove();
+        }
+      });
+    }
     </script>
     <script>
     const tbody = document.querySelector('#cemeteries-table tbody');
@@ -78,6 +92,7 @@
         burialsCell.dataset.val = count;
       });
       updateCount(visible);
+      updateMap();
     }
     updateCount(total);
 
