@@ -270,7 +270,10 @@
           next.style.display = (show && next.classList.contains('open')) ? '' : 'none';
         }
       });
+      if (typeof updateMap === 'function') updateMap(filter);
     }
+    var eventsSection = document.querySelector('section.events');
+    if (eventsSection) eventsSection.style.minHeight = eventsSection.offsetHeight + 'px';
     </script>
     <script tal:condition="event_map_json != '[]'"
             src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -282,10 +285,25 @@
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(map);
-    points.forEach(function(p) {
-      L.marker([p.lat, p.lon]).addTo(map)
+    var markers = points.map(function(p) {
+      var marker = L.marker([p.lat, p.lon])
         .bindPopup('<a href="' + p.url + '">' + p.name + '</a><br>' + p.types.join(', '));
+      marker._data = p;
+      return marker;
     });
+    var markerLayer = L.layerGroup(markers).addTo(map);
+    function updateMap(filter) {
+      markers.forEach(function(marker) {
+        var p = marker._data;
+        var types = filter === 'all' ? p.types : p.types.filter(function(t) { return t === filter; });
+        if (types.length > 0) {
+          marker.setPopupContent('<a href="' + p.url + '">' + p.name + '</a><br>' + types.join(', '));
+          markerLayer.addLayer(marker);
+        } else {
+          markerLayer.removeLayer(marker);
+        }
+      });
+    }
     </script>
   </tal:block>
 </div>
