@@ -2,6 +2,17 @@
 Changelog
 =========
 
+0.3.2 (2026-06-27)
+==================
+
+* Fix nav dropdown rendering beneath Leaflet maps by containing map z-indices with ``isolation:
+  isolate``
+* Fix cemeteries page Ancestors filter not updating the map
+* Fix homepage map showing markers with empty popups when ancestor and birth filters are combined
+* Update person profile map to respond to life event type filters; fix map jumping when events are
+  filtered
+* Add Events column to the People page
+
 0.3.1 (2026-06-27)
 ==================
 
