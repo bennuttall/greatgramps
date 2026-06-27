@@ -8,10 +8,14 @@ from pathlib import Path
 import re
 from typing import List, Optional
 
+import yaml
+
 import typer
 from rich.console import Console
 from rich.table import Table
+from typer.main import TyperGroup
 
+from gramps.gen.const import HOME_DIR as GRAMPS_HOME_DIR
 from gramps.gen.db import DBMODE_R, DBMODE_W, DbTxn
 from gramps.gen.lib import (
     ChildRef, Date, Event, EventRef, EventRoleType, EventType,
@@ -25,7 +29,12 @@ from .paper_sizes import PAPER_SIZE_NAMES
 from .settings import get_config
 
 
-app = typer.Typer(help="Greatgramps — manage your Gramps family tree database.", no_args_is_help=True)
+class _SortedGroup(TyperGroup):
+    def list_commands(self, ctx):
+        return sorted(self.commands)
+
+
+app = typer.Typer(help="Greatgramps — manage your Gramps family tree database.", no_args_is_help=True, cls=_SortedGroup)
 console = Console()
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
@@ -1305,6 +1314,194 @@ def census_check(
         db.close()
 
 
+@app.command("config")
+def init_config(
+    output: Path = typer.Option(Path("config.yml"), "--output", "-o", help="Path to write the config file"),
+):
+    """Interactively generate a config.yml for this project."""
+    if output.exists():
+        console.print(f"[yellow]{output} already exists.[/yellow]")
+        try:
+            answer = input("Overwrite? [y/N] ").strip().lower()
+        except KeyboardInterrupt:
+            console.print("\nCancelled.")
+            raise typer.Exit(0)
+        if answer not in ('y', 'yes'):
+            raise typer.Exit(0)
+
+    grampsdb_dir = Path(GRAMPS_HOME_DIR) / "grampsdb"
+    discovered = []
+    if grampsdb_dir.is_dir():
+        for entry in sorted(grampsdb_dir.iterdir()):
+            name_file = entry / "name.txt"
+            if entry.is_dir() and name_file.exists():
+                discovered.append((entry, name_file.read_text().strip()))
+
+    db_path: Path
+    if discovered:
+        console.print("\nGRAMPS databases found:")
+        table = Table(show_header=False, box=None, padding=(0, 2, 0, 0))
+        table.add_column(justify="right", style="bold")
+        table.add_column()
+        table.add_column(style="dim")
+        for i, (path, name) in enumerate(discovered, 1):
+            table.add_row(str(i), name, str(path))
+        table.add_row("0", "Enter a custom path", "")
+        console.print(table)
+
+        while True:
+            try:
+                raw = input(f"Choose [1–{len(discovered)}, or 0 for custom]: ").strip()
+            except KeyboardInterrupt:
+                console.print("\nCancelled.")
+                raise typer.Exit(0)
+            if raw.isdigit():
+                choice = int(raw)
+                if 1 <= choice <= len(discovered):
+                    db_path = discovered[choice - 1][0]
+                    break
+                elif choice == 0:
+                    discovered = []  # fall through to custom path prompt
+                    break
+            console.print(f"[red]Enter a number between 0 and {len(discovered)}.[/red]")
+
+    if not discovered:
+        while True:
+            try:
+                raw = input("Path to Gramps database: ").strip()
+            except KeyboardInterrupt:
+                console.print("\nCancelled.")
+                raise typer.Exit(0)
+            db_path = Path(raw).expanduser()
+            if db_path.exists():
+                break
+            console.print(f"[red]Not found: {db_path}[/red]")
+
+    db = SQLite()
+    db.load(str(db_path), mode=DBMODE_R)
+    roots = []
+    try:
+        all_people = sorted(
+            [db.get_person_from_handle(h) for h in db.get_person_handles()],
+            key=lambda p: p.get_gramps_id(),
+        )
+
+        def _match_people(query: str) -> list:
+            q = query.lower()
+            return [p for p in all_people if q in p.get_gramps_id().lower() or q in _person_name(p).lower()]
+
+        displayed = all_people[:5]
+        search_label = "first 5 in database"
+        console.print("\nChoose root people — the starting points for the site.")
+
+        while True:
+            if displayed:
+                console.print(f"\n[bold]People ({search_label}):[/bold]")
+                table = Table(show_header=False, box=None, padding=(0, 2, 0, 0))
+                table.add_column(justify="right", style="bold")
+                table.add_column()
+                table.add_column(style="dim")
+                for i, person in enumerate(displayed, 1):
+                    pid = person.get_gramps_id()
+                    name = _person_name(person)
+                    if pid in roots:
+                        name = f"[green]{name} (added)[/green]"
+                    table.add_row(str(i), name, pid)
+                console.print(table)
+            else:
+                console.print("[yellow]No matches.[/yellow]")
+
+            suffix = " (at least one required)" if not roots else " (or Enter to finish)"
+            try:
+                raw = input(f"Pick number, or search by name/ID{suffix}: ").strip()
+            except KeyboardInterrupt:
+                console.print("\nCancelled.")
+                raise typer.Exit(0)
+
+            if not raw:
+                if not roots:
+                    console.print("[red]At least one root person is required.[/red]")
+                else:
+                    break
+                continue
+
+            if raw.isdigit() and 1 <= int(raw) <= len(displayed):
+                person = displayed[int(raw) - 1]
+                pid = person.get_gramps_id()
+                if pid in roots:
+                    console.print(f"[yellow]{pid} already added.[/yellow]")
+                else:
+                    roots.append(pid)
+                    console.print(f"[green]Added {pid} — {_person_name(person)}[/green]")
+                continue
+
+            results = _match_people(raw)
+            displayed = results[:5]
+            count = len(results)
+            if count > 5:
+                search_label = f"top 5 of {count} matching {raw!r}"
+            elif count:
+                search_label = f"{count} matching {raw!r}"
+            else:
+                search_label = ""
+    finally:
+        db.close()
+
+    try:
+        site_title = input("\nSite title [Family tree]: ").strip() or "Family tree"
+    except KeyboardInterrupt:
+        console.print("\nCancelled.")
+        raise typer.Exit(0)
+
+    try:
+        raw = input("Ancestry tree ID (press Enter to skip): ").strip()
+    except KeyboardInterrupt:
+        console.print("\nCancelled.")
+        raise typer.Exit(0)
+    ancestry_tree_id = raw or None
+
+    try:
+        output_dir = input("Output directory [www]: ").strip() or "www"
+    except KeyboardInterrupt:
+        console.print("\nCancelled.")
+        raise typer.Exit(0)
+
+    config_data: dict = {
+        'db_path': str(db_path),
+        'roots': roots,
+        'site_title': site_title,
+    }
+    if ancestry_tree_id:
+        config_data['ancestry_tree_id'] = ancestry_tree_id
+    if output_dir != 'www':
+        config_data['output_dir'] = output_dir
+
+    with open(output, 'w') as f:
+        yaml.dump(config_data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+
+    console.print(f"\n[green]Config written to:[/green] {output.resolve()}")
+
+    env_line = f"GREATGRAMPS_CONFIG={output.resolve()}"
+    env_file = Path(".env")
+    write_env = True
+    if env_file.exists():
+        console.print(f"\n[yellow].env already exists.[/yellow]")
+        console.print(f"  Will add: {env_line}")
+        try:
+            answer = input("Overwrite .env? [y/N] ").strip().lower()
+        except KeyboardInterrupt:
+            console.print("\nSkipping .env.")
+            write_env = False
+        else:
+            write_env = answer in ('y', 'yes')
+
+    if write_env:
+        env_file.write_text(env_line + "\n")
+        console.print(f"[green].env written.[/green]")
+
+    console.print("\nBuild the site with [bold]grgr build[/bold]")
+
+
 @app.command("enclose-place", no_args_is_help=True)
 def enclose_place(
     child_query: str = typer.Argument(..., help="Place ID or name to be enclosed"),
@@ -1600,6 +1797,10 @@ def list_unconnected():
         db.close()
 
 
+pdf_app = typer.Typer(help="Generate PDF pedigree, descendant, and hourglass charts.", no_args_is_help=True)
+app.add_typer(pdf_app, name="pdf")
+
+
 @app.command("rebuild-page", no_args_is_help=True)
 def rebuild_page(
     ids: List[str] = typer.Argument(..., help="IDs or page names to rebuild (e.g. I0061 E0315 P0012 places)"),
@@ -1801,10 +2002,6 @@ def search_place(query: str = typer.Argument(..., help="Name to search for")):
         console.print(_place_table(matches))
     finally:
         db.close()
-
-
-pdf_app = typer.Typer(help="Generate PDF pedigree, descendant, and hourglass charts.", no_args_is_help=True)
-app.add_typer(pdf_app, name="pdf")
 
 
 def _import_pdf_extra():

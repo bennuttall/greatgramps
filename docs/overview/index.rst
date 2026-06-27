@@ -42,7 +42,10 @@ click **Info** on the desired tree. See the **Path** field for the full path.
 Config file
 -----------
 
-Create a ``config.yml`` file with the contents:
+Run ``grgr config`` to generate a ``config.yml`` and ``.env`` interactively — it will find your
+GRAMPS databases automatically and let you search for the root people by name.
+
+Alternatively, create ``config.yml`` manually:
 
 .. code-block:: yaml
 
@@ -51,7 +54,7 @@ Create a ``config.yml`` file with the contents:
     - I0001
     - I0002
 
-Create a ``.env`` file with an environment variable setting your config file:
+And a ``.env`` file pointing to it:
 
 .. code-block::
 

@@ -4,6 +4,9 @@ Configuration
 
 greatgramps is configured using a YAML file.
 
+Run :doc:`grgr config <../cli/config/index>` to generate ``config.yml`` and ``.env``
+interactively, or create them manually as described below.
+
 Create a ``config.yml`` pointing at your GRAMPS database and listing the GRAMPS IDs of the root
 people you want to browse the tree as:
 
