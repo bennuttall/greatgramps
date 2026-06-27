@@ -2,6 +2,12 @@
 Changelog
 =========
 
+0.3.1 (2026-06-27)
+==================
+
+* Add ``grgr config`` command to interactively generate ``config.yml`` and ``.env``; discovers
+  GRAMPS databases automatically and supports searching for root people by name or ID
+
 0.3.0 (2026-06-26)
 ==================
 

@@ -19,6 +19,14 @@ into GRAMPS and then use greatgramps to build your site. You may wish to make us
 Configure your site build
 =========================
 
+Config file
+-----------
+
+Run ``grgr config`` to generate a ``config.yml`` and ``.env`` interactively — it will find your
+GRAMPS databases automatically and let you search for the root people by name.
+
+Alternatively, create ``config.yml`` manually.
+
 You'll need to know:
 
 * Your GRAMPS database location
@@ -39,14 +47,6 @@ the full path to the desired tree.
 If you need help finding your database location, open the **Family Trees** dialogue in GRAMPS, and
 click **Info** on the desired tree. See the **Path** field for the full path.
 
-Config file
------------
-
-Run ``grgr config`` to generate a ``config.yml`` and ``.env`` interactively — it will find your
-GRAMPS databases automatically and let you search for the root people by name.
-
-Alternatively, create ``config.yml`` manually:
-
 .. code-block:: yaml
 
     db_path: /path/to/your/grampsdb/xxxxxxxx
@@ -63,7 +63,7 @@ And a ``.env`` file pointing to it:
 Build your site
 ===============
 
-Run ``grgr build`` to build your site into ``www``.
+Run ``grgr build`` to build your site into your configured output directory (default: ``www``).
 
 Serving locally
 ===============

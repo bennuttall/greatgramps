@@ -1317,9 +1317,10 @@ def census_check(
 @app.command("config")
 def init_config(
     output: Path = typer.Option(Path("config.yml"), "--output", "-o", help="Path to write the config file"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Overwrite existing config without prompting"),
 ):
     """Interactively generate a config.yml for this project."""
-    if output.exists():
+    if output.exists() and not yes:
         console.print(f"[yellow]{output} already exists.[/yellow]")
         try:
             answer = input("Overwrite? [y/N] ").strip().lower()
@@ -1466,6 +1467,12 @@ def init_config(
         console.print("\nCancelled.")
         raise typer.Exit(0)
 
+    try:
+        site_root = input("Site root [/]: ").strip() or "/"
+    except KeyboardInterrupt:
+        console.print("\nCancelled.")
+        raise typer.Exit(0)
+
     config_data: dict = {
         'db_path': str(db_path),
         'roots': roots,
@@ -1475,6 +1482,8 @@ def init_config(
         config_data['ancestry_tree_id'] = ancestry_tree_id
     if output_dir != 'www':
         config_data['output_dir'] = output_dir
+    if site_root != '/':
+        config_data['site_root'] = site_root
 
     with open(output, 'w') as f:
         yaml.dump(config_data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
