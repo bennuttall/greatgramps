@@ -177,9 +177,12 @@
       var birthsOnly = birthBtn.classList.contains('active');
       markers.forEach(function(marker) {
         var d = marker._data;
-        var personMatch = (showAnc && d.has_ancestor) || (showDesc && d.has_descendant);
-        var typeMatch = !birthsOnly || d.people.some(function(p) { return p.types.indexOf('Birth') !== -1; });
-        if (personMatch && typeMatch) {
+        var hasMatch = d.people.some(function(person) {
+          var personMatch = (showAnc && person.is_ancestor) || (showDesc && person.is_descendant);
+          var typeMatch = !birthsOnly || person.types.indexOf('Birth') !== -1;
+          return personMatch && typeMatch;
+        });
+        if (hasMatch) {
           markerLayer.addLayer(marker);
         } else {
           markerLayer.removeLayer(marker);
