@@ -231,6 +231,7 @@ header details.secondary > ul > li > a:hover { color: #333; }
   height: 400px;
   border-radius: 6px;
   margin: 1rem 0;
+  isolation: isolate;
 }
 
 .events-table {
