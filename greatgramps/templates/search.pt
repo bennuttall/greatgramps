@@ -13,6 +13,7 @@
           <th data-col="3" class="sortable">Died</th>
           <th data-col="4" class="sortable">Children</th>
           <th data-col="5" class="sortable">Spouses</th>
+          <th data-col="6" class="sortable">Events</th>
         </tr>
       </thead>
       <tbody>
@@ -49,6 +50,7 @@
           <td data-val="${row['death_year'] or ''}">${row['death_year'] or ''}</td>
           <td data-val="${row['num_children']}">${format(row['num_children'], ',')}</td>
           <td data-val="${row['num_spouses']}">${format(row['num_spouses'], ',')}</td>
+          <td data-val="${row['num_events']}">${format(row['num_events'], ',')}</td>
         </tr>
       </tbody>
     </table>

@@ -518,6 +518,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
     ))
 
     return {**data, 'num_children': len(children_p), 'num_spouses': len(spouses),
+            'num_events': len(events),
             'is_ancestor': gid in my_ancestors and gid != root_id,
             'is_descendant': gid in my_descendants,
             'alt_surnames': [n['surname'] for n in data['alt_names'] if n['surname']]}
@@ -1127,7 +1128,7 @@ def _build_root(ctx):
             search_row = _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation)
         except Exception as e:
             person_errors.append(f'{gid}: {type(e).__name__}: {e}')
-            search_row = {**data, 'num_children': 0, 'num_spouses': 0,
+            search_row = {**data, 'num_children': 0, 'num_spouses': 0, 'num_events': 0,
                           'is_ancestor': gid in my_ancestors and gid != root_id,
                           'is_descendant': gid in my_descendants,
                           'alt_surnames': [n['surname'] for n in data['alt_names'] if n['surname']]}
