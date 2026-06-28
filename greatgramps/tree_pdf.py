@@ -283,7 +283,7 @@ def _min_box_height_mm(rects):
 
 
 def _compress_pdf(output_path):
-    with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+    with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False, dir=output_path.parent) as tmp:
         tmp_path = Path(tmp.name)
     output_path.rename(tmp_path)
     subprocess.run(
