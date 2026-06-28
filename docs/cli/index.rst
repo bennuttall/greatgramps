@@ -4,7 +4,7 @@ CLI
 
 .. program:: grgr
 
-The ``grgr`` command-line interface provides commands for building the site and managing the GRAMPS
+The ``grgr`` command-line interface provides commands for building the site and managing the Gramps
 database directly — adding people, events, census records, places, families, and more.
 Run ``grgr --help`` for a list of available commands and options.
 
@@ -40,7 +40,7 @@ Run ``grgr --help`` for a list of available commands and options.
     │ census-check        Show census years this person should have a record for, and        │
     │                     whether they do.                                                   │
     │ config              Interactively generate a config.yml for this project.              │
-    │ enclose-place       Set one place as enclosed by another (GRAMPS 'Enclosed by'         │
+    │ enclose-place       Set one place as enclosed by another (Gramps 'Enclosed by'         │
     │                     relationship).                                                     │
     │ list-ancestors      List ancestors of a person grouped by generation.                  │
     │ list-children       List a person's children.                                          │

@@ -34,7 +34,7 @@ Options
 
 .. option:: --type TEXT
 
-    Override the place type. Accepts a built-in GRAMPS place type (e.g.
+    Override the place type. Accepts a built-in Gramps place type (e.g.
     ``Town``, ``City``, case-insensitive) or any other value, which is saved
     as a custom type, e.g. ``Cemetery``.
 

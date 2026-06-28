@@ -4,7 +4,7 @@ grgr enclose-place
 
 .. program:: grgr-enclose-place
 
-Set one place as enclosed by another (GRAMPS 'Enclosed by' relationship).
+Set one place as enclosed by another (Gramps 'Enclosed by' relationship).
 
 .. code-block:: text
 

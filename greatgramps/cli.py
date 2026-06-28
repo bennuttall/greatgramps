@@ -1340,7 +1340,7 @@ def init_config(
 
     db_path: Path
     if discovered:
-        console.print("\nGRAMPS databases found:")
+        console.print("\nGramps databases found:")
         table = Table(show_header=False, box=None, padding=(0, 2, 0, 0))
         table.add_column(justify="right", style="bold")
         table.add_column()

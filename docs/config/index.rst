@@ -7,7 +7,7 @@ greatgramps is configured using a YAML file.
 Run :doc:`grgr config <../cli/config/index>` to generate ``config.yml`` and ``.env``
 interactively, or create them manually as described below.
 
-Create a ``config.yml`` pointing at your GRAMPS database and listing the GRAMPS IDs of the root
+Create a ``config.yml`` pointing at your Gramps database and listing the Gramps IDs of the root
 people you want to browse the tree as:
 
 .. code-block:: yaml
@@ -66,12 +66,12 @@ Relative paths are resolved relative to the config file's directory.
 ``db_path``
 -----------
 
-Path to your GRAMPS sqlite database directory.
+Path to your Gramps sqlite database directory.
 
 ``roots``
 ---------
 
-GRAMPS IDs of the people to build root views for.
+Gramps IDs of the people to build root views for.
 
 ``output_dir``
 --------------

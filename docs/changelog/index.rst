@@ -17,13 +17,13 @@ Changelog
 ==================
 
 * Add ``grgr config`` command to interactively generate ``config.yml`` and ``.env``; discovers
-  GRAMPS databases automatically and supports searching for root people by name or ID
+  Gramps databases automatically and supports searching for root people by name or ID
 
 0.3.0 (2026-06-26)
 ==================
 
 * Add a ``site_root`` config option for sites served from a subdirectory rather than the domain root
-* Add a **More** tab to person pages showing notes and attributes recorded in GRAMPS; attributes are
+* Add a **More** tab to person pages showing notes and attributes recorded in Gramps; attributes are
   grouped by type
 * Show alternative names and notes on place pages
 

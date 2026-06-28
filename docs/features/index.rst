@@ -56,7 +56,7 @@ descendants.
 
 The biographical information section also includes any external links associated with the person,
 starting with their **Ancestry.com** and **findagrave.com** links if available. Other links can
-be added in GRAMPS.
+be added in Gramps.
 
 `Demo <https://gramps.bennuttall.com/I0000/people/I0000/>`_
 
@@ -87,7 +87,7 @@ size.
 More
 ----
 
-Shown when a person has notes or attributes recorded in GRAMPS. Notes are displayed as-is, and
+Shown when a person has notes or attributes recorded in Gramps. Notes are displayed as-is, and
 attributes are grouped by type with a heading for each.
 
 Places
@@ -98,7 +98,7 @@ place name to view the events associated with that place, search the people invo
 event type. Note places can be enclosed by other places, for example a town can be enclosed by a
 county, which is enclosed by a country.
 
-Alternative names recorded in GRAMPS are shown below the place name as "Also known as: …". Notes
+Alternative names recorded in Gramps are shown below the place name as "Also known as: …". Notes
 are shown below that.
 
 Events on a place's page show the same icons as the events list — a photo icon for events with
@@ -111,7 +111,7 @@ conflicting.
 
    Places require latitude and longitude coordinates to be displayed on the map. If a place does not
    have coordinates, it will not be displayed on the map. You can add coordinates to a place in
-   GRAMPS, or using the :doc:`../cli/add-place/index` command.
+   Gramps, or using the :doc:`../cli/add-place/index` command.
 
 Events
 ======
@@ -147,7 +147,7 @@ only.
 
 .. note::
 
-   This page is populated from places with the type set to ``Cemetery`` in GRAMPS. Coordinates are
+   This page is populated from places with the type set to ``Cemetery`` in Gramps. Coordinates are
    required for a cemetery to appear on the map.
 
 Birthdays
@@ -197,7 +197,7 @@ More
 Tags
 ----
 
-Any tags used in GRAMPS are shown as filters so events can be filtered by tag. Some tags also have
+Any tags used in Gramps are shown as filters so events can be filtered by tag. Some tags also have
 an icon associated with them:
 
 * Interesting - star icon

@@ -2,18 +2,18 @@
 Overview
 ========
 
-If you have a `GRAMPS <https://www.gramps-project.org>`_ family tree, you can use greatgramps to
+If you have a `Gramps <https://www.gramps-project.org>`_ family tree, you can use greatgramps to
 build a static HTML website from it, making it easy to browse yourself, and share with family.
 
 Build your tree
 ===============
 
-If you're looking to get started building your tree, check out the `GRAMPS documentation
+If you're looking to get started building your tree, check out the `Gramps documentation
 <https://www.gramps-project.org/wiki/index.php/Main_page>`_.
 
-GRAMPS supports importing a tree from a GEDCOM file, which is a common format for exchanging
+Gramps supports importing a tree from a GEDCOM file, which is a common format for exchanging
 genealogical data, so if you have a tree from another source (like Ancestry.com), you can import it
-into GRAMPS and then use greatgramps to build your site. You may wish to make use of the GRAMPS
+into Gramps and then use greatgramps to build your site. You may wish to make use of the Gramps
 :doc:`../features/index` supported by greatgramps, such as media, shared events and tags.
 
 Configure your site build
@@ -23,28 +23,28 @@ Config file
 -----------
 
 Run ``grgr config`` to generate a ``config.yml`` and ``.env`` interactively — it will find your
-GRAMPS databases automatically and let you search for the root people by name.
+Gramps databases automatically and let you search for the root people by name.
 
 Alternatively, create ``config.yml`` manually.
 
 You'll need to know:
 
-* Your GRAMPS database location
+* Your Gramps database location
 * The IDs of any people you wish to build the tree for
 
-GRAMPS database location
+Gramps database location
 ------------------------
 
-Find the location of your GRAMPS database. Default locations on different systems can be:
+Find the location of your Gramps database. Default locations on different systems can be:
 
 * ``~/.gramps/grampsdb``
 * ``~/.local/gramps/grampsdb``
 * ``~/Library/Application Support/gramps/grampsdb``
 
-Within this directory will be a directory with an 8-character name for each of your GRAMPS trees. Use
+Within this directory will be a directory with an 8-character name for each of your Gramps trees. Use
 the full path to the desired tree.
 
-If you need help finding your database location, open the **Family Trees** dialogue in GRAMPS, and
+If you need help finding your database location, open the **Family Trees** dialogue in Gramps, and
 click **Info** on the desired tree. See the **Path** field for the full path.
 
 .. code-block:: yaml
@@ -88,5 +88,5 @@ CLI
 ===
 
 The ``grgr`` command line tool provides a limited set of commands for managing your tree. These can
-be used to make it easier to perform certain tasks outside of GRAMPS. See :doc:`../cli/index` for
+be used to make it easier to perform certain tasks outside of Gramps. See :doc:`../cli/index` for
 more information on these commands.
