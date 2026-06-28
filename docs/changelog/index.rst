@@ -2,6 +2,13 @@
 Changelog
 =========
 
+0.3.3 (2026-06-28)
+==================
+
+* Fix PDF compression failing with cross-device rename error when ``/tmp`` is on a separate
+  filesystem
+* Replace ``GRAMPS`` with ``Gramps`` throughout docs and templates
+
 0.3.2 (2026-06-27)
 ==================
 

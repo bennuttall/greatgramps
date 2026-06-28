@@ -1517,7 +1517,7 @@ def enclose_place(
     parent_query: str = typer.Argument(..., help="Place ID or name that encloses it"),
     yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompt"),
 ):
-    """Set one place as enclosed by another (GRAMPS 'Enclosed by' relationship)."""
+    """Set one place as enclosed by another (Gramps 'Enclosed by' relationship)."""
     db = _open_db(write=True)
     try:
         child = _resolve_place(db, child_query)

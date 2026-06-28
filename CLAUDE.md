@@ -1,6 +1,6 @@
 # greatgramps
 
-Library for managing a GRAMPS family tree database and building a static website out of the data
+Library for managing a Gramps family tree database and building a static website out of the data
 
 ## Python
 

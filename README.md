@@ -1,8 +1,8 @@
 # greatgramps
 
-A static site generator for [GRAMPS](https://www.gramps-project.org) family tree databases.
+A static site generator for [Gramps](https://www.gramps-project.org) family tree databases.
 
-greatgramps reads a GRAMPS database and builds a browsable static website from it. Each person in
+greatgramps reads a Gramps database and builds a browsable static website from it. Each person in
 the tree gets their own page with biographical details, family relationships, events, photos, and a
 relationship label showing how they connect to a chosen root person. The site also includes index
 pages for people, places, events, census records, birthdays, and surnames.
@@ -13,9 +13,9 @@ of the site where relationship labels ("your grandmother", "your 2nd cousin") ar
 relative to them. A top-level index page lets you switch between roots.
 
 The site is generated once and served as plain HTML — no server-side code required. It's not a web
-frontend for GRAMPS (like [gramps-web](https://github.com/gramps-project/gramps-web)), in that it's
+frontend for Gramps (like [gramps-web](https://github.com/gramps-project/gramps-web)), in that it's
 read-only, but it produces a rich browsable site for your tree. Once built, the site can be hosted
-with ease, with no Python or GRAMPS installation required.
+with ease, with no Python or Gramps installation required.
 
 This approach lets you manage your own tree using open source software without relying on
 subscription or proprietary services, while still making it easy to share your tree with your family
@@ -26,26 +26,26 @@ on the web.
 ## Demo
 
 A demo is available at [gramps.bennuttall.com](https://gramps.bennuttall.com/I0000/people/I0000/)
-which features a generated family tree showcasing what greatgramps can build from a GRAMPS database.
+which features a generated family tree showcasing what greatgramps can build from a Gramps database.
 
 ## Requirements
 
 - Python 3.10+
-- A GRAMPS sqlite database
-- GRAMPS
+- A Gramps sqlite database
+- Gramps
 
 ## Installation
 
-Install GRAMPS first. See the [GRAMPS installation instructions](https://gramps-project.org/wiki/index.php/Download).
+Install Gramps first. See the [Gramps installation instructions](https://gramps-project.org/wiki/index.php/Download).
 
-Also install PyICU for locale-aware sorting, via your platform's package manager (otherwise GRAMPS
+Also install PyICU for locale-aware sorting, via your platform's package manager (otherwise Gramps
 logs a warning and falls back to less accurate sorting of names and places). On Debian/Ubuntu:
 
 ```bash
 sudo apt install python3-icu
 ```
 
-Then install the project. The core package only handles reading the GRAMPS database; pick the
+Then install the project. The core package only handles reading the Gramps database; pick the
 extras for the features you need:
 
 ```bash
