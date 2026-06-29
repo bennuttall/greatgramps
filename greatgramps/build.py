@@ -32,7 +32,7 @@ class _FallbackTemplateLoader:
         if self._user:
             try:
                 return self._user[name]
-            except KeyError:
+            except (KeyError, ValueError):
                 pass
         return self._builtin[name]
 from gramps.gen.lib.eventtype import EventType
