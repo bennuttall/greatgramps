@@ -36,8 +36,12 @@ class _FallbackTemplateLoader:
                 pass
         return self._builtin[name]
 from gramps.gen.lib.eventtype import EventType
-from reportlab.lib import pagesizes
-from .tree_pdf import generate_ancestor_pdf, generate_descendant_pdf, generate_hourglass_pdf
+try:
+    from reportlab.lib import pagesizes
+    from .tree_pdf import generate_ancestor_pdf, generate_descendant_pdf, generate_hourglass_pdf
+    _PDF_AVAILABLE = True
+except ImportError:
+    _PDF_AVAILABLE = False
 from .gramps_data import (
     open_db, collect_all_people, collect_ancestors,
     get_parents, get_children, get_siblings, get_spouses, get_all_events,
@@ -969,6 +973,9 @@ def _pdf_gen_counts(ctx):
 
 
 def _build_pdfs(ctx):
+    if not _PDF_AVAILABLE:
+        print('Warning: PDF dependencies not installed (install with: pip install greatgramps[pdf]). Skipping PDF generation.')
+        return []
     db = ctx['db']
     root_id = ctx['root_id']
     root_dir = ctx['root_dir']
@@ -1466,14 +1473,15 @@ def _rebuild_root_pages(ctx, ids):
             'generations': group_by_generation(my_ancestors),
             'descendant_generations': group_descendants_by_generation(my_descendants_data),
         }
-        ancestor_gens, descendant_gens, _, _ = _pdf_gen_counts(ctx)
         pdf_links = []
-        if ancestor_gens:
-            pdf_links.append({'label': 'Ancestor tree', 'filename': 'ancestors.pdf'})
-        if descendant_gens:
-            pdf_links.append({'label': 'Descendant tree', 'filename': 'descendants.pdf'})
-        if ancestor_gens and descendant_gens:
-            pdf_links.append({'label': 'Hourglass tree', 'filename': 'hourglass.pdf'})
+        if _PDF_AVAILABLE:
+            ancestor_gens, descendant_gens, _, _ = _pdf_gen_counts(ctx)
+            if ancestor_gens:
+                pdf_links.append({'label': 'Ancestor tree', 'filename': 'ancestors.pdf'})
+            if descendant_gens:
+                pdf_links.append({'label': 'Descendant tree', 'filename': 'descendants.pdf'})
+            if ancestor_gens and descendant_gens:
+                pdf_links.append({'label': 'Hourglass tree', 'filename': 'hourglass.pdf'})
         _root_full_name = ctx['root_full_name']
         apostrophe = "'" if _root_full_name[-1].lower() == 's' else "'s"
         index_title = f"{_root_full_name}{apostrophe} family tree"

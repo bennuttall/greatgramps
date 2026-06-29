@@ -2,6 +2,12 @@
 Changelog
 =========
 
+0.3.4 (2026-06-29)
+==================
+
+* Fix site build failing with ``ImportError`` when the ``pdf`` extra is not installed; PDF
+  generation is now skipped with a warning instead
+
 0.3.3 (2026-06-28)
 ==================
 

@@ -1,7 +1,7 @@
 from datetime import datetime
 
 
-greatgramps_version = "0.3.3"
+greatgramps_version = "0.3.4"
 
 project = "greatgramps"
 version = greatgramps_version
