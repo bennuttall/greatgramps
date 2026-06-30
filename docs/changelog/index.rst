@@ -2,6 +2,12 @@
 Changelog
 =========
 
+0.3.5 (2026-06-30)
+==================
+
+* Fix site build failing with ``ValueError`` when using the fallback template loader
+* Add Event column to cemetery place pages, linking to the burial event
+
 0.3.4 (2026-06-29)
 ==================
 
