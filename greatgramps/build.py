@@ -331,12 +331,12 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
     person_ancestors = collect_ancestors(db, p)
     photos = [
         {**photo, 'url': process_photo(photo, media_dir, gid, config.site_root)}
-        for photo in get_photos(db, p)
+        for photo in get_photos(db, p, config.db_path)
     ]
     all_pictures = [
         {**pic, 'url': process_photo(pic, media_dir, gid, config.site_root),
          'page_url': base + pic['page_url'][1:] if (pic.get('page_url') or '').startswith('/') else pic.get('page_url')}
-        for pic in get_all_person_pictures(db, p)
+        for pic in get_all_person_pictures(db, p, config.db_path)
     ]
     occupations = get_occupations(p)
     notes = get_person_notes(db, p)
@@ -671,7 +671,7 @@ def _render_event_page(ctx, slug, event_data, relation_map):
             father_obj, mother_obj = get_parents(db, p_obj) if p_obj else (None, None)
             person_photos = [
                 {**photo, 'url': process_photo(photo, media_dir, pd['gramps_id'], config.site_root)}
-                for photo in (get_photos(db, p_obj) if p_obj else [])
+                for photo in (get_photos(db, p_obj, config.db_path) if p_obj else [])
             ]
             couple_details.append({
                 **pd,
@@ -1176,7 +1176,7 @@ def _build_root(ctx):
     print(f'Built events/index.html ({len(ancestor_events)} events)')
 
     # Individual event pages
-    all_event_data = build_event_pages_data(db)
+    all_event_data = build_event_pages_data(db, config.db_path)
     valid_events = {slug: ed for slug, ed in all_event_data.items() if slug}
     print(f'Building {len(valid_events)} event pages...')
     t = time.time()
@@ -1267,9 +1267,18 @@ def _copy_static(config):
             shutil.copy2(f, config.output_dir / f.name)
 
 
-def build():
-    config = get_config()
-    db = open_db()
+def build(config=None, db=None):
+    """Build the full site.
+
+    Pass an explicit `config`/`db` to build against an already-open database
+    (e.g. from a Gramps plugin) instead of reading config.yml and opening a
+    new connection.
+    """
+    owns_db = db is None
+    if config is None:
+        config = get_config()
+    if db is None:
+        db = open_db(config.validated_db_path)
 
     shared = _make_shared_ctx(config, db)
 
@@ -1282,7 +1291,8 @@ def build():
 
     _render_global_index(config, shared)
 
-    db.close()
+    if owns_db:
+        db.close()
 
 
 NAMED_PAGES = {'places', 'people', 'events', 'census', 'index', 'ancestor-records', 'census-records', 'birthdays', 'surnames', 'cemeteries', 'global-index'}
@@ -1340,7 +1350,7 @@ def _rebuild_root_pages(ctx, ids):
                 render('events', page_title=f'Events — {config.site_title}',
                        events=ancestor_events, relation_map=relation_map)
             )
-            all_event_data = build_event_pages_data(db)
+            all_event_data = build_event_pages_data(db, config.db_path)
             valid_events = {slug: ed for slug, ed in all_event_data.items() if slug}
             t = time.time()
             event_errors = []
@@ -1352,7 +1362,7 @@ def _rebuild_root_pages(ctx, ids):
             _report('event pages', len(valid_events), event_errors, time.time() - t)
             print(f'Rebuilt events/index.html [{root_id}]')
         else:
-            all_event_data = build_event_pages_data(db)
+            all_event_data = build_event_pages_data(db, config.db_path)
             by_gramps_id = {ed['gramps_id']: (slug, ed) for slug, ed in all_event_data.items() if slug}
             for event_id in event_ids:
                 if event_id not in by_gramps_id:
@@ -1519,14 +1529,21 @@ def _rebuild_root_pages(ctx, ids):
         print(f'Rebuilt birthdays/index.html [{root_id}]')
 
 
-def rebuild_pages(ids):
+def rebuild_pages(ids, config=None, db=None):
     """Rebuild specific pages by ID or name and copy static files.
 
     Accepts person IDs (I…), event IDs (E…), place IDs (P…), and named
     pages: places, people, events, census, index, birthdays, surnames, ancestor-records, census-records, global-index.
+
+    Pass an explicit `config`/`db` to build against an already-open database
+    (e.g. from a Gramps plugin) instead of reading config.yml and opening a
+    new connection.
     """
-    config = get_config()
-    db = open_db()
+    owns_db = db is None
+    if config is None:
+        config = get_config()
+    if db is None:
+        db = open_db(config.validated_db_path)
 
     shared = _make_shared_ctx(config, db)
 
@@ -1542,7 +1559,8 @@ def rebuild_pages(ids):
     if 'global-index' in ids:
         _render_global_index(config, shared)
 
-    db.close()
+    if owns_db:
+        db.close()
 
 
 if __name__ == '__main__':

@@ -7,24 +7,21 @@ from gramps.gen.lib import AttributeType
 from gramps.gen.lib.eventtype import EventType
 from gramps.gen.utils.alive import probably_alive
 
-from .settings import get_config
-
 
 def event_url_slug(gramps_id):
     """Convert event gramps_id to a URL/filesystem-safe slug."""
     return re.sub(r'[^\w-]', '_', gramps_id).strip('_') or gramps_id
 
 
-def _resolve_media_path(db, path):
+def _resolve_media_path(db, path, db_path):
     p = Path(path)
     if not p.is_absolute():
-        base = db.get_mediapath() or get_config().validated_db_path
+        base = db.get_mediapath() or db_path
         p = Path(base) / p
     return p
 
 
-def open_db():
-    db_path = get_config().validated_db_path
+def open_db(db_path):
     print(f"Opening Gramps database: {db_path}")
     db = SQLite()
     db.load(str(db_path), mode=DBMODE_R)
@@ -797,7 +794,7 @@ def build_event_list(db, ancestor_ids):
     return events
 
 
-def build_event_pages_data(db):
+def build_event_pages_data(db, db_path):
     """Returns {gramps_id: event_detail} for all events, with deduplicated participants."""
     event_parties = {}
     for person in db.iter_people():
@@ -864,7 +861,7 @@ def build_event_pages_data(db):
             'people': participants,
             'couple': couple,
             'children': parties.get('children', []),
-            'photos': get_event_photos(db, event),
+            'photos': get_event_photos(db, event, db_path),
             'is_interesting': 'Interesting' in tag_names,
             'is_conflict': 'Conflict' in tag_names,
         }
@@ -899,7 +896,7 @@ def build_birthday_list(db):
     ]
 
 
-def _collect_photos(db, obj):
+def _collect_photos(db, obj, db_path):
     photos = []
     for ref in obj.get_media_list():
         media = db.get_media_from_handle(ref.get_reference_handle())
@@ -908,7 +905,7 @@ def _collect_photos(db, obj):
             raise ValueError(f"Media has no MIME type: {media.get_gramps_id()} ({media.get_path()})")
         if not mime.startswith('image/'):
             continue
-        src = _resolve_media_path(db, media.get_path())
+        src = _resolve_media_path(db, media.get_path(), db_path)
         if not src.is_file():
             print(f"  WARNING: media file not found, skipping: {src} ({media.get_gramps_id()})")
             continue
@@ -950,15 +947,15 @@ def get_occupations(person) -> list[dict]:
     return sorted(occupations, key=lambda o: o['year'] or 0)
 
 
-def get_photos(db, person):
-    return _collect_photos(db, person)
+def get_photos(db, person, db_path):
+    return _collect_photos(db, person, db_path)
 
 
-def get_event_photos(db, event):
-    return _collect_photos(db, event)
+def get_event_photos(db, event, db_path):
+    return _collect_photos(db, event, db_path)
 
 
-def get_all_person_pictures(db, person):
+def get_all_person_pictures(db, person, db_path):
     """Return all photos attached to a person or their events, with source metadata."""
     pictures = []
     seen_media_ids = set()
@@ -970,7 +967,7 @@ def get_all_person_pictures(db, person):
             seen_media_ids.add(p['media_id'])
             pictures.append({**p, 'page_url': page_url, 'page_label': page_label, 'year': year})
 
-    _add(_collect_photos(db, person), f'/people/{person.get_gramps_id()}/', 'Profile', year=None)
+    _add(_collect_photos(db, person, db_path), f'/people/{person.get_gramps_id()}/', 'Profile', year=None)
 
     for eref in person.get_event_ref_list():
         event = db.get_event_from_handle(eref.get_reference_handle())
@@ -978,7 +975,7 @@ def get_all_person_pictures(db, person):
         label = EVENT_TYPE_LABELS.get(etype, str(event.get_type()))
         year = event.get_date_object().get_year() or None
         slug = event_url_slug(event.get_gramps_id())
-        _add(_collect_photos(db, event), f'/events/{slug}/', label, year=year)
+        _add(_collect_photos(db, event, db_path), f'/events/{slug}/', label, year=year)
 
     for fam_handle in person.get_family_handle_list():
         family = db.get_family_from_handle(fam_handle)
@@ -988,7 +985,7 @@ def get_all_person_pictures(db, person):
             label = EVENT_TYPE_LABELS.get(etype, str(event.get_type()))
             year = event.get_date_object().get_year() or None
             slug = event_url_slug(event.get_gramps_id())
-            _add(_collect_photos(db, event), f'/events/{slug}/', label, year=year)
+            _add(_collect_photos(db, event, db_path), f'/events/{slug}/', label, year=year)
 
     pictures.sort(key=lambda p: p['year'] or 9999)
     return pictures
