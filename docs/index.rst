@@ -12,7 +12,7 @@ pages for people, places, events, census records, birthdays, and surnames.
 The site is built from the point of view of one or more root people — typically the living members
 of a family who each want to browse the tree as themselves. Each root person gets their own section
 of the site where relationship labels ("your grandmother", "your 2nd cousin") are calculated
-relative to them. A top-level index page lets you switch between roots.
+relative to them. A dropdown in the nav bar lets you switch between roots from any page.
 
 The site is generated once and served as plain HTML — no server-side code required. It's not a web
 frontend for Gramps (like `gramps-web <https://github.com/gramps-project/gramps-web>`_), in that
