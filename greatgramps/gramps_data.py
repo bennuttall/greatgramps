@@ -15,10 +15,11 @@ def event_url_slug(gramps_id):
     return re.sub(r'[^\w-]', '_', gramps_id).strip('_') or gramps_id
 
 
-def _resolve_media_path(path):
+def _resolve_media_path(db, path):
     p = Path(path)
     if not p.is_absolute():
-        p = get_config().validated_db_path / p
+        base = db.get_mediapath() or get_config().validated_db_path
+        p = Path(base) / p
     return p
 
 
@@ -907,7 +908,7 @@ def _collect_photos(db, obj):
             raise ValueError(f"Media has no MIME type: {media.get_gramps_id()} ({media.get_path()})")
         if not mime.startswith('image/'):
             continue
-        src = _resolve_media_path(media.get_path())
+        src = _resolve_media_path(db, media.get_path())
         if not src.is_file():
             print(f"  WARNING: media file not found, skipping: {src} ({media.get_gramps_id()})")
             continue
