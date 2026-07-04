@@ -2,6 +2,14 @@
 Changelog
 =========
 
+0.3.6 (2026-07-04)
+==================
+
+* Fix relative media paths being resolved against the database directory instead of Gramps'
+  configured base media path
+* Thread config/db explicitly through the site-build core instead of relying on the cached global
+  config
+
 0.3.5 (2026-06-30)
 ==================
 
