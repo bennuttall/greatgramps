@@ -34,12 +34,17 @@
   <tal:block metal:fill-slot="scripts">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-    var map = L.map('map').setView([53.5, -1.5], 6);
+    var map = L.map('map');
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(map);
 
     var places = ${structure: mappable_json};
+    if (places.length) {
+      map.fitBounds(places.map(p => [p.lat, p.lon]), {padding: [20, 20], maxZoom: 10});
+    } else {
+      map.setView([53.5, -1.5], 6);
+    }
 
     places.forEach(function(p) {
       var marker = L.circleMarker([p.lat, p.lon], {
