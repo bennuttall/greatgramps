@@ -2,6 +2,13 @@
 Changelog
 =========
 
+0.3.7 (2026-07-05)
+==================
+
+* Fit the Places and Cemeteries page maps to their markers instead of a hard-coded UK view
+* Hide the empty profile overview box on person pages with no family details, external links or
+  occupations
+
 0.3.6 (2026-07-04)
 ==================
 
