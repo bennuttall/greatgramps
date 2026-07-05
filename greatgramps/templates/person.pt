@@ -13,7 +13,7 @@
         <a tal:condition="num_more" href="${base}people/${person['gramps_id']}/more/">More</a>
       </nav>
 
-      <div class="profile-overview">
+      <div class="profile-overview" tal:condition="father or mother or siblings or any(s['person'] for s in spouses) or children or person['external_links'] or occupations">
         <div tal:condition="father or mother or siblings or spouses or children">
           <section class="parents" tal:condition="father or mother">
             <h3>Parents</h3>
