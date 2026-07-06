@@ -226,7 +226,13 @@
       if (!pts.length) return;
       pts.forEach(g => {
         const lines = g.items.map(i => '<a href="' + i.url + '">' + i.label + '</a>' + (i.person ? ' — ' + i.person : '')).join('<br>');
-        L.marker([g.lat, g.lon]).addTo(markersLayer).bindPopup('<strong>' + g.place + '</strong><br>' + lines);
+        L.circleMarker([g.lat, g.lon], {
+          radius: Math.max(4, Math.min(14, 3 + g.items.length * 2)),
+          color: '#5a3e28',
+          fillColor: '#5a3e28',
+          fillOpacity: 0.6,
+          weight: 1,
+        }).addTo(markersLayer).bindPopup('<strong>' + g.place + '</strong><br>' + lines);
       });
       eventsMap.fitBounds(pts.map(g => [g.lat, g.lon]), { padding: [20, 20], maxZoom: 10 });
     }
