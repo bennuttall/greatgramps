@@ -12,11 +12,9 @@
 <body>
   <header>
     <nav>
-      <a href="${base}index.html">My tree</a>
       <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" onclick="var l=document.getElementById('nav-links');var o=l.classList.toggle('open');this.setAttribute('aria-expanded',o)">&#9776;</button>
       <div id="nav-links" class="nav-links">
-        <a class="secondary" tal:condition="me_id" href="${base}people/${me_id}/">Me</a>
-        <a class="secondary" tal:repeat="item nav_items" href="${base}${item['slug']}/">${item['label']}</a>
+        <a class="secondary" tal:repeat="item nav_items" href="${item['href']}">${item['label']}</a>
         <details class="secondary view-as" tal:condition="python: len(switch_roots) > 1" tal:attributes="data-current me_id">
           <summary>Viewing as ${root_first_name} &mdash; switch</summary>
           <ul>

@@ -11,6 +11,9 @@ from chameleon import PageTemplateLoader
 _PACKAGE_DIR = Path(__file__).parent
 
 NAV_LABELS = {
+    'home': 'Home',
+    'my-tree': 'My tree',
+    'me': 'Me',
     'people': 'People',
     'places': 'Places',
     'events': 'Events',
@@ -269,7 +272,15 @@ def _make_root_ctx(shared, root_id):
     root_full_name = f"{root_first_name} {shared['all_people'][root_id]['surname']}".strip()
 
     has_custom_css = shared['has_custom_css']
-    nav_items = [{'slug': p, 'label': NAV_LABELS[p]} for p in config.nav_pages]
+    nav_href = {
+        'home': f'{config.site_root}index.html',
+        'my-tree': f'{base}index.html',
+        'me': f'{base}people/{root_id}/',
+    }
+    nav_items = [
+        {'href': nav_href.get(p, f'{base}{p}/'), 'label': NAV_LABELS[p]}
+        for p in config.nav_pages
+    ]
     all_people = shared['all_people']
     switch_roots = [
         {'id': rid, 'name': all_people[rid]['full_name']}

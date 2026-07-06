@@ -75,6 +75,11 @@ header details.secondary {
   position: relative;
 }
 
+header .view-as,
+header span.secondary {
+  margin-left: auto;
+}
+
 header details.secondary > ul {
   position: absolute;
   right: 0;
@@ -142,6 +147,11 @@ header details.secondary > ul > li > a:hover { color: #333; }
   }
 
   .nav-links.open { display: flex; }
+
+  header .view-as,
+  header span.secondary {
+    margin-left: 0;
+  }
 
   .person-tabs {
     flex-wrap: wrap;
