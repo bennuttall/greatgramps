@@ -4,13 +4,16 @@ GREATGRAMPS_CONFIG=config.yml
 POETRY=poetry
 HTML_DOCS=docs/_build/html
 
-.PHONY: develop html serve clean build release doc doc-serve freeze-rtd-requirements
+.PHONY: develop config html serve clean build release doc doc-serve freeze-rtd-requirements
 
 develop:
 	$(PIP) install -U pip
 	$(PIP) install "poetry>2"
 	$(POETRY) install --all-extras --with dev
 	$(POETRY) run grgr --install-completion
+
+config:
+	$(POETRY) run grgr config
 
 html:
 	GREATGRAMPS_CONFIG=$(GREATGRAMPS_CONFIG) grgr build
