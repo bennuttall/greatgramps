@@ -60,6 +60,10 @@
           </a>
         </div>
         <table class="events">
+          <tr tal:define="rel relation_map.get(spouse['gramps_id'])" tal:condition="rel">
+            <th>Relation</th>
+            <td>your ${rel}</td>
+          </tr>
           <tr tal:condition="event['year'] and spouse['birth_year']">
             <th>Age at marriage</th>
             <td>${event['year'] - spouse['birth_year']}</td>
@@ -104,6 +108,7 @@
             <th>Name</th>
             <th>Born</th>
             <th>Died</th>
+            <th>Relation</th>
           </tr>
         </thead>
         <tbody>
@@ -114,6 +119,7 @@
             </td>
             <td class="year">${child['birth_year'] or ''}</td>
             <td class="year">${child['death_year'] or ''}</td>
+            <td class="year" tal:define="rel relation_map.get(child['gramps_id'])">${('your ' + rel) if rel else ''}</td>
           </tr>
         </tbody>
       </table>

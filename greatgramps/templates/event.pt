@@ -72,7 +72,7 @@
       </tr>
       <tr tal:condition="single and relation_map.get(single_person['gramps_id'])">
         <th>Relation</th>
-        <td>${relation_map.get(single_person['gramps_id'])}</td>
+        <td>your ${relation_map.get(single_person['gramps_id'])}</td>
       </tr>
       <tr tal:condition="single and event['type'] in ('Burial', 'Death') and single_person['grave_url']">
         <th>Find a Grave</th>
@@ -101,7 +101,7 @@
           </tal:block>
           <span class="ancestor-badge" tal:condition="person['gramps_id'] in ancestor_ids">ancestor</span>
           <span class="ancestor-badge descendant" tal:condition="person['gramps_id'] in descendant_ids">descendant</span>
-          <span tal:define="rel relation_map.get(person['gramps_id'])" tal:condition="rel" class="years">${rel}</span>
+          <span tal:define="rel relation_map.get(person['gramps_id'])" tal:condition="rel" class="years">your ${rel}</span>
         </li>
       </ul>
     </tal:block>

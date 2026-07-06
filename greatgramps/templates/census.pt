@@ -69,7 +69,7 @@
             <td class="year">${person['birth_year'] or ''}</td>
             <td class="year" tal:condition="event['year'] and person['birth_year']">${max(0, event['year'] - person['birth_year'] - 1)}</td>
             <td class="year" tal:condition="not (event['year'] and person['birth_year'])"></td>
-            <td class="year" tal:define="rel relation_map.get(person['gramps_id'])">${rel or ''}</td>
+            <td class="year" tal:define="rel relation_map.get(person['gramps_id'])">${('your ' + rel) if rel else ''}</td>
           </tr>
         </tbody>
       </table>

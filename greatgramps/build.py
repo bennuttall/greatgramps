@@ -1131,7 +1131,7 @@ def _build_root(ctx):
         if not relation and gid != root_id:
             marriage_relation = get_by_marriage_relation(db, me_ancestor_distances, p, data['gender'])
         by_marriage = not relation and gid != root_id and (marriage_relation is not None or is_related_by_marriage(db, me_ancestor_distances, p))
-        relation_map[gid] = relation
+        relation_map[gid] = relation if gid != root_id else None
         try:
             search_row = _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation)
         except Exception as e:
@@ -1337,7 +1337,7 @@ def _rebuild_root_pages(ctx, ids):
 
     if event_ids or 'events' in named:
         relation_map = {
-            gid: get_relation_to_me(db, me_ancestor_distances, db.get_person_from_gramps_id(gid), data['gender'])
+            gid: get_relation_to_me(db, me_ancestor_distances, db.get_person_from_gramps_id(gid), data['gender']) if gid != root_id else None
             for gid, data in all_people.items()
         }
         if 'events' in named:
@@ -1427,7 +1427,7 @@ def _rebuild_root_pages(ctx, ids):
         census_dir.mkdir(exist_ok=True)
         ancestor_ids = set(my_ancestors) - {root_id}
         relation_map = {
-            gid: get_relation_to_me(db, me_ancestor_distances, db.get_person_from_gramps_id(gid), data['gender'])
+            gid: get_relation_to_me(db, me_ancestor_distances, db.get_person_from_gramps_id(gid), data['gender']) if gid != root_id else None
             for gid, data in all_people.items()
         }
         census_years_list = []
