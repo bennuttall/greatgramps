@@ -3,3 +3,5 @@ www
 poetry.lock
 .env
 dist
+CLAUDE.md
+config.yml
