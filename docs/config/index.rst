@@ -55,7 +55,7 @@ Relative paths are resolved relative to the config file's directory.
      - —
    * - ``nav_pages``
      - no
-     - ``[people, places, events, census, cemeteries, birthdays, surnames]``
+     - ``[home, my-tree, me, people, places, events, census, cemeteries, birthdays, surnames]``
    * - ``site_title``
      - no
      - ``Family tree``
@@ -98,13 +98,18 @@ bundled ones. See :doc:`../templates/index`.
 ``nav_pages``
 -------------
 
-Which pages to show in the nav bar alongside **Me**, and in what order. All pages are included by
-default; remove any that your database doesn't make use of. For example, omit ``cemeteries`` if
-you have no places of type Cemetery, or ``census`` if you have no census events:
+Which links to show in the nav bar, and in what order. ``home`` links to the global index (see
+:doc:`../features/index`), ``my-tree`` links to the current root's homepage, and ``me`` links to
+the root person's own page. All pages are included by default; remove any you don't want. For
+example, omit ``cemeteries`` if you have no places of type Cemetery, or ``census`` if you have no
+census events:
 
 .. code-block:: yaml
 
     nav_pages:
+    - home
+    - my-tree
+    - me
     - people
     - places
     - events

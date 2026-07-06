@@ -2,6 +2,22 @@
 Changelog
 =========
 
+0.3.8 (2026-07-06)
+==================
+
+* Fix cemetery map popups linking to the cemetery listing page instead of the place page
+* Fix switching root person from a page other than the homepage returning to that root's homepage
+  instead of the equivalent page
+* Show the visitor's relation to the root person (e.g. "your daughter") on event, census, and
+  marriage pages, including the marriage Children table
+* Remove the redundant "Me" row from the homepage's Ancestors table
+* Use count-sized circle markers on the events and census year maps, matching the rest of the
+  site's maps
+* Document how to add the Cemetery place type and hide unused pages from the nav bar
+* Add ``home``, ``my-tree`` and ``me`` to ``nav_pages``, so the Home, My tree and Me links can be
+  reordered or removed like any other nav item; all nav links now share the same style
+* Fix "Viewing as…" wrapping onto its own line without staying right-aligned
+
 0.3.7 (2026-07-05)
 ==================
 
