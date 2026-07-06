@@ -66,23 +66,19 @@
       <section class="full-width">
         <h2>Ancestors</h2>
         <table class="summary-table">
-          <tr tal:repeat="gen_group summary['generations']">
+          <tal:block tal:repeat="gen_group summary['generations']">
+          <tr tal:condition="gen_group['gen'] != 0">
             <td>
-              <span tal:condition="gen_group['gen'] == 0">
-                <a href="people/${me_id}/">Me</a>
-              </span>
               <span tal:condition="gen_group['gen'] == 1">Parents</span>
               <span tal:condition="gen_group['gen'] == 2">Grandparents</span>
               <span tal:condition="gen_group['gen'] == 3">Great-grandparents</span>
               <span tal:condition="gen_group['gen'] == 4">2nd great-grandparents</span>
               <span tal:condition="gen_group['gen'] &gt; 4">${gen_group['gen'] - 2}th great-grandparents</span>
             </td>
-            <td class="year" tal:condition="gen_group['gen'] == 0">1</td>
-            <td class="year" tal:condition="gen_group['gen'] != 0">
+            <td class="year">
               ${format(len(gen_group['people']), ',')} / ${format(2 ** gen_group['gen'], ',')}
             </td>
-            <td tal:condition="gen_group['gen'] == 0"></td>
-            <td class="pct-col" tal:condition="gen_group['gen'] != 0"
+            <td class="pct-col"
                 tal:define="pct len(gen_group['people']) * 100 // (2 ** gen_group['gen']);
                             bar_pct round(len(gen_group['people']) * 100 / (2 ** gen_group['gen']), 1);
                             pct_class 'pct-high' if pct >= 75 else ('pct-mid' if pct >= 50 else 'pct-low')">
@@ -92,6 +88,7 @@
               </div>
             </td>
           </tr>
+          </tal:block>
         </table>
       </section>
 
