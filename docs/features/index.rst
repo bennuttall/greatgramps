@@ -132,6 +132,11 @@ event page, and an icon indicates an event has associated images.
 
 `Demo <https://gramps.bennuttall.com/I0000/census/>`_
 
+.. note::
+
+   If you don't use this feature, you can remove ``census`` from ``nav_pages`` to drop it from
+   the navigation entirely — see :doc:`../config/index`.
+
 Cemeteries
 ==========
 
@@ -149,6 +154,15 @@ only.
 
    This page is populated from places with the type set to ``Cemetery`` in Gramps. Coordinates are
    required for a cemetery to appear on the map.
+
+   ``Cemetery`` is a custom place type, not one of the built-in Gramps types, and Gramps has no way
+   to add a custom type directly. The easiest way to add it is to create one place with this type
+   using the :doc:`../cli/add-place/index` command, e.g. ``grgr add-place "Example Cemetery" --type
+   Cemetery``. Once the type exists in the database, you can select it from the type dropdown for
+   any place in Gramps.
+
+   If you don't use this feature, you can remove ``cemeteries`` from ``nav_pages`` to drop it from
+   the navigation entirely — see :doc:`../config/index`.
 
 Birthdays
 =========
