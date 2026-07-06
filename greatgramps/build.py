@@ -704,6 +704,7 @@ def _render_cemeteries_page(ctx):
     root_id = ctx['root_id']
     root_dir = ctx['root_dir']
     render = ctx['render']
+    base = ctx['base']
 
     cemeteries = []
     for handle, pdata in all_places.items():
@@ -729,7 +730,7 @@ def _render_cemeteries_page(ctx):
     mappable = [p for p in cemeteries if p['lat'] and p['lon']]
     mappable_json = json.dumps([
         {'lat': p['lat'], 'lon': p['lon'], 'name': p['name'],
-         'url': f'{p["gramps_id"]}/', 'count': p['burial_count'],
+         'url': f'{base}places/{p["gramps_id"]}/', 'count': p['burial_count'],
          'ancestor_count': p['ancestor_burial_count']}
         for p in mappable
     ])
