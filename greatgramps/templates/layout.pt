@@ -15,15 +15,17 @@
       <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" onclick="var l=document.getElementById('nav-links');var o=l.classList.toggle('open');this.setAttribute('aria-expanded',o)">&#9776;</button>
       <div id="nav-links" class="nav-links">
         <a class="secondary" tal:repeat="item nav_items" href="${item['href']}">${item['label']}</a>
-        <details class="secondary view-as" tal:condition="python: len(switch_roots) > 1" tal:attributes="data-current me_id">
-          <summary>Viewing as ${root_first_name} &mdash; switch</summary>
-          <ul>
-            <li tal:repeat="root python: [r for r in switch_roots if r['id'] != me_id]">
-              <a tal:attributes="href site_root + root['id'] + '/'" tal:content="root['name']"></a>
-            </li>
-          </ul>
-        </details>
-        <span class="secondary" tal:condition="python: len(switch_roots) <= 1">Viewing as ${root_first_name}</span>
+        <tal:block tal:condition="me_id">
+          <details class="secondary view-as" tal:condition="python: len(switch_roots) > 1" tal:attributes="data-current me_id">
+            <summary>Viewing as ${root_first_name} &mdash; switch</summary>
+            <ul>
+              <li tal:repeat="root python: [r for r in switch_roots if r['id'] != me_id]">
+                <a tal:attributes="href site_root + root['id'] + '/'" tal:content="root['name']"></a>
+              </li>
+            </ul>
+          </details>
+          <span class="secondary" tal:condition="python: len(switch_roots) <= 1">Viewing as ${root_first_name}</span>
+        </tal:block>
       </div>
     </nav>
   </header>

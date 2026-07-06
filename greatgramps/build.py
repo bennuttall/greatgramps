@@ -1266,7 +1266,11 @@ def _render_global_index(config, shared):
     templates = shared['templates']
     all_people = shared['all_people']
     roots = [all_people[root_id] for root_id in config.roots if root_id in all_people]
-    html = templates['global_index.pt'](page_title=config.site_title, roots=roots, has_custom_css=shared['has_custom_css'], site_root=config.site_root)
+    html = templates['global_index.pt'](
+        layout=shared['layout'], page_title=config.site_title, roots=roots,
+        has_custom_css=shared['has_custom_css'], site_root=config.site_root,
+        nav_items=[], switch_roots=[], me_id=None, root_first_name='',
+    )
     (config.output_dir / 'index.html').write_text(html)
     print('Built index.html')
 
