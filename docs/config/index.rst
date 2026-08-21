@@ -62,6 +62,12 @@ Relative paths are resolved relative to the config file's directory.
    * - ``site_root``
      - no
      - ``/``
+   * - ``include_private``
+     - no
+     - ``false``
+   * - ``redact_names``
+     - no
+     - ``false``
 
 ``db_path``
 -----------
@@ -139,3 +145,35 @@ matching subdirectory. For example, to serve the site at ``/family/``:
 
     output_dir: www/family/
     site_root: /family/
+
+``include_private``
+--------------------
+
+Whether to include people, events, and media marked private in Gramps. Defaults to ``false``: a
+person marked private still gets a page and still appears in trees, listings, and relationships,
+but their dates, places, photos, notes, attributes, occupations, and external links are hidden;
+events and individual photos marked private are left out of the site entirely.
+
+Set to ``true`` to build a personal copy of the site with everything included. A common pattern is
+to keep two config files — a public one with ``include_private`` unset, and a private one with
+``include_private: true`` and a different ``output_dir`` — and select between them with the
+``GREATGRAMPS_CONFIG`` environment variable:
+
+.. code-block:: yaml
+
+    # config-private.yml
+    include_private: true
+    output_dir: www-private
+
+.. code-block::
+
+    GREATGRAMPS_CONFIG=config-private.yml grgr build
+
+``redact_names``
+-----------------
+
+Whether to hide a private person's name as well, when ``include_private`` is ``false``. Defaults to
+``false``, which keeps the moderate redaction described above (name shown, dates/places/photos/etc.
+hidden). Set to ``true`` to also replace their name everywhere on the site with their Gramps ID
+(e.g. ``I0019``), leaving only their ID, gender, and tree position visible. Has no effect when
+``include_private`` is ``true``.

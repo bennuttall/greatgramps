@@ -32,6 +32,8 @@ class Config(BaseModel):
     nav_pages: list[NavPage] = DEFAULT_NAV_PAGES
     site_title: str = 'Family tree'
     site_root: str = '/'
+    include_private: bool = False
+    redact_names: bool = False
 
     @field_validator('site_root')
     @classmethod
