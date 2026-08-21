@@ -33,6 +33,7 @@ class Config(BaseModel):
     site_title: str = 'Family tree'
     site_root: str = '/'
     include_private: bool = False
+    redact_names: bool = False
 
     @field_validator('site_root')
     @classmethod
