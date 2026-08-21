@@ -1647,7 +1647,7 @@ def list_descendants(
         if not person:
             console.print(f"[red]Person {person_id!r} not found[/red]")
             raise typer.Exit(1)
-        descendants = collect_all_descendants(db, person)
+        descendants = collect_all_descendants(db, person, include_private=True)
         console.print(f"[bold]{person_id}: {_person_name(person)}[/bold]\n")
 
         table = Table()

@@ -14,6 +14,7 @@
       <tal:block tal:condition="surname_url and not person['given'] and not person['surname']">[Unknown]</tal:block>
       <small class="years" tal:condition="is_living and birth_year">(${birth_year}–)</small>
       <small class="years" tal:condition="not is_living and (birth_year or death_year)">(${birth_year or '?'}–${death_year or ''})</small>
+      <span class="ancestor-badge private" tal:condition="person['is_private']">private</span>
     </h1>
     <p class="person-alt-names" tal:condition="person['alt_names']">
       <tal:block tal:repeat="n person['alt_names']">

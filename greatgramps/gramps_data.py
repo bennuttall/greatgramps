@@ -89,11 +89,13 @@ def _alt_names(db, person, primary_name):
     return result
 
 
-def person_data(db, person):
-    birth = get_event(db, person, EventType.BIRTH)
-    death = get_event(db, person, EventType.DEATH)
+def person_data(db, person, *, include_private=False):
+    is_private = person.get_privacy()
+    redact = is_private and not include_private
+    birth = None if redact else get_event(db, person, EventType.BIRTH)
+    death = None if redact else get_event(db, person, EventType.DEATH)
     name = person.get_primary_name()
-    urls = {str(u.get_type()): u.get_path() for u in person.get_url_list()}
+    urls = {} if redact else {str(u.get_type()): u.get_path() for u in person.get_url_list()}
     tag_names = sorted(db.get_tag_from_handle(h).get_name() for h in person.get_tag_list())
     return {
         'gramps_id': person.get_gramps_id(),
@@ -107,13 +109,14 @@ def person_data(db, person):
         'gender': person.get_gender(),
         'grave_url': urls.get('Find a Grave'),
         'ancestry_url': urls.get('Ancestry'),
-        'external_links': sorted(
+        'external_links': [] if redact else sorted(
             [{'label': str(u.get_type()), 'url': u.get_path()} for u in person.get_url_list()],
             key=lambda x: (0 if x['label'] == 'Ancestry' else 1, x['label']),
         ),
         'is_living': probably_alive(person, db),
-        'alt_names': _alt_names(db, person, name),
+        'alt_names': [] if redact else _alt_names(db, person, name),
         'tags': tag_names,
+        'is_private': redact,
     }
 
 
@@ -207,7 +210,7 @@ def _event_dict(db, event, birth_year, desc=None, desc_url=None, desc_gender=Non
     }
 
 
-def get_all_events(db, person):
+def get_all_events(db, person, *, include_private=False):
     birth_year = get_year(get_event(db, person, EventType.BIRTH))
     grave_url = next(
         (url.get_path() for url in person.get_url_list() if str(url.get_type()) == 'Find a Grave'),
@@ -217,6 +220,8 @@ def get_all_events(db, person):
 
     for eref in person.get_event_ref_list():
         event = db.get_event_from_handle(eref.get_reference_handle())
+        if event.get_privacy() and not include_private:
+            continue
         etype = int(event.get_type())
         is_burial = etype == EventType.BURIAL
         is_birth = etype == EventType.BIRTH
@@ -229,18 +234,20 @@ def get_all_events(db, person):
         is_father = family.get_father_handle() == person.get_handle()
         spouse_h = family.get_mother_handle() if is_father else family.get_father_handle()
         spouse = db.get_person_from_handle(spouse_h) if spouse_h else None
-        spouse_name = person_data(db, spouse)['full_name'] if spouse else None
+        spouse_name = person_data(db, spouse, include_private=include_private)['full_name'] if spouse else None
         spouse_url = f'/people/{spouse.get_gramps_id()}/' if spouse else None
         for eref in family.get_event_ref_list():
             event = db.get_event_from_handle(eref.get_reference_handle())
+            if event.get_privacy() and not include_private:
+                continue
             spouse_gender = spouse.get_gender() if spouse else None
             events.append(_event_dict(db, event, birth_year, desc=spouse_name, desc_url=spouse_url, desc_gender=spouse_gender))
 
         for child_ref in family.get_child_ref_list():
             child = db.get_person_from_handle(child_ref.get_reference_handle())
             birth = get_event(db, child, EventType.BIRTH)
-            if birth:
-                child_data = person_data(db, child)
+            if birth and not (birth.get_privacy() and not include_private):
+                child_data = person_data(db, child, include_private=include_private)
                 events.append(_event_dict(
                     db, birth, birth_year,
                     label='Child born',
@@ -270,7 +277,7 @@ FAMILY_REL_LABELS = {
 }
 
 
-def get_spouses(db, person):
+def get_spouses(db, person, *, include_private=False):
     spouses = []
     for fam_handle in person.get_family_handle_list():
         family = db.get_family_from_handle(fam_handle)
@@ -281,6 +288,8 @@ def get_spouses(db, person):
         marriage = None
         for eref in family.get_event_ref_list():
             event = db.get_event_from_handle(eref.get_reference_handle())
+            if event.get_privacy() and not include_private:
+                continue
             if int(event.get_type()) == EventType.MARRIAGE:
                 place_h = event.get_place_handle()
                 marriage = {
@@ -290,14 +299,14 @@ def get_spouses(db, person):
                 }
                 break
         spouses.append({
-            'person': person_data(db, spouse) if spouse else None,
+            'person': person_data(db, spouse, include_private=include_private) if spouse else None,
             'rel_type': rel_type,
             'marriage': marriage,
         })
     return spouses
 
 
-def get_siblings(db, person):
+def get_siblings(db, person, *, include_private=False):
     gid = person.get_gramps_id()
     my_family_handles = set(person.get_parent_family_handle_list())
     seen = {gid}
@@ -309,7 +318,7 @@ def get_siblings(db, person):
             child = db.get_person_from_handle(cref.get_reference_handle())
             if child and child.get_gramps_id() not in seen:
                 seen.add(child.get_gramps_id())
-                result.append({**person_data(db, child), 'half_sibling': False})
+                result.append({**person_data(db, child, include_private=include_private), 'half_sibling': False})
 
     my_parent_handles = set()
     for pfh in my_family_handles:
@@ -329,7 +338,7 @@ def get_siblings(db, person):
                 child = db.get_person_from_handle(cref.get_reference_handle())
                 if child and child.get_gramps_id() not in seen:
                     seen.add(child.get_gramps_id())
-                    result.append({**person_data(db, child), 'half_sibling': True})
+                    result.append({**person_data(db, child, include_private=include_private), 'half_sibling': True})
 
     result.sort(key=lambda p: p['birth_year'] or 9999)
     return result
@@ -511,21 +520,21 @@ def get_children(db, person):
     return children
 
 
-def collect_all_people(db):
+def collect_all_people(db, *, include_private=False):
     return {
-        p.get_gramps_id(): person_data(db, p)
+        p.get_gramps_id(): person_data(db, p, include_private=include_private)
         for p in db.iter_people()
     }
 
 
-def collect_ancestors(db, person, generation=0, ancestors=None, couple_slot=None, _slot_counter=None):
+def collect_ancestors(db, person, generation=0, ancestors=None, couple_slot=None, _slot_counter=None, *, include_private=False):
     if ancestors is None:
         ancestors = {}
         _slot_counter = [0]
     gid = person.get_gramps_id()
     if gid in ancestors:
         return ancestors
-    data = person_data(db, person)
+    data = person_data(db, person, include_private=include_private)
     data['generation'] = generation
     data['couple_slot'] = couple_slot
     ancestors[gid] = data
@@ -534,13 +543,13 @@ def collect_ancestors(db, person, generation=0, ancestors=None, couple_slot=None
         slot = _slot_counter[0]
         _slot_counter[0] += 1
         if father:
-            collect_ancestors(db, father, generation + 1, ancestors, slot, _slot_counter)
+            collect_ancestors(db, father, generation + 1, ancestors, slot, _slot_counter, include_private=include_private)
         if mother:
-            collect_ancestors(db, mother, generation + 1, ancestors, slot, _slot_counter)
+            collect_ancestors(db, mother, generation + 1, ancestors, slot, _slot_counter, include_private=include_private)
     return ancestors
 
 
-def collect_ancestor_tree(db, person, max_gen=4):
+def collect_ancestor_tree(db, person, max_gen=4, *, include_private=False):
     """Return (nodes, grid_rows, grid_cols) for a pedigree chart.
 
     Each node is person_data plus 'gen' and 'grid_style' (CSS grid placement).
@@ -558,7 +567,7 @@ def collect_ancestor_tree(db, person, max_gen=4):
         span = leaves >> gen
         row_start = pos * span + 1
         row_end = row_start + span
-        data = person_data(db, p)
+        data = person_data(db, p, include_private=include_private)
         data['gen'] = gen
         data['grid_style'] = f'grid-column:{gen + 1};grid-row:{row_start}/{row_end}'
         father, mother = get_parents(db, p)
@@ -572,7 +581,7 @@ def collect_ancestor_tree(db, person, max_gen=4):
     return nodes, leaves, max_gen + 1
 
 
-def collect_all_descendants(db, person):
+def collect_all_descendants(db, person, *, include_private=False):
     """Returns {gramps_id: person_data} for all descendants, each with a 'generation' key."""
     result = {}
     seen = {person.get_gramps_id()}
@@ -583,7 +592,7 @@ def collect_all_descendants(db, person):
         if gid in seen:
             continue
         seen.add(gid)
-        data = person_data(db, p)
+        data = person_data(db, p, include_private=include_private)
         data['generation'] = gen
         result[gid] = data
         queue.extend((child, gen + 1) for child in get_children(db, p))
@@ -616,7 +625,7 @@ def count_descendants(db, person):
     return count
 
 
-def collect_descendant_tree(db, person, max_gen=4):
+def collect_descendant_tree(db, person, max_gen=4, *, include_private=False):
     """Return (nodes, grid_rows, grid_cols) for a descendants chart.
 
     Grid: row = generation (1-indexed), column = leaf position (1-indexed).
@@ -632,7 +641,7 @@ def collect_descendant_tree(db, person, max_gen=4):
     nodes = []
 
     def place_nodes(p, gen, col_start):
-        data = person_data(db, p)
+        data = person_data(db, p, include_private=include_private)
         all_children = get_children(db, p)
         visible_children = all_children if gen < max_gen else []
         leaf_count = count_leaves(p, gen)
@@ -663,7 +672,7 @@ def place_data(place):
     }
 
 
-def build_place_event_index(db):
+def build_place_event_index(db, *, include_private=False):
     """Returns (place_handle -> [event_dict], event_handle -> [person_data]) indexes."""
     from greatgramps.gramps_data import format_date, EVENT_TYPE_LABELS
 
@@ -671,7 +680,7 @@ def build_place_event_index(db):
     event_parties = {}
 
     for person in db.iter_people():
-        pdata = person_data(db, person)
+        pdata = person_data(db, person, include_private=include_private)
         for eref in person.get_event_ref_list():
             h = eref.get_reference_handle()
             event_parties.setdefault(h, {'people': [], 'couple': None})
@@ -680,8 +689,8 @@ def build_place_event_index(db):
     for family in db.iter_families():
         fh = family.get_father_handle()
         mh = family.get_mother_handle()
-        father = person_data(db, db.get_person_from_handle(fh)) if fh else None
-        mother = person_data(db, db.get_person_from_handle(mh)) if mh else None
+        father = person_data(db, db.get_person_from_handle(fh), include_private=include_private) if fh else None
+        mother = person_data(db, db.get_person_from_handle(mh), include_private=include_private) if mh else None
         for eref in family.get_event_ref_list():
             h = eref.get_reference_handle()
             event_parties.setdefault(h, {'people': [], 'couple': None})
@@ -689,6 +698,8 @@ def build_place_event_index(db):
 
     place_index = {}
     for event in db.iter_events():
+        if event.get_privacy() and not include_private:
+            continue
         ph = event.get_place_handle()
         if not ph:
             continue
@@ -725,12 +736,12 @@ def build_place_event_index(db):
     return place_index
 
 
-def build_event_list(db, ancestor_ids):
+def build_event_list(db, ancestor_ids, *, include_private=False):
     """Returns all events with an is_ancestor_event flag, sorted by year."""
     event_parties = {}
 
     for person in db.iter_people():
-        pdata = person_data(db, person)
+        pdata = person_data(db, person, include_private=include_private)
         for eref in person.get_event_ref_list():
             h = eref.get_reference_handle()
             event_parties.setdefault(h, {'people': [], 'couple': None})
@@ -739,8 +750,8 @@ def build_event_list(db, ancestor_ids):
     for family in db.iter_families():
         fh = family.get_father_handle()
         mh = family.get_mother_handle()
-        father = person_data(db, db.get_person_from_handle(fh)) if fh else None
-        mother = person_data(db, db.get_person_from_handle(mh)) if mh else None
+        father = person_data(db, db.get_person_from_handle(fh), include_private=include_private) if fh else None
+        mother = person_data(db, db.get_person_from_handle(mh), include_private=include_private) if mh else None
         for eref in family.get_event_ref_list():
             h = eref.get_reference_handle()
             event_parties.setdefault(h, {'people': [], 'couple': None})
@@ -748,6 +759,8 @@ def build_event_list(db, ancestor_ids):
 
     events = []
     for event in db.iter_events():
+        if event.get_privacy() and not include_private:
+            continue
         parties = event_parties.get(event.get_handle(), {'people': [], 'couple': None})
         people = parties['people']
         couple = parties['couple']
@@ -794,11 +807,11 @@ def build_event_list(db, ancestor_ids):
     return events
 
 
-def build_event_pages_data(db, db_path):
+def build_event_pages_data(db, db_path, *, include_private=False):
     """Returns {gramps_id: event_detail} for all events, with deduplicated participants."""
     event_parties = {}
     for person in db.iter_people():
-        pdata = person_data(db, person)
+        pdata = person_data(db, person, include_private=include_private)
         for eref in person.get_event_ref_list():
             h = eref.get_reference_handle()
             event_parties.setdefault(h, {'people': [], 'couple': None})
@@ -806,10 +819,10 @@ def build_event_pages_data(db, db_path):
     for family in db.iter_families():
         fh = family.get_father_handle()
         mh = family.get_mother_handle()
-        father = person_data(db, db.get_person_from_handle(fh)) if fh else None
-        mother = person_data(db, db.get_person_from_handle(mh)) if mh else None
+        father = person_data(db, db.get_person_from_handle(fh), include_private=include_private) if fh else None
+        mother = person_data(db, db.get_person_from_handle(mh), include_private=include_private) if mh else None
         children = sorted(
-            [person_data(db, db.get_person_from_handle(cr.get_reference_handle()))
+            [person_data(db, db.get_person_from_handle(cr.get_reference_handle()), include_private=include_private)
              for cr in family.get_child_ref_list()],
             key=lambda p: p['birth_year'] or 9999,
         )
@@ -821,6 +834,8 @@ def build_event_pages_data(db, db_path):
 
     result = {}
     for event in db.iter_events():
+        if event.get_privacy() and not include_private:
+            continue
         handle = event.get_handle()
         parties = event_parties.get(handle, {'people': [], 'couple': None, 'children': []})
         etype = int(event.get_type())
@@ -861,26 +876,28 @@ def build_event_pages_data(db, db_path):
             'people': participants,
             'couple': couple,
             'children': parties.get('children', []),
-            'photos': get_event_photos(db, event, db_path),
+            'photos': get_event_photos(db, event, db_path, include_private=include_private),
             'is_interesting': 'Interesting' in tag_names,
             'is_conflict': 'Conflict' in tag_names,
         }
     return result
 
 
-def build_birthday_list(db):
+def build_birthday_list(db, *, include_private=False):
     """Returns birthdays grouped by month, each month having a list of days with people."""
     by_date = {}
     for person in db.iter_people():
+        if person.get_privacy() and not include_private:
+            continue
         birth = get_event(db, person, EventType.BIRTH)
-        if not birth:
+        if not birth or (birth.get_privacy() and not include_private):
             continue
         date_obj = birth.get_date_object()
         month = date_obj.get_month()
         day = date_obj.get_day()
         if not month or not day:
             continue
-        pdata = person_data(db, person)
+        pdata = person_data(db, person, include_private=include_private)
         by_date.setdefault((month, day), []).append(pdata)
 
     for people in by_date.values():
@@ -896,10 +913,12 @@ def build_birthday_list(db):
     ]
 
 
-def _collect_photos(db, obj, db_path):
+def _collect_photos(db, obj, db_path, *, include_private=False):
     photos = []
     for ref in obj.get_media_list():
         media = db.get_media_from_handle(ref.get_reference_handle())
+        if media.get_privacy() and not include_private:
+            continue
         mime = media.get_mime_type()
         if not mime:
             raise ValueError(f"Media has no MIME type: {media.get_gramps_id()} ({media.get_path()})")
@@ -947,15 +966,15 @@ def get_occupations(person) -> list[dict]:
     return sorted(occupations, key=lambda o: o['year'] or 0)
 
 
-def get_photos(db, person, db_path):
-    return _collect_photos(db, person, db_path)
+def get_photos(db, person, db_path, *, include_private=False):
+    return _collect_photos(db, person, db_path, include_private=include_private)
 
 
-def get_event_photos(db, event, db_path):
-    return _collect_photos(db, event, db_path)
+def get_event_photos(db, event, db_path, *, include_private=False):
+    return _collect_photos(db, event, db_path, include_private=include_private)
 
 
-def get_all_person_pictures(db, person, db_path):
+def get_all_person_pictures(db, person, db_path, *, include_private=False):
     """Return all photos attached to a person or their events, with source metadata."""
     pictures = []
     seen_media_ids = set()
@@ -967,25 +986,29 @@ def get_all_person_pictures(db, person, db_path):
             seen_media_ids.add(p['media_id'])
             pictures.append({**p, 'page_url': page_url, 'page_label': page_label, 'year': year})
 
-    _add(_collect_photos(db, person, db_path), f'/people/{person.get_gramps_id()}/', 'Profile', year=None)
+    _add(_collect_photos(db, person, db_path, include_private=include_private), f'/people/{person.get_gramps_id()}/', 'Profile', year=None)
 
     for eref in person.get_event_ref_list():
         event = db.get_event_from_handle(eref.get_reference_handle())
+        if event.get_privacy() and not include_private:
+            continue
         etype = int(event.get_type())
         label = EVENT_TYPE_LABELS.get(etype, str(event.get_type()))
         year = event.get_date_object().get_year() or None
         slug = event_url_slug(event.get_gramps_id())
-        _add(_collect_photos(db, event, db_path), f'/events/{slug}/', label, year=year)
+        _add(_collect_photos(db, event, db_path, include_private=include_private), f'/events/{slug}/', label, year=year)
 
     for fam_handle in person.get_family_handle_list():
         family = db.get_family_from_handle(fam_handle)
         for eref in family.get_event_ref_list():
             event = db.get_event_from_handle(eref.get_reference_handle())
+            if event.get_privacy() and not include_private:
+                continue
             etype = int(event.get_type())
             label = EVENT_TYPE_LABELS.get(etype, str(event.get_type()))
             year = event.get_date_object().get_year() or None
             slug = event_url_slug(event.get_gramps_id())
-            _add(_collect_photos(db, event, db_path), f'/events/{slug}/', label, year=year)
+            _add(_collect_photos(db, event, db_path, include_private=include_private), f'/events/{slug}/', label, year=year)
 
     pictures.sort(key=lambda p: p['year'] or 9999)
     return pictures
@@ -1017,11 +1040,11 @@ def _household_name(description, year):
     return s.strip() or description
 
 
-def build_census_data(db):
+def build_census_data(db, *, include_private=False):
     """Returns {year: [event_dicts]} for all Census events, sorted by description within each year."""
     event_people = {}
     for person in db.iter_people():
-        pdata = person_data(db, person)
+        pdata = person_data(db, person, include_private=include_private)
         for eref in person.get_event_ref_list():
             h = eref.get_reference_handle()
             event_people.setdefault(h, []).append(pdata)
@@ -1029,6 +1052,8 @@ def build_census_data(db):
     by_year = {}
     for event in db.iter_events():
         if int(event.get_type()) != EventType.CENSUS:
+            continue
+        if event.get_privacy() and not include_private:
             continue
         year = event.get_date_object().get_year() or None
         if not year:

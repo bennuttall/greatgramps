@@ -147,13 +147,13 @@ def _make_map_json(person_place_events, people, place_lat_lon, base):
 
 def _make_shared_ctx(config, db):
     """Build context shared across all root builds."""
-    all_people = collect_all_people(db)
+    all_people = collect_all_people(db, include_private=config.include_private)
 
     config.output_dir.mkdir(parents=True, exist_ok=True)
     media_dir = config.output_dir / 'media'
     media_dir.mkdir(exist_ok=True)
 
-    place_event_index = build_place_event_index(db)
+    place_event_index = build_place_event_index(db, include_private=config.include_private)
     all_places = {p.get_handle(): place_data(p) for p in db.iter_places()}
 
     place_children = {}
@@ -198,9 +198,12 @@ def _make_shared_ctx(config, db):
     person_place_events = {}
     for _gid, _pdata in all_people.items():
         _p = db.get_person_from_gramps_id(_gid)
+        if _p.get_privacy() and not config.include_private:
+            person_place_events[_gid] = []
+            continue
         person_place_events[_gid] = [
             {'place_id': e['place_id'], 'place': e['place'], 'type': e['type']}
-            for e in get_all_events(db, _p)
+            for e in get_all_events(db, _p, include_private=config.include_private)
             if e.get('place_id') and e['place_id'] in place_lat_lon
         ]
 
@@ -244,9 +247,9 @@ def _make_root_ctx(shared, root_id):
     db = shared['db']
 
     me = db.get_person_from_gramps_id(root_id)
-    my_ancestors = collect_ancestors(db, me)
+    my_ancestors = collect_ancestors(db, me, include_private=config.include_private)
     me_ancestor_distances = ancestors_with_distances(db, me)
-    my_descendants_data = collect_all_descendants(db, me)
+    my_descendants_data = collect_all_descendants(db, me, include_private=config.include_private)
     my_descendants = set(my_descendants_data) - {root_id}
 
     root_dir = config.output_dir / root_id
@@ -336,26 +339,27 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
 
     data = all_people[gid]
     p = db.get_person_from_gramps_id(gid)
+    is_private_subject = p.get_privacy() and not config.include_private
     father_p, mother_p = get_parents(db, p)
     children_p = get_children(db, p)
-    spouses = sorted(get_spouses(db, p), key=lambda s: (s['marriage'] or {}).get('year') or 9999)
-    person_ancestors = collect_ancestors(db, p)
-    photos = [
+    spouses = sorted(get_spouses(db, p, include_private=config.include_private), key=lambda s: (s['marriage'] or {}).get('year') or 9999)
+    person_ancestors = collect_ancestors(db, p, include_private=config.include_private)
+    photos = [] if is_private_subject else [
         {**photo, 'url': process_photo(photo, media_dir, gid, config.site_root)}
-        for photo in get_photos(db, p, config.db_path)
+        for photo in get_photos(db, p, config.db_path, include_private=config.include_private)
     ]
-    all_pictures = [
+    all_pictures = [] if is_private_subject else [
         {**pic, 'url': process_photo(pic, media_dir, gid, config.site_root),
          'page_url': base + pic['page_url'][1:] if (pic.get('page_url') or '').startswith('/') else pic.get('page_url')}
-        for pic in get_all_person_pictures(db, p, config.db_path)
+        for pic in get_all_person_pictures(db, p, config.db_path, include_private=config.include_private)
     ]
-    occupations = get_occupations(p)
-    notes = get_person_notes(db, p)
-    attributes = get_person_attributes(p)
+    occupations = [] if is_private_subject else get_occupations(p)
+    notes = [] if is_private_subject else get_person_notes(db, p)
+    attributes = [] if is_private_subject else get_person_attributes(p)
     num_more = len(notes) + len(attributes)
-    events = [
+    events = [] if is_private_subject else [
         {**e, 'description_url': base + e['description_url'][1:] if (e.get('description_url') or '').startswith('/people/') else e.get('description_url')}
-        for e in get_all_events(db, p)
+        for e in get_all_events(db, p, include_private=config.include_private)
     ]
     map_points = {}
     for event in events:
@@ -374,7 +378,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
             map_points[pid]['types'].append(event['type'])
     event_map_json = json.dumps(list(map_points.values()))
     num_ancestors = len(person_ancestors) - 1
-    all_descendants = collect_all_descendants(db, p)
+    all_descendants = collect_all_descendants(db, p, include_private=config.include_private)
     for desc_gid, desc_data in all_descendants.items():
         desc_data['is_ancestor'] = desc_gid in my_ancestors and desc_gid != root_id
         desc_data['is_descendant'] = desc_gid in my_descendants
@@ -389,13 +393,13 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         'person',
         page_title=f"{data['full_name']} — {config.site_title}",
         person=data,
-        father={**person_data(db, father_p), 'is_ancestor': father_p.get_gramps_id() in my_ancestors and father_p.get_gramps_id() != root_id, 'is_descendant': father_p.get_gramps_id() in my_descendants, 'is_me': father_p.get_gramps_id() == root_id} if father_p else None,
-        mother={**person_data(db, mother_p), 'is_ancestor': mother_p.get_gramps_id() in my_ancestors and mother_p.get_gramps_id() != root_id, 'is_descendant': mother_p.get_gramps_id() in my_descendants, 'is_me': mother_p.get_gramps_id() == root_id} if mother_p else None,
+        father={**person_data(db, father_p, include_private=config.include_private), 'is_ancestor': father_p.get_gramps_id() in my_ancestors and father_p.get_gramps_id() != root_id, 'is_descendant': father_p.get_gramps_id() in my_descendants, 'is_me': father_p.get_gramps_id() == root_id} if father_p else None,
+        mother={**person_data(db, mother_p, include_private=config.include_private), 'is_ancestor': mother_p.get_gramps_id() in my_ancestors and mother_p.get_gramps_id() != root_id, 'is_descendant': mother_p.get_gramps_id() in my_descendants, 'is_me': mother_p.get_gramps_id() == root_id} if mother_p else None,
         children=sorted(
-            [{**person_data(db, c), 'is_ancestor': c.get_gramps_id() in my_ancestors and c.get_gramps_id() != root_id, 'is_descendant': c.get_gramps_id() in my_descendants, 'is_me': c.get_gramps_id() == root_id} for c in children_p],
+            [{**person_data(db, c, include_private=config.include_private), 'is_ancestor': c.get_gramps_id() in my_ancestors and c.get_gramps_id() != root_id, 'is_descendant': c.get_gramps_id() in my_descendants, 'is_me': c.get_gramps_id() == root_id} for c in children_p],
             key=lambda c: c['birth_year'] or 9999,
         ),
-        siblings=[{**s, 'is_ancestor': s['gramps_id'] in my_ancestors and s['gramps_id'] != root_id, 'is_descendant': s['gramps_id'] in my_descendants, 'is_me': s['gramps_id'] == root_id} for s in get_siblings(db, p)],
+        siblings=[{**s, 'is_ancestor': s['gramps_id'] in my_ancestors and s['gramps_id'] != root_id, 'is_descendant': s['gramps_id'] in my_descendants, 'is_me': s['gramps_id'] == root_id} for s in get_siblings(db, p, include_private=config.include_private)],
         spouses=[{**s, 'person': {**s['person'], 'is_ancestor': s['person']['gramps_id'] in my_ancestors and s['person']['gramps_id'] != root_id, 'is_descendant': s['person']['gramps_id'] in my_descendants, 'is_me': s['person']['gramps_id'] == root_id} if s['person'] else None} for s in spouses],
         events=events,
         is_ancestor=gid in my_ancestors and gid != root_id,
@@ -422,7 +426,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
     person_out.mkdir(exist_ok=True)
     (person_out / 'index.html').write_text(html)
 
-    tree_nodes, tree_rows, tree_cols = collect_ancestor_tree(db, p)
+    tree_nodes, tree_rows, tree_cols = collect_ancestor_tree(db, p, include_private=config.include_private)
     tree_grid_style = (
         f'grid-template-rows:repeat({tree_rows},minmax(2.5rem,auto));'
         f'grid-template-columns:repeat({tree_cols},minmax(140px,1fr))'
@@ -454,7 +458,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         num_more=num_more,
     ))
 
-    desc_nodes, desc_rows, desc_cols = collect_descendant_tree(db, p)
+    desc_nodes, desc_rows, desc_cols = collect_descendant_tree(db, p, include_private=config.include_private)
     desc_grid_style = (
         f'grid-template-columns:repeat({desc_cols},minmax(140px,1fr));'
         f'grid-template-rows:repeat({desc_rows},minmax(2.5rem,auto))'
@@ -679,15 +683,16 @@ def _render_event_page(ctx, slug, event_data, relation_map):
     if template == 'marriage':
         for pd in filter(None, event_data.get('couple') or []):
             p_obj = db.get_person_from_gramps_id(pd['gramps_id'])
-            father_obj, mother_obj = get_parents(db, p_obj) if p_obj else (None, None)
-            person_photos = [
+            show_p = p_obj and not (p_obj.get_privacy() and not config.include_private)
+            father_obj, mother_obj = get_parents(db, p_obj) if show_p else (None, None)
+            person_photos = [] if not show_p else [
                 {**photo, 'url': process_photo(photo, media_dir, pd['gramps_id'], config.site_root)}
-                for photo in (get_photos(db, p_obj, config.db_path) if p_obj else [])
+                for photo in get_photos(db, p_obj, config.db_path, include_private=config.include_private)
             ]
             couple_details.append({
                 **pd,
-                'father': person_data(db, father_obj) if father_obj else None,
-                'mother': person_data(db, mother_obj) if mother_obj else None,
+                'father': person_data(db, father_obj, include_private=config.include_private) if father_obj else None,
+                'mother': person_data(db, mother_obj, include_private=config.include_private) if mother_obj else None,
                 'photos': person_photos,
             })
     (event_out / 'index.html').write_text(render(
@@ -1179,7 +1184,7 @@ def _build_root(ctx):
     events_dir = ctx['events_dir']
     ancestor_events = [
         {**e, 'is_descendant_event': any(p['gramps_id'] in my_descendants for p in e['people'])}
-        for e in build_event_list(db, set(my_ancestors) - {root_id})
+        for e in build_event_list(db, set(my_ancestors) - {root_id}, include_private=config.include_private)
     ]
     (events_dir / 'index.html').write_text(
         render('events', page_title=f'Events — {config.site_title}',
@@ -1188,7 +1193,7 @@ def _build_root(ctx):
     print(f'Built events/index.html ({len(ancestor_events)} events)')
 
     # Individual event pages
-    all_event_data = build_event_pages_data(db, config.db_path)
+    all_event_data = build_event_pages_data(db, config.db_path, include_private=config.include_private)
     valid_events = {slug: ed for slug, ed in all_event_data.items() if slug}
     print(f'Building {len(valid_events)} event pages...')
     t = time.time()
@@ -1203,7 +1208,7 @@ def _build_root(ctx):
     # Birthdays page
     birthdays_dir = root_dir / 'birthdays'
     birthdays_dir.mkdir(exist_ok=True)
-    birthday_months = build_birthday_list(db)
+    birthday_months = build_birthday_list(db, include_private=config.include_private)
     total_birthdays = sum(len(d['people']) for m in birthday_months for d in m['days'])
     (birthdays_dir / 'index.html').write_text(
         render('birthdays', page_title=f'Birthdays — {config.site_title}',
@@ -1217,7 +1222,7 @@ def _build_root(ctx):
     _render_surname_pages(ctx)
 
     # Census pages
-    census_data = build_census_data(db)
+    census_data = build_census_data(db, include_private=config.include_private)
     for events_list in census_data.values():
         for event in events_list:
             pid = event['place_id']
@@ -1356,13 +1361,13 @@ def _rebuild_root_pages(ctx, ids):
             render = ctx['render']
             ancestor_events = [
                 {**e, 'is_descendant_event': any(p['gramps_id'] in my_descendants for p in e['people'])}
-                for e in build_event_list(db, set(my_ancestors) - {root_id})
+                for e in build_event_list(db, set(my_ancestors) - {root_id}, include_private=config.include_private)
             ]
             (events_dir / 'index.html').write_text(
                 render('events', page_title=f'Events — {config.site_title}',
                        events=ancestor_events, relation_map=relation_map)
             )
-            all_event_data = build_event_pages_data(db, config.db_path)
+            all_event_data = build_event_pages_data(db, config.db_path, include_private=config.include_private)
             valid_events = {slug: ed for slug, ed in all_event_data.items() if slug}
             t = time.time()
             event_errors = []
@@ -1374,11 +1379,15 @@ def _rebuild_root_pages(ctx, ids):
             _report('event pages', len(valid_events), event_errors, time.time() - t)
             print(f'Rebuilt events/index.html [{root_id}]')
         else:
-            all_event_data = build_event_pages_data(db, config.db_path)
+            all_event_data = build_event_pages_data(db, config.db_path, include_private=config.include_private)
             by_gramps_id = {ed['gramps_id']: (slug, ed) for slug, ed in all_event_data.items() if slug}
             for event_id in event_ids:
                 if event_id not in by_gramps_id:
-                    print(f'Event {event_id!r} not found')
+                    event_obj = db.get_event_from_gramps_id(event_id)
+                    if event_obj and event_obj.get_privacy() and not config.include_private:
+                        print(f'Event {event_id!r} is private — skipped (set include_private in config to build it)')
+                    else:
+                        print(f'Event {event_id!r} not found')
                     continue
                 slug, event_data = by_gramps_id[event_id]
                 _render_event_page(ctx, slug, event_data, relation_map)
@@ -1426,7 +1435,7 @@ def _rebuild_root_pages(ctx, ids):
 
     if 'census' in named:
         render = ctx['render']
-        census_data = build_census_data(db)
+        census_data = build_census_data(db, include_private=config.include_private)
         place_lat_lon = ctx['place_lat_lon']
         for events_list in census_data.values():
             for event in events_list:
@@ -1530,7 +1539,7 @@ def _rebuild_root_pages(ctx, ids):
         render = ctx['render']
         birthdays_dir = root_dir / 'birthdays'
         birthdays_dir.mkdir(exist_ok=True)
-        birthday_months = build_birthday_list(db)
+        birthday_months = build_birthday_list(db, include_private=config.include_private)
         total_birthdays = sum(len(d['people']) for m in birthday_months for d in m['days'])
         (birthdays_dir / 'index.html').write_text(
             render('birthdays', page_title=f'Birthdays — {config.site_title}',

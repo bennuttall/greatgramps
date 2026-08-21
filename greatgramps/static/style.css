@@ -492,6 +492,10 @@ a:hover { color: #222; }
   background: #1a5a7a;
 }
 
+.ancestor-badge.private {
+  background: #7a1a1a;
+}
+
 .birthday-people {
   list-style: none;
   padding: 0;
