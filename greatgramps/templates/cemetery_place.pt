@@ -32,11 +32,11 @@
       <table class="events-table" id="places-events-table">
         <thead>
           <tr>
-            <th>Year</th>
-            <th>Event</th>
-            <th>Person</th>
-            <th>Find A Grave</th>
-            <th tal:condition="place['sub_places']">Place</th>
+            <th data-col="0" class="sortable sort-asc">Year</th>
+            <th data-col="1" class="sortable">Event</th>
+            <th data-col="2" class="sortable">Person</th>
+            <th data-col="3" class="sortable">Find A Grave</th>
+            <th data-col="4" class="sortable" tal:condition="place['sub_places']">Place</th>
           </tr>
         </thead>
         <tbody>
@@ -143,8 +143,46 @@
     }
     </script>
     <script>
-    const rows = Array.from(document.querySelectorAll('#places-events-table tbody tr'));
+    const tbody = document.querySelector('#places-events-table tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
     const filtersEl = document.getElementById('filters');
+
+    let sortCol = 0;
+    let sortAsc = true;
+
+    function cellText(row, col) {
+      return row.cells[col].textContent.trim();
+    }
+
+    function sortRows() {
+      rows.sort((a, b) => {
+        let av = cellText(a, sortCol);
+        let bv = cellText(b, sortCol);
+        if (sortCol === 0) {
+          const an = parseInt(av) || 0, bn = parseInt(bv) || 0;
+          return sortAsc ? an - bn : bn - an;
+        }
+        return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+      });
+      rows.forEach(r => tbody.appendChild(r));
+    }
+
+    document.querySelectorAll('#places-events-table th.sortable').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = +th.dataset.col;
+        if (sortCol === col) {
+          sortAsc = !sortAsc;
+        } else {
+          sortCol = col;
+          sortAsc = true;
+        }
+        document.querySelectorAll('#places-events-table th.sortable').forEach(h => {
+          h.classList.remove('sort-asc', 'sort-desc');
+        });
+        th.classList.add(sortAsc ? 'sort-asc' : 'sort-desc');
+        sortRows();
+      });
+    });
 
     rows.forEach(r => { if (r.querySelector('.ancestor-badge')) r.dataset.ancestor = 'true'; });
     const hasAncestors = rows.some(r => r.dataset.ancestor);
