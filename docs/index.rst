@@ -7,7 +7,8 @@ A static site generator for `Gramps <https://www.gramps-project.org>`_ family tr
 greatgramps reads a Gramps database and builds a browsable static website from it. Each person in
 the tree gets their own page with biographical details, family relationships, events, photos, and a
 relationship label showing how they connect to a chosen root person. The site also includes index
-pages for people, places, events, census records, birthdays, and surnames.
+pages for people, places, events, census records, birthdays, and surnames, and an interactive tree
+explorer for opening up and closing off branches of the whole tree.
 
 The site is built from the point of view of one or more root people — typically the living members
 of a family who each want to browse the tree as themselves. Each root person gets their own section

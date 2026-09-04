@@ -42,6 +42,8 @@ page. Click a name for their page, or the centre button to redraw the tree aroun
 box jumps to any person, and the current view is kept in the URL so it can be bookmarked or
 shared. The ancestors and descendants tabs on each person link into the explorer centred on them.
 
+`Demo <https://gramps.bennuttall.com/I0000/explore/>`_
+
 People
 ======
 

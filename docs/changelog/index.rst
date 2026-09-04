@@ -2,6 +2,35 @@
 Changelog
 =========
 
+0.4.0 (2026-09-04)
+==================
+
+* Add an interactive tree explorer page (``explore``), full screen, with branches that open and
+  close around a focus person, search, recentring and a shareable URL; linked from the ancestors
+  and descendants tabs and included in the nav by default
+* Add a "How you're related" section to person profiles listing every person in the chain between
+  the root and the person, for direct relations, blood relatives and people related by marriage,
+  with the common ancestor in bold and alternative routes noted
+* Show the closest common ancestor in the person header for relatives who are neither an ancestor
+  nor a descendant
+* Label half-siblings as such, and describe unmarried partners of relatives as e.g. "your 1st
+  cousin's partner" with a "partner of a relative" badge instead of "unrelated"
+* Compute ages from full dates when available, so people whose birthday has passed this year no
+  longer show a year too young
+* Add ``exclude_pages`` config option to leave pages out of the build; excluded pages are also
+  dropped from the nav
+* Add ``grgr orphans`` command to find, and optionally delete, orphaned people, disconnected
+  groups, unattached events and unused places
+* Include undated events in the events list, sorted last
+* Warn during the build when a list page has no data
+* Make the burials table on cemetery pages sortable
+* Fix Find a Grave links added with ``grgr add-grave-link`` being dropped from the site because
+  of a URL type capitalisation mismatch
+* Fix same-gender parents being coloured by their role rather than their gender on person pages
+* ``grgr config`` prompts for the config file name, defaulting to ``config.yml``
+* Render the site homepage through the shared layout template so a single template override
+  applies to every page (#10)
+
 0.3.8 (2026-07-06)
 ==================
 
