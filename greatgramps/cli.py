@@ -1815,13 +1815,16 @@ def list_unconnected():
 
 @app.command("orphans")
 def orphans(
-    delete: bool = typer.Option(False, "--delete", help="Delete orphaned people and any families left empty"),
+    delete: bool = typer.Option(False, "--delete", help="Delete orphaned people (and any families left empty), unattached events and unused places"),
     delete_groups: bool = typer.Option(False, "--delete-groups", help="Offer to delete each disconnected group, confirming one group at a time"),
     yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompts"),
 ):
-    """Find orphaned people: those linked to nobody else, including people alone in an empty family.
+    """Find orphaned people, unattached events and unused places.
 
-    Also reports groups of people that are linked to each other but not to any configured root.
+    Orphaned people are linked to nobody else, including those alone in an empty family.
+    Unattached events belong to no person or family. Unused places have no events, directly
+    or via any place they enclose. Also reports groups of people that are linked to each
+    other but not to any configured root.
     """
     db = _open_db(write=delete or delete_groups)
     try:
@@ -1870,8 +1873,38 @@ def orphans(
                 ))
         orphan_people.sort(key=lambda p: p.get_gramps_id())
 
-        if not orphan_people and not disconnected:
-            console.print("No orphaned people found.")
+        # Events referenced by no person or family
+        referenced: set[str] = set()
+        for handle in db.get_person_handles():
+            referenced.update(r.get_reference_handle() for r in db.get_person_from_handle(handle).get_event_ref_list())
+        for handle in db.get_family_handles():
+            referenced.update(r.get_reference_handle() for r in db.get_family_from_handle(handle).get_event_ref_list())
+        unattached_events = sorted(
+            (e for e in db.iter_events() if e.get_handle() not in referenced),
+            key=lambda e: e.get_gramps_id(),
+        )
+
+        # Places with no events, directly or through any place they enclose
+        backlinks = {h: list(db.find_backlink_handles(h)) for h in db.get_place_handles()}
+        unused_cache: dict[str, bool] = {}
+
+        def place_unused(handle):
+            if handle in unused_cache:
+                return unused_cache[handle]
+            unused_cache[handle] = False  # treat enclosure cycles as used
+            for cls, h in backlinks.get(handle, []):
+                if cls != 'Place' or not place_unused(h):
+                    return False
+            unused_cache[handle] = True
+            return True
+
+        unused_places = sorted(
+            (db.get_place_from_handle(h) for h in db.get_place_handles() if place_unused(h)),
+            key=lambda p: p.get_gramps_id(),
+        )
+
+        if not orphan_people and not disconnected and not unattached_events and not unused_places:
+            console.print("No orphaned people, unattached events or unused places found.")
             return
 
         if orphan_people:
@@ -1890,12 +1923,63 @@ def orphans(
             console.print(f"\n[bold]Group of {len(group)} not connected to any root:[/bold]")
             console.print(_people_table([(p, _person_name(p)) for p in group]))
 
-        if delete and orphan_people:
-            console.print(f"\n[bold]Delete {len(orphan_people)} orphaned person(s) and their empty families[/bold]")
+        if unattached_events:
+            console.print(f"\n[bold]{len(unattached_events)} event(s) attached to no person or family:[/bold]")
+            table = Table()
+            table.add_column("ID")
+            table.add_column("Type")
+            table.add_column("Date")
+            table.add_column("Place")
+            table.add_column("Description")
+            for event in unattached_events:
+                place_h = event.get_place_handle()
+                place = db.get_place_from_handle(place_h).get_name().get_value() if place_h else ''
+                table.add_row(event.get_gramps_id(), str(event.get_type()), format_date(event.get_date_object()) or '',
+                              place, event.get_description() or '')
+            console.print(table)
+
+        if unused_places:
+            console.print(f"\n[bold]{len(unused_places)} place(s) with no events, directly or via enclosed places:[/bold]")
+            table = Table()
+            table.add_column("ID")
+            table.add_column("Name")
+            table.add_column("Type")
+            table.add_column("Enclosed by")
+            for place in unused_places:
+                chain = []
+                current = place
+                while current.get_placeref_list():
+                    current = db.get_place_from_handle(current.get_placeref_list()[0].ref)
+                    chain.append(current.get_name().get_value())
+                table.add_row(place.get_gramps_id(), place.get_name().get_value(), str(place.get_type()), ', '.join(chain))
+            console.print(table)
+
+        if delete and (orphan_people or unattached_events or unused_places):
+            parts = []
+            if orphan_people:
+                parts.append(f"{len(orphan_people)} orphaned person(s) and their empty families")
+            if unattached_events:
+                parts.append(f"{len(unattached_events)} unattached event(s)")
+            if unused_places:
+                parts.append(f"{len(unused_places)} unused place(s)")
+            console.print(f"\n[bold]Delete {', '.join(parts)}[/bold]")
             _confirm(yes)
-            _delete_people(db, orphan_people, 'Delete orphaned people')
+            if orphan_people:
+                _delete_people(db, orphan_people, 'Delete orphaned people')
+            if unattached_events:
+                with DbTxn('Delete unattached events', db) as trans:
+                    for event in unattached_events:
+                        db.remove_event(event.get_handle(), trans)
+                ids = ', '.join(e.get_gramps_id() for e in unattached_events)
+                console.print(f"[green]Deleted {len(unattached_events)} events: {ids}[/green]")
+            if unused_places:
+                with DbTxn('Delete unused places', db) as trans:
+                    for place in unused_places:
+                        db.remove_place(place.get_handle(), trans)
+                ids = ', '.join(p.get_gramps_id() for p in unused_places)
+                console.print(f"[green]Deleted {len(unused_places)} places: {ids}[/green]")
         elif delete:
-            console.print("\nNo orphaned people to delete.")
+            console.print("\nNothing to delete.")
 
         if delete_groups and disconnected:
             for group in disconnected:
