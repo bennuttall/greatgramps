@@ -6,8 +6,8 @@ Changelog
 ==================
 
 * Add an interactive tree explorer page (``explore``), full screen, with branches that open and
-  close around a focus person, search, recentring and a shareable URL; linked from the ancestors
-  and descendants tabs and included in the nav by default
+  close around a focus person, search, recentring and a shareable URL; included in the nav by
+  default, with an Explore tab on every person page opening the explorer centred on them
 * Add a "How you're related" section to person profiles listing every person in the chain between
   the root and the person, for direct relations, blood relatives and people related by marriage,
   with the common ancestor in bold and alternative routes noted
@@ -20,7 +20,7 @@ Changelog
 * Add ``exclude_pages`` config option to leave pages out of the build; excluded pages are also
   dropped from the nav
 * Add ``grgr orphans`` command to find, and optionally delete, orphaned people, disconnected
-  groups, unattached events and unused places
+  groups, parentless families, unattached events and unused places
 * Include undated events in the events list, sorted last
 * Warn during the build when a list page has no data
 * Make the burials table on cemetery pages sortable
