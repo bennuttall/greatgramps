@@ -494,6 +494,11 @@ def get_common_ancestors(db, me_ancestors, person):
     return sorted(gid for gid in common if me_ancestors[gid] + other_ancestors[gid] == best)
 
 
+def is_half_sibling(a, b):
+    """True if two siblings share no parent family (the rule get_siblings uses)."""
+    return not set(a.get_parent_family_handle_list()) & set(b.get_parent_family_handle_list())
+
+
 def get_relation_to_me(db, me_ancestors, person, gender=2):
     """Returns relationship label between ME and person, e.g. 'grandmother'."""
     other_ancestors = ancestors_with_distances(db, person)
@@ -503,7 +508,12 @@ def get_relation_to_me(db, me_ancestors, person, gender=2):
     lca = common[0]
     u = me_ancestors[lca]
     d = other_ancestors[lca]
-    return relationship_label(u, d, gender)
+    label = relationship_label(u, d, gender)
+    if u == 1 and d == 1:
+        me_gid = next(g for g, dist in me_ancestors.items() if dist == 0)
+        if is_half_sibling(db.get_person_from_gramps_id(me_gid), person):
+            label = 'half-' + label
+    return label
 
 
 def _is_marriage(family):
@@ -637,6 +647,8 @@ def _blood_path(db, me_links, person):
             link = {FEMALE: 'daughter', MALE: 'son'}.get(gender, 'child')
             direction = 'down'
             relation = relationship_label(u, i - u, gender)
+            if u == 1 and i == 2 and is_half_sibling(db.get_person_from_gramps_id(path[0]), db.get_person_from_gramps_id(gid)):
+                relation = 'half-' + relation
         steps.append(_path_step(db, gid, link, direction, relation))
     # Group the ancestor with their own spouse or partner; any other equally close
     # common ancestors belong to a different route (e.g. brothers who married sisters)
