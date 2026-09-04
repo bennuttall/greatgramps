@@ -443,13 +443,27 @@ def relationship_label(u, d, gender=2):
     return label
 
 
-def get_relation_to_me(db, me_ancestors, person, gender=2):
-    """Returns relationship label between ME and person, e.g. 'grandmother'."""
+def get_common_ancestors(db, me_ancestors, person):
+    """Returns the closest common ancestors of ME and person as a list of gramps IDs.
+
+    All common ancestors sharing the smallest combined distance are returned, so a
+    couple who are both common ancestors are listed together. Empty if unrelated.
+    """
     other_ancestors = ancestors_with_distances(db, person)
     common = set(me_ancestors) & set(other_ancestors)
     if not common:
+        return []
+    best = min(me_ancestors[gid] + other_ancestors[gid] for gid in common)
+    return sorted(gid for gid in common if me_ancestors[gid] + other_ancestors[gid] == best)
+
+
+def get_relation_to_me(db, me_ancestors, person, gender=2):
+    """Returns relationship label between ME and person, e.g. 'grandmother'."""
+    other_ancestors = ancestors_with_distances(db, person)
+    common = get_common_ancestors(db, me_ancestors, person)
+    if not common:
         return None
-    lca = min(common, key=lambda gid: me_ancestors[gid] + other_ancestors[gid])
+    lca = common[0]
     u = me_ancestors[lca]
     d = other_ancestors[lca]
     return relationship_label(u, d, gender)

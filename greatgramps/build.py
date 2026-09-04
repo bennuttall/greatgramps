@@ -48,7 +48,7 @@ except ImportError:
 from .gramps_data import (
     open_db, collect_all_people, collect_ancestors,
     get_parents, get_children, get_siblings, get_spouses, get_all_events,
-    ancestors_with_distances, ancestors_with_ahnentafel, get_relation_to_me, is_related_by_marriage, get_by_marriage_relation,
+    ancestors_with_distances, ancestors_with_ahnentafel, get_relation_to_me, get_common_ancestors, is_related_by_marriage, get_by_marriage_relation,
     get_photos, get_occupations, get_person_notes, get_person_attributes, get_all_person_pictures, place_data, build_place_event_index, build_event_list,
     build_event_pages_data, build_birthday_list, person_data,
     collect_ancestor_tree, collect_descendant_tree,
@@ -317,7 +317,29 @@ def _make_root_ctx(shared, root_id):
     }
 
 
-def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None):
+def _person_relation(ctx, gid):
+    """Work out how a person relates to the root: (relation, by_marriage, marriage_relation, common_ancestors)."""
+    db = ctx['db']
+    all_people = ctx['all_people']
+    me_ancestor_distances = ctx['me_ancestor_distances']
+    my_ancestors = ctx['my_ancestors']
+    my_descendants = ctx['my_descendants']
+    root_id = ctx['root_id']
+    p = db.get_person_from_gramps_id(gid)
+    gender = all_people[gid]['gender']
+    relation = get_relation_to_me(db, me_ancestor_distances, p, gender)
+    marriage_relation = None
+    if not relation and gid != root_id:
+        marriage_relation = get_by_marriage_relation(db, me_ancestor_distances, p, gender)
+    by_marriage = not relation and gid != root_id and (marriage_relation is not None or is_related_by_marriage(db, me_ancestor_distances, p))
+    common_ancestors = []
+    if relation and gid != root_id and gid not in my_ancestors and gid not in my_descendants:
+        common_ancestors = [all_people[a] for a in get_common_ancestors(db, me_ancestor_distances, p) if a in all_people]
+        common_ancestors.sort(key=lambda a: (a['gender'] != 1, a['gramps_id']))  # father first
+    return relation, by_marriage, marriage_relation, common_ancestors
+
+
+def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None, common_ancestors=()):
     """Render profile, ancestors, and descendants pages for one person."""
     config = ctx['config']
     db = ctx['db']
@@ -404,6 +426,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         relation=relation,
         by_marriage=by_marriage,
         marriage_relation=marriage_relation,
+        common_ancestors=common_ancestors,
         photos=photos,
         occupations=occupations,
         place_url=place_url,
@@ -445,6 +468,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         relation=relation,
         by_marriage=by_marriage,
         marriage_relation=marriage_relation,
+        common_ancestors=common_ancestors,
         photos=photos,
         surname_url=surname_url,
         alt_surname_urls=alt_surname_urls,
@@ -476,6 +500,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         relation=relation,
         by_marriage=by_marriage,
         marriage_relation=marriage_relation,
+        common_ancestors=common_ancestors,
         photos=photos,
         surname_url=surname_url,
         alt_surname_urls=alt_surname_urls,
@@ -500,6 +525,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         relation=relation,
         by_marriage=by_marriage,
         marriage_relation=marriage_relation,
+        common_ancestors=common_ancestors,
         photos=photos,
         surname_url=surname_url,
         alt_surname_urls=alt_surname_urls,
@@ -524,6 +550,7 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         relation=relation,
         by_marriage=by_marriage,
         marriage_relation=marriage_relation,
+        common_ancestors=common_ancestors,
         photos=photos,
         surname_url=surname_page_url.get(data['surname']),
         alt_surname_urls=alt_surname_urls,
@@ -1136,15 +1163,10 @@ def _build_root(ctx):
     relation_map = {}
     person_errors = []
     for gid, data in all_people.items():
-        p = db.get_person_from_gramps_id(gid)
-        relation = get_relation_to_me(db, me_ancestor_distances, p, data['gender'])
-        marriage_relation = None
-        if not relation and gid != root_id:
-            marriage_relation = get_by_marriage_relation(db, me_ancestor_distances, p, data['gender'])
-        by_marriage = not relation and gid != root_id and (marriage_relation is not None or is_related_by_marriage(db, me_ancestor_distances, p))
+        relation, by_marriage, marriage_relation, common_ancestors = _person_relation(ctx, gid)
         relation_map[gid] = relation if gid != root_id else None
         try:
-            search_row = _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation)
+            search_row = _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation, common_ancestors)
         except Exception as e:
             person_errors.append(f'{gid}: {type(e).__name__}: {e}')
             search_row = {**data, 'num_children': 0, 'num_spouses': 0, 'num_events': 0,
@@ -1335,13 +1357,8 @@ def _rebuild_root_pages(ctx, ids):
         if gid not in all_people:
             print(f'Person {gid!r} not found')
             continue
-        p = db.get_person_from_gramps_id(gid)
-        relation = get_relation_to_me(db, me_ancestor_distances, p, all_people[gid]['gender'])
-        marriage_relation = None
-        if not relation and gid != root_id:
-            marriage_relation = get_by_marriage_relation(db, me_ancestor_distances, p, all_people[gid]['gender'])
-        by_marriage = not relation and gid != root_id and (marriage_relation is not None or is_related_by_marriage(db, me_ancestor_distances, p))
-        _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation)
+        relation, by_marriage, marriage_relation, common_ancestors = _person_relation(ctx, gid)
+        _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation, common_ancestors)
 
     if root_id in person_ids:
         _build_pdfs(ctx)

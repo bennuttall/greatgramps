@@ -38,6 +38,16 @@
         <td tal:condition="by_marriage and marriage_relation">your ${marriage_relation}</td>
         <td tal:condition="not relation and not (by_marriage and marriage_relation)"></td>
       </tr>
+      <tr tal:condition="common_ancestors">
+        <td><span class="ancestor-badge">common ancestor<tal:block tal:condition="len(common_ancestors) > 1">s</tal:block></span></td>
+        <td>
+          <tal:block tal:repeat="ca common_ancestors">
+            <tal:block tal:condition="not repeat.ca.start"> and </tal:block>
+            <a href="${base}people/${ca['gramps_id']}/"
+               tal:attributes="class 'male' if ca['gender'] == 1 else ('female' if ca['gender'] == 0 else None)">${ca['full_name']}</a>
+          </tal:block>
+        </td>
+      </tr>
       <tr tal:condition="is_living and living_age">
         <td><span class="ancestor-badge living">living</span></td>
         <td>Age ${living_age}</td>

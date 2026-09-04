@@ -43,7 +43,9 @@ Person
 ======
 
 A person's page shows their names and birth/death years, their age, their relationship to the
-selected root person, and includes a set of tabs:
+selected root person, and includes a set of tabs. For relatives who are neither an ancestor nor a
+descendant of the root person (cousins, aunts and uncles, and so on), the closest common ancestor
+is shown with a link to their page.
 
 `Demo <https://gramps.bennuttall.com/I0000/people/I0000/>`_
 
