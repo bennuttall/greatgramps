@@ -10,10 +10,8 @@
       <a href="${base}people/${person['gramps_id']}/descendants/">Descendants <span class="tab-count">(${format(num_descendants, ',')})</span></a>
       <a tal:condition="num_pictures" href="${base}people/${person['gramps_id']}/pictures/">Pictures <span class="tab-count">(${format(num_pictures, ',')})</span></a>
       <a tal:condition="num_more" href="${base}people/${person['gramps_id']}/more/">More</a>
+      <a tal:condition="'explore' not in excluded_pages" href="${base}explore/#focus=${person['gramps_id']}" class="tab-explore">Explore</a>
     </nav>
-    <p class="explore-link" tal:condition="'explore' not in excluded_pages">
-      <a href="${base}explore/#focus=${person['gramps_id']}">Open in the explorer</a>
-    </p>
     <div class="pedigree-wrap">
       <div class="pedigree-chart" tal:attributes="style tree_grid_style">
         <a tal:repeat="node nodes"

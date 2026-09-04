@@ -981,7 +981,6 @@ ul.pdf-links li {
 .explore-toolbar h1 { margin: 0 0.5rem 0 0; font-size: 1.4rem; }
 .explore-toolbar input[type="search"] { width: 18rem; max-width: 100%; padding: 0.35rem 0.5rem; }
 .explore-toolbar button { padding: 0.35rem 0.7rem; cursor: pointer; }
-.explore-link { margin: 0.75rem 0 0; font-size: 0.9em; }
 .explore-wrap { overflow: auto; border: 1px solid #e5e5e5; border-radius: 8px; background: #fafafa; }
 .ex-tree { display: inline-flex; justify-content: center; min-width: 100%; padding: 1.5rem 1rem; box-sizing: border-box; }
 .ex-node { display: flex; flex-direction: column; align-items: center; position: relative; }

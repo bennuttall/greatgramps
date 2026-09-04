@@ -11,6 +11,7 @@
         <a href="${base}people/${person['gramps_id']}/descendants/">Descendants <span class="tab-count">(${format(num_descendants, ',')})</span></a>
         <a tal:condition="num_pictures" href="${base}people/${person['gramps_id']}/pictures/">Pictures <span class="tab-count">(${format(num_pictures, ',')})</span></a>
         <a tal:condition="num_more" href="${base}people/${person['gramps_id']}/more/">More</a>
+        <a tal:condition="'explore' not in excluded_pages" href="${base}explore/#focus=${person['gramps_id']}" class="tab-explore">Explore</a>
       </nav>
 
       <div class="profile-overview" tal:condition="father or mother or siblings or any(s['person'] for s in spouses) or children or person['external_links'] or occupations">
