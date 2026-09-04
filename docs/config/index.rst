@@ -56,6 +56,9 @@ Relative paths are resolved relative to the config file's directory.
    * - ``nav_pages``
      - no
      - ``[home, my-tree, me, people, places, events, census, cemeteries, birthdays, surnames]``
+   * - ``exclude_pages``
+     - no
+     - ``[]``
    * - ``site_title``
      - no
      - ``Family tree``
@@ -100,9 +103,9 @@ bundled ones. See :doc:`../templates/index`.
 
 Which links to show in the nav bar, and in what order. ``home`` links to the global index (see
 :doc:`../features/index`), ``my-tree`` links to the current root's homepage, and ``me`` links to
-the root person's own page. All pages are included by default; remove any you don't want. For
-example, omit ``cemeteries`` if you have no places of type Cemetery, or ``census`` if you have no
-census events:
+the root person's own page. All pages are included by default; remove any you don't want from the
+nav. To leave a page out of the build altogether, use ``exclude_pages`` instead, which also removes
+it from the nav. For example, to show a shorter nav:
 
 .. code-block:: yaml
 
@@ -115,6 +118,49 @@ census events:
     - events
     - birthdays
     - surnames
+
+``exclude_pages``
+-----------------
+
+Pages to leave out of the build entirely. Excluded pages are also dropped from the nav bar, so
+there is no need to remove them from ``nav_pages`` as well. For example, if your database has no
+census events and you don't want the research pages:
+
+.. code-block:: yaml
+
+    exclude_pages:
+    - census
+    - ancestor-records
+    - census-records
+
+The pages that can be excluded, and what each skips:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Page
+     - What is skipped
+   * - ``people``
+     - The people list page. Individual person pages are always built.
+   * - ``places``
+     - The places list page. Individual place pages are always built, since events link to them.
+   * - ``events``
+     - The events list page. Individual event pages are always built, since people link to them.
+   * - ``census``
+     - The census index and the per-year census pages.
+   * - ``cemeteries``
+     - The cemeteries page.
+   * - ``birthdays``
+     - The birthdays page.
+   * - ``surnames``
+     - The surnames index and the per-surname pages. Surnames are shown without links.
+   * - ``ancestor-records``
+     - The ancestor records research page.
+   * - ``census-records``
+     - The census records research page.
+
+``grgr rebuild-page`` also skips any excluded page it is asked for.
 
 ``site_title``
 --------------

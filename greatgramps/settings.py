@@ -14,6 +14,11 @@ DEFAULT_NAV_PAGES: list[NavPage] = [
     'home', 'my-tree', 'me', 'people', 'places', 'events', 'census', 'cemeteries', 'birthdays', 'surnames'
 ]
 
+ExcludablePage = Literal[
+    'people', 'places', 'events', 'census', 'cemeteries', 'birthdays', 'surnames',
+    'ancestor-records', 'census-records',
+]
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file='.env', env_prefix='greatgramps_')
@@ -30,6 +35,7 @@ class Config(BaseModel):
     static_dir: Path | None = None
     output_dir: Path = Path('www')
     nav_pages: list[NavPage] = DEFAULT_NAV_PAGES
+    exclude_pages: list[ExcludablePage] = []
     site_title: str = 'Family tree'
     site_root: str = '/'
 

@@ -37,7 +37,10 @@
         <h2>Top surnames</h2>
         <table class="summary-table">
           <tr tal:repeat="item summary['top_surnames']">
-            <td><a href="surnames/${item[2]}/">${item[0]}</a></td>
+            <td>
+              <a tal:condition="'surnames' not in excluded_pages" href="surnames/${item[2]}/">${item[0]}</a>
+              <tal:block tal:condition="'surnames' in excluded_pages">${item[0]}</tal:block>
+            </td>
             <td class="year">${format(item[1], ',')}</td>
           </tr>
         </table>

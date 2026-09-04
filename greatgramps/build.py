@@ -266,7 +266,8 @@ def _make_root_ctx(shared, root_id):
     templates = shared['templates']
 
     place_url = {d['gramps_id']: f'{base}places/{d["gramps_id"]}/' for d in all_places.values()}
-    surname_page_url = {s: f'{base}surnames/{surname_slug(s)}/' for s in by_surname}
+    excluded_pages = set(config.exclude_pages)
+    surname_page_url = {} if 'surnames' in excluded_pages else {s: f'{base}surnames/{surname_slug(s)}/' for s in by_surname}
 
     root_first_name = shared['all_people'][root_id]['given'].split()[0]
     root_full_name = f"{root_first_name} {shared['all_people'][root_id]['surname']}".strip()
@@ -280,6 +281,7 @@ def _make_root_ctx(shared, root_id):
     nav_items = [
         {'href': nav_href.get(p, f'{base}{p}/'), 'label': NAV_LABELS[p]}
         for p in config.nav_pages
+        if p not in excluded_pages
     ]
     all_people = shared['all_people']
     switch_roots = [
@@ -294,7 +296,8 @@ def _make_root_ctx(shared, root_id):
             layout=layout, base=base, site_root=config.site_root, page_title=page_title,
             me_id=root_id, root_first_name=root_first_name, root_full_name=root_full_name,
             person_header=person_header, has_custom_css=has_custom_css, nav_items=nav_items,
-            switch_roots=switch_roots, switch_roots_json=switch_roots_json, **kwargs
+            switch_roots=switch_roots, switch_roots_json=switch_roots_json,
+            excluded_pages=excluded_pages, **kwargs
         )
 
     return {
@@ -944,6 +947,15 @@ def _render_ancestor_census_page(ctx):
         _warn_empty('census-records/index.html', 'ancestors')
 
 
+def _excluded(ctx, page):
+    """True if the config's exclude_pages lists this page."""
+    return page in ctx['config'].exclude_pages
+
+
+def _skip(what):
+    print(f'Skipped {what} (excluded in config)')
+
+
 def _warn_empty(page, what):
     """Warn that a page was built with nothing to show."""
     print(f'  WARNING: {page} has no {what}')
@@ -1295,8 +1307,11 @@ def _build_root(ctx):
         search_rows.append(search_row)
     _report('person pages', len(all_people), person_errors, time.time() - t)
 
-    _render_people_index(ctx, search_rows)
-    print('Built people/index.html')
+    if _excluded(ctx, 'people'):
+        _skip('people/index.html')
+    else:
+        _render_people_index(ctx, search_rows)
+        print('Built people/index.html')
 
     # Place pages
     print(f'Building {len(all_places)} place pages...')
@@ -1309,12 +1324,18 @@ def _build_root(ctx):
             _render_place_page(ctx, handle, place_events[handle])
         except Exception as e:
             place_errors.append(f'{pdata["gramps_id"]}: {type(e).__name__}: {e}')
-    _render_places_index(ctx, places_with_events)
+    if _excluded(ctx, 'places'):
+        _skip('places/index.html')
+    else:
+        _render_places_index(ctx, places_with_events)
     _report('place pages', len(all_places), place_errors, time.time() - t)
 
     # Events list page
-    num_events = _render_events_index(ctx, relation_map)
-    print(f'Built events/index.html ({num_events} events)')
+    if _excluded(ctx, 'events'):
+        _skip('events/index.html')
+    else:
+        num_events = _render_events_index(ctx, relation_map)
+        print(f'Built events/index.html ({num_events} events)')
 
     # Individual event pages
     all_event_data = build_event_pages_data(db, config.db_path)
@@ -1330,19 +1351,37 @@ def _build_root(ctx):
     _report('event pages', len(valid_events), event_errors, time.time() - t)
 
     # Birthdays page
-    total_birthdays = _render_birthdays_page(ctx)
-    print(f'Built birthdays/index.html ({total_birthdays} birthdays)')
+    if _excluded(ctx, 'birthdays'):
+        _skip('birthdays/index.html')
+    else:
+        total_birthdays = _render_birthdays_page(ctx)
+        print(f'Built birthdays/index.html ({total_birthdays} birthdays)')
 
     # Surname pages
-    _render_surname_pages(ctx)
+    if _excluded(ctx, 'surnames'):
+        _skip('surname pages')
+    else:
+        _render_surname_pages(ctx)
 
     # Census pages
-    _render_census_pages(ctx, relation_map)
-    print('Built census/index.html')
+    if _excluded(ctx, 'census'):
+        _skip('census pages')
+    else:
+        _render_census_pages(ctx, relation_map)
+        print('Built census/index.html')
 
-    _render_cemeteries_page(ctx)
-    _render_ancestor_records_page(ctx)
-    _render_ancestor_census_page(ctx)
+    if _excluded(ctx, 'cemeteries'):
+        _skip('cemeteries/index.html')
+    else:
+        _render_cemeteries_page(ctx)
+    if _excluded(ctx, 'ancestor-records'):
+        _skip('ancestor-records/index.html')
+    else:
+        _render_ancestor_records_page(ctx)
+    if _excluded(ctx, 'census-records'):
+        _skip('census-records/index.html')
+    else:
+        _render_ancestor_census_page(ctx)
 
     return all_people[root_id]
 
@@ -1416,6 +1455,10 @@ def _rebuild_root_pages(ctx, ids):
     root_dir = ctx['root_dir']
 
     named = {i.lower() for i in ids if i.lower() in NAMED_PAGES}
+    # places/events still build their individual pages; only the index is skipped below
+    for page in sorted(named & set(config.exclude_pages) - {'places', 'events'}):
+        _skip(page)
+        named.discard(page)
     person_ids = [i for i in ids if i.startswith('I')]
     event_ids = [i for i in ids if i.startswith('E')]
     place_ids = [i for i in ids if i.startswith('P')]
@@ -1439,7 +1482,10 @@ def _rebuild_root_pages(ctx, ids):
             for gid, data in all_people.items()
         }
         if 'events' in named:
-            _render_events_index(ctx, relation_map)
+            if _excluded(ctx, 'events'):
+                _skip('events/index.html')
+            else:
+                _render_events_index(ctx, relation_map)
             all_event_data = build_event_pages_data(db, config.db_path)
             valid_events = {slug: ed for slug, ed in all_event_data.items() if slug}
             t = time.time()
@@ -1450,7 +1496,8 @@ def _rebuild_root_pages(ctx, ids):
                 except Exception as e:
                     event_errors.append(f'{event_data["gramps_id"]}: {type(e).__name__}: {e}')
             _report('event pages', len(valid_events), event_errors, time.time() - t)
-            print(f'Rebuilt events/index.html [{root_id}]')
+            if not _excluded(ctx, 'events'):
+                print(f'Rebuilt events/index.html [{root_id}]')
         else:
             all_event_data = build_event_pages_data(db, config.db_path)
             by_gramps_id = {ed['gramps_id']: (slug, ed) for slug, ed in all_event_data.items() if slug}
@@ -1473,8 +1520,11 @@ def _rebuild_root_pages(ctx, ids):
                 except Exception as e:
                     place_errors.append(f'{all_places[handle]["gramps_id"]}: {type(e).__name__}: {e}')
             _report('place pages', len(all_places), place_errors, time.time() - t)
-            _render_places_index(ctx, places_with_events)
-            print(f'Rebuilt places/index.html [{root_id}]')
+            if _excluded(ctx, 'places'):
+                _skip('places/index.html')
+            else:
+                _render_places_index(ctx, places_with_events)
+                print(f'Rebuilt places/index.html [{root_id}]')
         else:
             for pid in place_ids:
                 handle = handle_by_id.get(pid)
