@@ -52,13 +52,16 @@ reference.
    * - ``events.pt``
      - Events list page. Searchable, filterable, and sortable table of events with a map.
    * - ``global_index.pt``
-     - Site homepage. Lists all people the site is built for.
+     - Site homepage. Lists all people the site is built for. Uses ``layout.pt`` like every
+       other page, but with no nav header since there is no current root person.
    * - ``index.pt``
      - Root person homepage. Tree stats, PDF chart links, and a map filterable by ancestors,
        descendants, and birth events.
    * - ``layout.pt``
      - Base layout macro. Defines the shared HTML shell (nav, header, footer) used by all page
-       templates via ``metal:use-macro``.
+       templates via ``metal:use-macro``, including the site homepage. Override this one file to
+       add something to every page, such as a banner or authentication bar. The nav header is
+       only rendered on pages with a current root person.
    * - ``marriage.pt``
      - Marriage event page. Details of a marriage between two people, with an optional map.
    * - ``person.pt``

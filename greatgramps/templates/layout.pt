@@ -10,7 +10,7 @@
   <tal:block metal:define-slot="head_extra"></tal:block>
 </head>
 <body>
-  <header>
+  <header tal:condition="me_id">
     <nav>
       <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false" onclick="var l=document.getElementById('nav-links');var o=l.classList.toggle('open');this.setAttribute('aria-expanded',o)">&#9776;</button>
       <div id="nav-links" class="nav-links">
