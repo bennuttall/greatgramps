@@ -89,11 +89,23 @@ def _alt_names(db, person, primary_name):
     return result
 
 
+GRAVE_URL_TYPE = 'Find a Grave'
+
+
+def get_grave_url(person):
+    """Return the person's Find a Grave URL, matching the URL type case-insensitively."""
+    return next(
+        (u.get_path() for u in person.get_url_list() if str(u.get_type()).lower() == GRAVE_URL_TYPE.lower()),
+        None,
+    )
+
+
 def person_data(db, person):
     birth = get_event(db, person, EventType.BIRTH)
     death = get_event(db, person, EventType.DEATH)
     name = person.get_primary_name()
     urls = {str(u.get_type()): u.get_path() for u in person.get_url_list()}
+    grave_url = get_grave_url(person)
     tag_names = sorted(db.get_tag_from_handle(h).get_name() for h in person.get_tag_list())
     return {
         'gramps_id': person.get_gramps_id(),
@@ -105,7 +117,7 @@ def person_data(db, person):
         'death_year': get_year(death),
         'death_place': get_place_name(db, death),
         'gender': person.get_gender(),
-        'grave_url': urls.get('Find a Grave'),
+        'grave_url': grave_url,
         'ancestry_url': urls.get('Ancestry'),
         'external_links': sorted(
             [{'label': str(u.get_type()), 'url': u.get_path()} for u in person.get_url_list()],
@@ -209,10 +221,7 @@ def _event_dict(db, event, birth_year, desc=None, desc_url=None, desc_gender=Non
 
 def get_all_events(db, person):
     birth_year = get_year(get_event(db, person, EventType.BIRTH))
-    grave_url = next(
-        (url.get_path() for url in person.get_url_list() if str(url.get_type()) == 'Find a Grave'),
-        None
-    )
+    grave_url = get_grave_url(person)
     events = []
 
     for eref in person.get_event_ref_list():

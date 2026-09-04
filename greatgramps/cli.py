@@ -24,7 +24,7 @@ from gramps.gen.lib import (
 )
 from gramps.plugins.db.dbapi.sqlite import SQLite
 
-from .gramps_data import CENSUS_DATES, format_date, get_event, get_year, ancestors_with_distances, get_children, collect_all_descendants
+from .gramps_data import CENSUS_DATES, GRAVE_URL_TYPE, format_date, get_event, get_year, ancestors_with_distances, get_children, collect_all_descendants
 from .paper_sizes import PAPER_SIZE_NAMES
 from .settings import get_config
 
@@ -884,7 +884,7 @@ def add_grave_link(
             console.print(f"[red]Person {person_id!r} not found[/red]")
             raise typer.Exit(1)
 
-        existing = [u for u in person.get_url_list() if str(u.get_type()) == 'Find A Grave']
+        existing = [u for u in person.get_url_list() if str(u.get_type()).lower() == GRAVE_URL_TYPE.lower()]
         if existing:
             console.print(f"[yellow]Already has Find A Grave link: {existing[0].get_path()}[/yellow]")
 
@@ -895,7 +895,7 @@ def add_grave_link(
 
         url_obj = Url()
         url_type = UrlType()
-        url_type.set((UrlType.CUSTOM, 'Find A Grave'))
+        url_type.set((UrlType.CUSTOM, GRAVE_URL_TYPE))
         url_obj.set_type(url_type)
         url_obj.set_path(url)
 
