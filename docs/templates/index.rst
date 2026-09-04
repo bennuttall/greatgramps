@@ -49,6 +49,9 @@ reference.
      - Person descendants tab. Interactive tree view of a person's descendants.
    * - ``event.pt``
      - Individual event page. Event details, people involved, optional map, and gallery images.
+   * - ``explore.pt``
+     - Interactive tree explorer. The whole tree is embedded as JSON and rendered in the browser,
+       with expandable parents and children around a focus person.
    * - ``events.pt``
      - Events list page. Searchable, filterable, and sortable table of events with a map.
    * - ``global_index.pt``

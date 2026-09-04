@@ -55,7 +55,7 @@ Relative paths are resolved relative to the config file's directory.
      - —
    * - ``nav_pages``
      - no
-     - ``[home, my-tree, me, people, places, events, census, cemeteries, birthdays, surnames]``
+     - ``[home, my-tree, me, explore, people, places, events, census, cemeteries, birthdays, surnames]``
    * - ``exclude_pages``
      - no
      - ``[]``
@@ -113,6 +113,7 @@ it from the nav. For example, to show a shorter nav:
     - home
     - my-tree
     - me
+    - explore
     - people
     - places
     - events
@@ -141,6 +142,9 @@ The pages that can be excluded, and what each skips:
 
    * - Page
      - What is skipped
+   * - ``explore``
+     - The interactive tree explorer page, and the "Open in the explorer" links on the
+       ancestors and descendants tabs.
    * - ``people``
      - The people list page. Individual person pages are always built.
    * - ``places``

@@ -1,0 +1,212 @@
+<div metal:use-macro="layout">
+  <tal:block metal:fill-slot="head_extra">
+    <style>
+    /* Full-width, full-height layout for the explorer */
+    body { max-width: none; padding: 0.5rem 1rem; }
+    header { margin-bottom: 0.75rem; }
+    main { display: flex; flex-direction: column; min-height: 0; }
+    footer { margin-top: 0.75rem; }
+    .explore-wrap { flex: 1; min-height: 60vh; }
+    </style>
+  </tal:block>
+  <div metal:fill-slot="content" tal:omit-tag="1">
+    <div class="explore-toolbar">
+      <h1>Explore</h1>
+      <input type="search" id="explore-search" list="explore-names" placeholder="Jump to a person…">
+      <datalist id="explore-names"></datalist>
+      <button type="button" id="explore-reset">Back to ${root_first_name}</button>
+      <span class="explore-help">▲ ▼ open and close branches · ⌖ centres the tree on a person · click a name for their page</span>
+    </div>
+    <div class="explore-wrap"><div id="explore" class="ex-tree"></div></div>
+  </div>
+  <tal:block metal:fill-slot="scripts">
+    <script>
+    var DATA = ${structure: tree_json};
+    var BASE = '${base}';
+    var P = DATA.people;
+    var focus = DATA.root;
+    var up = new Set(), down = new Set();
+
+    function hasChildren(id) {
+      return P[id].f.some(function(f) { return f.c.length; });
+    }
+
+    function siblingsOf(id) {
+      var out = [];
+      P[id].p.forEach(function(pid) {
+        P[pid].f.forEach(function(f) {
+          f.c.forEach(function(c) { if (c !== id && out.indexOf(c) < 0) out.push(c); });
+        });
+      });
+      return out;
+    }
+
+    function defaultState(id) {
+      focus = id;
+      up = new Set([id].concat(P[id].p));
+      down = new Set([id]);
+    }
+
+    function readHash() {
+      var params = new URLSearchParams(location.hash.slice(1));
+      var f = params.get('focus');
+      if (!f || !P[f]) { defaultState(DATA.root); return; }
+      if (!params.has('up') && !params.has('down')) { defaultState(f); return; }
+      focus = f;
+      up = new Set((params.get('up') || '').split(',').filter(function(x) { return P[x]; }));
+      down = new Set((params.get('down') || '').split(',').filter(function(x) { return P[x]; }));
+    }
+
+    function writeHash() {
+      var params = new URLSearchParams();
+      params.set('focus', focus);
+      params.set('up', Array.from(up).join(','));
+      params.set('down', Array.from(down).join(','));
+      history.replaceState(null, '', '#' + params.toString());
+    }
+
+    function el(cls, tag) {
+      var e = document.createElement(tag || 'div');
+      e.className = cls;
+      return e;
+    }
+
+    function years(p) {
+      if (!p.b && !p.d) return '';
+      return (p.b || '?') + '–' + (p.d || '');
+    }
+
+    function box(id, small, allowUp, allowDown) {
+      var p = P[id];
+      var b = el('ex-box' + (p.g === 1 ? ' male' : (p.g === 0 ? ' female' : '')) + (id === focus ? ' ex-focus' : '') + (small ? ' ex-small' : ''));
+      if (p.r) b.title = 'your ' + p.r;
+
+      if (allowUp && p.p.length) {
+        var upBtn = el('ex-btn ex-up' + (up.has(id) ? ' open' : ''), 'button');
+        upBtn.type = 'button';
+        upBtn.textContent = up.has(id) ? '▼' : '▲';
+        upBtn.title = up.has(id) ? 'Hide parents' : 'Show parents';
+        upBtn.addEventListener('click', function() { toggle(up, id); });
+        b.appendChild(upBtn);
+      }
+
+      var name = el('ex-name', 'a');
+      name.href = BASE + 'people/' + id + '/';
+      name.textContent = p.n;
+      b.appendChild(name);
+      var y = years(p);
+      if (y) { var ys = el('ex-years', 'span'); ys.textContent = y; b.appendChild(ys); }
+      if (p.r && !small) { var r = el('ex-rel', 'span'); r.textContent = 'your ' + p.r; b.appendChild(r); }
+
+      if (id !== focus) {
+        var c = el('ex-btn ex-centre', 'button');
+        c.type = 'button';
+        c.textContent = '⌖';
+        c.title = 'Centre the tree on ' + p.n;
+        c.addEventListener('click', function() { defaultState(id); render(); });
+        b.appendChild(c);
+      }
+
+      if (allowDown && hasChildren(id)) {
+        var n = P[id].f.reduce(function(t, f) { return t + f.c.length; }, 0);
+        var downBtn = el('ex-btn ex-down' + (down.has(id) ? ' open' : ''), 'button');
+        downBtn.type = 'button';
+        downBtn.textContent = (down.has(id) ? '▲' : '▼') + ' ' + n;
+        downBtn.title = down.has(id) ? 'Hide children' : 'Show ' + n + ' child' + (n === 1 ? '' : 'ren');
+        downBtn.addEventListener('click', function() { toggle(down, id); });
+        b.appendChild(downBtn);
+      }
+      return b;
+    }
+
+    function toggle(set, id) {
+      if (set.has(id)) set.delete(id); else set.add(id);
+      render();
+    }
+
+    function node(id, allowUp, allowDown) {
+      var p = P[id];
+      var n = el('ex-node');
+      if (allowUp && up.has(id) && p.p.length) {
+        var row = el('ex-parents');
+        p.p.forEach(function(pid) { row.appendChild(node(pid, true, false)); });
+        n.appendChild(row);
+      }
+      n.appendChild(box(id, false, allowUp, allowDown));
+      if (id === focus) {
+        var sibs = siblingsOf(id);
+        if (sibs.length) {
+          var s = el('ex-sibs');
+          s.appendChild(document.createTextNode('Siblings: '));
+          sibs.forEach(function(sid, i) {
+            if (i) s.appendChild(document.createTextNode(', '));
+            var a = el('', 'a');
+            a.href = '#';
+            a.textContent = P[sid].n;
+            a.title = 'Centre the tree on ' + P[sid].n;
+            a.addEventListener('click', function(ev) { ev.preventDefault(); defaultState(sid); render(); });
+            s.appendChild(a);
+          });
+          n.appendChild(s);
+        }
+      }
+      if (allowDown && down.has(id) && hasChildren(id)) {
+        var fams = el('ex-fams');
+        p.f.forEach(function(f) {
+          if (!f.c.length) return;
+          var fam = el('ex-fam');
+          var partner = el('ex-partner');
+          if (f.p && P[f.p]) {
+            partner.appendChild(document.createTextNode(f.m ? 'with ' : 'partner '));
+            partner.appendChild(box(f.p, true));
+          } else {
+            partner.textContent = 'children';
+          }
+          fam.appendChild(partner);
+          var kids = el('ex-kids');
+          f.c.forEach(function(cid) { kids.appendChild(node(cid, false, true)); });
+          fam.appendChild(kids);
+          fams.appendChild(fam);
+        });
+        n.appendChild(fams);
+      }
+      return n;
+    }
+
+    function render() {
+      var root = document.getElementById('explore');
+      root.replaceChildren(node(focus, true, true));
+      writeHash();
+      var fb = root.querySelector('.ex-focus');
+      if (fb) fb.scrollIntoView({ block: 'nearest', inline: 'center' });
+    }
+
+    // Search: names with years so duplicates can be told apart
+    var byLabel = {};
+    var list = document.getElementById('explore-names');
+    Object.keys(P).sort(function(a, b) { return P[a].n.localeCompare(P[b].n); }).forEach(function(id) {
+      var label = P[id].n + (years(P[id]) ? ' (' + years(P[id]) + ')' : '');
+      if (byLabel[label]) label += ' [' + id + ']';
+      byLabel[label] = id;
+      var o = document.createElement('option');
+      o.value = label;
+      list.appendChild(o);
+    });
+    var search = document.getElementById('explore-search');
+    // Picking a suggestion fires 'input' with the full label; typing a partial name does not match
+    function jump() {
+      var id = byLabel[search.value];
+      if (id) { defaultState(id); render(); search.value = ''; search.blur(); }
+    }
+    search.addEventListener('input', jump);
+    search.addEventListener('change', jump);
+    document.getElementById('explore-reset').addEventListener('click', function() {
+      defaultState(DATA.root); render();
+    });
+    window.addEventListener('hashchange', function() { readHash(); render(); });
+
+    readHash();
+    render();
+    </script>
+  </tal:block>
+</div>

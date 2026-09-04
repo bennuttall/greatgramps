@@ -974,3 +974,91 @@ ul.pdf-links li {
 .duplicate-warning {
   color: #c0392b;
 }
+
+/* Explore page */
+.explore-help { color: #666; font-size: 0.85em; margin-left: auto; }
+.explore-toolbar { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.75rem; }
+.explore-toolbar h1 { margin: 0 0.5rem 0 0; font-size: 1.4rem; }
+.explore-toolbar input[type="search"] { width: 18rem; max-width: 100%; padding: 0.35rem 0.5rem; }
+.explore-toolbar button { padding: 0.35rem 0.7rem; cursor: pointer; }
+.explore-link { margin: 0.75rem 0 0; font-size: 0.9em; }
+.explore-wrap { overflow: auto; border: 1px solid #e5e5e5; border-radius: 8px; background: #fafafa; }
+.ex-tree { display: inline-flex; justify-content: center; min-width: 100%; padding: 1.5rem 1rem; box-sizing: border-box; }
+.ex-node { display: flex; flex-direction: column; align-items: center; position: relative; }
+
+.ex-box {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 150px;
+  max-width: 190px;
+  padding: 1.1rem 0.6rem 1.2rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  font-size: 0.85rem;
+  text-align: center;
+  box-sizing: border-box;
+}
+.ex-box.male { background: #dbe8f5; }
+.ex-box.female { background: #f5dbe8; }
+.ex-box.ex-focus { border: 2px solid #5a3e28; }
+.ex-box.ex-small { min-width: 0; padding: 0.3rem 0.5rem; font-size: 0.8rem; }
+.ex-name { color: inherit; text-decoration: none; font-weight: 600; }
+.ex-name:hover { text-decoration: underline; }
+.ex-years, .ex-rel { display: block; color: #666; font-size: 0.8em; }
+.ex-btn {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 1px solid #bbb;
+  border-radius: 10px;
+  background: white;
+  color: #5a3e28;
+  font-size: 0.7rem;
+  line-height: 1;
+  padding: 2px 7px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ex-btn:hover { background: #fdf8f3; border-color: #5a3e28; }
+.ex-up { top: -9px; }
+.ex-down { bottom: -9px; }
+.ex-centre { left: auto; right: 4px; top: 4px; transform: none; padding: 1px 5px; border-color: transparent; background: transparent; }
+.ex-centre:hover { border-color: #bbb; }
+.ex-sibs { font-size: 0.8em; color: #666; margin-top: 0.4rem; max-width: 260px; text-align: center; }
+
+/* Parents above: connector down to the child box */
+.ex-parents { display: flex; gap: 1rem; align-items: flex-end; padding-bottom: 1.25rem; position: relative; }
+.ex-parents > .ex-node::after {
+  content: ''; position: absolute; left: 50%; bottom: -1.25rem; height: 1.25rem; border-left: 1px solid #bbb;
+}
+.ex-parents > .ex-node:first-child:not(:last-child)::before,
+.ex-parents > .ex-node:last-child:not(:first-child)::before {
+  content: ''; position: absolute; bottom: -1.25rem; width: calc(50% + 0.5rem); border-bottom: 1px solid #bbb;
+}
+.ex-parents > .ex-node:first-child:not(:last-child)::before { left: 50%; }
+.ex-parents > .ex-node:last-child:not(:first-child)::before { right: 50%; }
+
+/* Families below: connector up to the parent box */
+.ex-fams { display: flex; gap: 1.5rem; align-items: flex-start; padding-top: 1.25rem; position: relative; }
+.ex-fams::before { content: ''; position: absolute; top: 0; left: 50%; height: 1.25rem; border-left: 1px solid #bbb; }
+.ex-fam { display: flex; flex-direction: column; align-items: center; }
+.ex-partner { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8em; color: #666; }
+.ex-kids { display: flex; gap: 0.75rem; align-items: flex-start; padding-top: 1.25rem; position: relative; }
+.ex-kids > .ex-node::before {
+  content: ''; position: absolute; left: 50%; top: -1.25rem; height: 1.25rem; border-left: 1px solid #bbb;
+}
+.ex-kids > .ex-node:first-child:not(:last-child)::after,
+.ex-kids > .ex-node:last-child:not(:first-child)::after {
+  content: ''; position: absolute; top: -1.25rem; width: calc(50% + 0.375rem); border-top: 1px solid #bbb;
+}
+.ex-kids > .ex-node:first-child:not(:last-child)::after { left: 50%; }
+.ex-kids > .ex-node:last-child:not(:first-child)::after { right: 50%; }
+.ex-kids > .ex-node:not(:first-child):not(:last-child)::after {
+  content: ''; position: absolute; top: -1.25rem; left: -0.375rem; right: -0.375rem; border-top: 1px solid #bbb;
+}
+.ex-parents > .ex-node:not(:first-child):not(:last-child)::before {
+  content: ''; position: absolute; bottom: -1.25rem; left: -0.5rem; right: -0.5rem; border-bottom: 1px solid #bbb;
+}

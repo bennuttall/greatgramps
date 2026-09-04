@@ -14,6 +14,7 @@ NAV_LABELS = {
     'home': 'Home',
     'my-tree': 'My tree',
     'me': 'Me',
+    'explore': 'Explore',
     'people': 'People',
     'places': 'Places',
     'events': 'Events',
@@ -1080,6 +1081,49 @@ def _render_census_pages(ctx, relation_map):
         _warn_empty('census/index.html', 'census records')
 
 
+def _render_explore_page(ctx, relation_map):
+    """Render the interactive tree explorer with the whole tree embedded as JSON."""
+    config = ctx['config']
+    db = ctx['db']
+    all_people = ctx['all_people']
+    root_id = ctx['root_id']
+    root_dir = ctx['root_dir']
+    render = ctx['render']
+
+    def gid_of(handle):
+        person = db.get_person_from_handle(handle) if handle else None
+        gid = person.get_gramps_id() if person else None
+        return gid if gid in all_people else None
+
+    people = {}
+    for gid, d in all_people.items():
+        p = db.get_person_from_gramps_id(gid)
+        father, mother = get_parents(db, p)
+        parents = [x.get_gramps_id() for x in (father, mother) if x and x.get_gramps_id() in all_people]
+        families = []
+        for fh in p.get_family_handle_list():
+            fam = db.get_family_from_handle(fh)
+            partner_h = fam.get_mother_handle() if fam.get_father_handle() == p.get_handle() else fam.get_father_handle()
+            children = [gid_of(c.get_reference_handle()) for c in fam.get_child_ref_list()]
+            families.append({
+                'p': gid_of(partner_h),
+                'c': [c for c in children if c],
+                'm': int(fam.get_relationship()) in (0, 2),
+            })
+        people[gid] = {
+            'n': d['full_name'], 'b': d['birth_year'], 'd': d['death_year'], 'g': d['gender'],
+            'p': parents, 'f': families, 'r': relation_map.get(gid),
+        }
+    tree_json = json.dumps({'root': root_id, 'people': people}, separators=(',', ':'))
+
+    explore_dir = root_dir / 'explore'
+    explore_dir.mkdir(exist_ok=True)
+    (explore_dir / 'index.html').write_text(
+        render('explore', page_title=f'Explore — {config.site_title}', tree_json=tree_json)
+    )
+    print(f'Built explore/index.html ({len(people)} people)')
+
+
 def _report(label, total, errors, elapsed):
     err_str = f' ({len(errors)} error{"s" if len(errors) != 1 else ""})' if errors else ''
     ok = total - len(errors)
@@ -1386,6 +1430,10 @@ def _build_root(ctx):
         _skip('cemeteries/index.html')
     else:
         _render_cemeteries_page(ctx)
+    if _excluded(ctx, 'explore'):
+        _skip('explore/index.html')
+    else:
+        _render_explore_page(ctx, relation_map)
     if _excluded(ctx, 'ancestor-records'):
         _skip('ancestor-records/index.html')
     else:
@@ -1451,7 +1499,7 @@ def build(config=None, db=None):
         db.close()
 
 
-NAMED_PAGES = {'places', 'people', 'events', 'census', 'index', 'ancestor-records', 'census-records', 'birthdays', 'surnames', 'cemeteries', 'global-index'}
+NAMED_PAGES = {'places', 'people', 'events', 'census', 'index', 'ancestor-records', 'census-records', 'birthdays', 'surnames', 'cemeteries', 'explore', 'global-index'}
 
 
 def _rebuild_root_pages(ctx, ids):
@@ -1622,6 +1670,13 @@ def _rebuild_root_pages(ctx, ids):
     if 'census-records' in named:
         _render_ancestor_census_page(ctx)
 
+    if 'explore' in named:
+        relation_map = {
+            gid: get_relation_to_me(db, me_ancestor_distances, db.get_person_from_gramps_id(gid), data['gender']) if gid != root_id else None
+            for gid, data in all_people.items()
+        }
+        _render_explore_page(ctx, relation_map)
+
     if 'surnames' in named:
         _render_surname_pages(ctx)
         print(f'Rebuilt surnames/index.html [{root_id}]')
@@ -1635,7 +1690,7 @@ def rebuild_pages(ids, config=None, db=None):
     """Rebuild specific pages by ID or name and copy static files.
 
     Accepts person IDs (I…), event IDs (E…), place IDs (P…), and named
-    pages: places, people, events, census, index, birthdays, surnames, ancestor-records, census-records, global-index.
+    pages: places, people, events, census, index, birthdays, surnames, ancestor-records, census-records, explore, global-index.
 
     Pass an explicit `config`/`db` to build against an already-open database
     (e.g. from a Gramps plugin) instead of reading config.yml and opening a

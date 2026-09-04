@@ -2020,7 +2020,7 @@ def rebuild_page(
     """Copy static files and rebuild specific pages by ID or name.
 
     Accepts person IDs (I…), event IDs (E…), place IDs (P…), and named
-    pages: places, people, events, census, index, birthdays, surnames, ancestor-records, census-records, global-index.
+    pages: places, people, events, census, index, birthdays, surnames, ancestor-records, census-records, explore, global-index.
     """
     try:
         from .build import rebuild_pages

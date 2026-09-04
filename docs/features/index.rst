@@ -32,6 +32,16 @@ by ancestors, descendants, and birth events.
 * `Descendant tree PDF <https://gramps.bennuttall.com/I0000/descendants.pdf>`_
 * `Hourglass tree PDF <https://gramps.bennuttall.com/I0000/hourglass.pdf>`_
 
+Explore
+=======
+
+An interactive view of the whole tree on one page. It starts centred on the root person with
+their parents, grandparents and children shown. Every person has buttons to open or close their
+parents and their children, so you can follow any branch as far as you like without leaving the
+page. Click a name for their page, or the centre button to redraw the tree around them. A search
+box jumps to any person, and the current view is kept in the URL so it can be bookmarked or
+shared. The ancestors and descendants tabs on each person link into the explorer centred on them.
+
 People
 ======
 

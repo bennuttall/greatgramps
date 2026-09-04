@@ -7,15 +7,15 @@ from pydantic import BaseModel, FilePath, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 NavPage = Literal[
-    'home', 'my-tree', 'me', 'people', 'places', 'events', 'census', 'cemeteries', 'birthdays', 'surnames'
+    'home', 'my-tree', 'me', 'explore', 'people', 'places', 'events', 'census', 'cemeteries', 'birthdays', 'surnames'
 ]
 
 DEFAULT_NAV_PAGES: list[NavPage] = [
-    'home', 'my-tree', 'me', 'people', 'places', 'events', 'census', 'cemeteries', 'birthdays', 'surnames'
+    'home', 'my-tree', 'me', 'explore', 'people', 'places', 'events', 'census', 'cemeteries', 'birthdays', 'surnames'
 ]
 
 ExcludablePage = Literal[
-    'people', 'places', 'events', 'census', 'cemeteries', 'birthdays', 'surnames',
+    'explore', 'people', 'places', 'events', 'census', 'cemeteries', 'birthdays', 'surnames',
     'ancestor-records', 'census-records',
 ]
 
