@@ -2,8 +2,8 @@
   birth_year person['birth_year'];
   death_year person['death_year'];
   is_living person['is_living'];
-  living_age max(0, current_year - birth_year - 1) if birth_year else None;
-  died_age death_year - birth_year if birth_year and death_year else None;
+  living_age person['age'];
+  died_age person['death_age'];
 ">
   <div class="person-header-info">
     <h1>

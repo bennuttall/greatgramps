@@ -96,8 +96,8 @@
           <span class="years" tal:condition="person['birth_year'] or person['death_year']">
             (${person['birth_year'] or '?'}–${person['death_year'] or ''})
           </span>
-          <tal:block tal:condition="event['year'] and person['birth_year']">
-            <span class="years" tal:define="age max(0, event['year'] - person['birth_year'] - 1)">aged ${age}</span>
+          <tal:block tal:define="age ages.get(person['gramps_id'])" tal:condition="age is not None">
+            <span class="years">aged ${age}</span>
           </tal:block>
           <span class="ancestor-badge" tal:condition="person['gramps_id'] in ancestor_ids">ancestor</span>
           <span class="ancestor-badge descendant" tal:condition="person['gramps_id'] in descendant_ids">descendant</span>

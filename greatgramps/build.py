@@ -53,7 +53,7 @@ from .gramps_data import (
     build_event_pages_data, build_birthday_list, person_data,
     collect_ancestor_tree, collect_descendant_tree,
     collect_all_descendants, group_descendants_by_generation,
-    build_census_data, CENSUS_DATES, MONTHS, relationship_label, event_url_slug,
+    build_census_data, CENSUS_DATES, MONTHS, relationship_label, event_url_slug, calculate_age,
 )
 from .settings import get_config
 
@@ -435,7 +435,6 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         event_map_json=event_map_json,
         surname_url=surname_page_url.get(data['surname']),
         alt_surname_urls=alt_surname_urls,
-        current_year=date.today().year,
         num_ancestors=num_ancestors,
         num_descendants=num_descendants,
         num_pictures=len(all_pictures),
@@ -472,7 +471,6 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         photos=photos,
         surname_url=surname_url,
         alt_surname_urls=alt_surname_urls,
-        current_year=date.today().year,
         ancestors_map_json=ancestors_map_json,
         num_pictures=len(all_pictures),
         num_more=num_more,
@@ -504,7 +502,6 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         photos=photos,
         surname_url=surname_url,
         alt_surname_urls=alt_surname_urls,
-        current_year=date.today().year,
         descendants_map_json=descendants_map_json,
         num_pictures=len(all_pictures),
         num_more=num_more,
@@ -529,7 +526,6 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         photos=photos,
         surname_url=surname_url,
         alt_surname_urls=alt_surname_urls,
-        current_year=date.today().year,
         num_pictures=len(all_pictures),
         num_more=num_more,
     ))
@@ -554,7 +550,6 @@ def _render_person_pages(ctx, gid, relation, by_marriage, marriage_relation=None
         photos=photos,
         surname_url=surname_page_url.get(data['surname']),
         alt_surname_urls=alt_surname_urls,
-        current_year=date.today().year,
         num_pictures=len(all_pictures),
         num_more=num_more,
     ))
@@ -686,6 +681,8 @@ def _render_event_page(ctx, slug, event_data, relation_map):
     event_out.mkdir(exist_ok=True)
     couple = event_data.get('couple')
     people = event_data.get('people', [])
+    event_ymd = event_data.get('ymd')
+    ages = {p['gramps_id']: calculate_age(p.get('birth_date'), event_ymd) for p in people}
     if event_data['type'] == 'Census' and event_data.get('description'):
         page_title = f"{event_data['description']} — {config.site_title}"
     elif couple:
@@ -725,6 +722,7 @@ def _render_event_page(ctx, slug, event_data, relation_map):
         couple_photos=[],
         couple_details=couple_details,
         children=event_data.get('children', []),
+        ages=ages,
         is_ancestor_event=is_ancestor_event,
         is_descendant_event=is_descendant_event,
         ancestor_ids=ancestor_ids,

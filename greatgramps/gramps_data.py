@@ -1,4 +1,5 @@
 import re
+from datetime import date
 from pathlib import Path
 
 from gramps.plugins.db.dbapi.sqlite import SQLite
@@ -41,6 +42,34 @@ def get_year(event):
         return None
     year = event.get_date_object().get_year()
     return year if year else None
+
+
+def get_ymd(event):
+    """Returns an event's date as a (year, month, day) tuple with 0 for unknown parts, or None."""
+    if not event:
+        return None
+    ymd = event.get_date_object().get_ymd()
+    return ymd if ymd[0] else None
+
+
+def calculate_age(birth, other, assume_before_birthday=True):
+    """Age in whole years at date `other` for someone born on `birth`.
+
+    Both are (year, month, day) tuples with 0 for unknown parts. When the dates are
+    precise enough to tell whether the birthday has passed, the exact age is returned.
+    Otherwise the year difference is used, minus one if `assume_before_birthday`.
+    """
+    if not birth or not other or not birth[0] or not other[0]:
+        return None
+    by, bm, bd = birth
+    oy, om, od = other
+    age = oy - by
+    if bm and om:
+        if om != bm:
+            return max(0, age - (om < bm))
+        if bd and od:
+            return max(0, age - (od < bd))
+    return max(0, age - 1) if assume_before_birthday else max(0, age)
 
 
 def get_place_name(db, event):
@@ -107,15 +136,23 @@ def person_data(db, person):
     urls = {str(u.get_type()): u.get_path() for u in person.get_url_list()}
     grave_url = get_grave_url(person)
     tag_names = sorted(db.get_tag_from_handle(h).get_name() for h in person.get_tag_list())
+    birth_date = get_ymd(birth)
+    death_date = get_ymd(death)
+    is_living = probably_alive(person, db)
+    today = date.today()
     return {
         'gramps_id': person.get_gramps_id(),
         'given': name.get_first_name(),
         'surname': name.get_surname(),
         'full_name': f'{name.get_first_name()} {name.get_surname()}'.strip() or '[Unknown]',
         'birth_year': get_year(birth),
+        'birth_date': birth_date,
         'birth_place': get_place_name(db, birth),
         'death_year': get_year(death),
+        'death_date': death_date,
         'death_place': get_place_name(db, death),
+        'age': calculate_age(birth_date, (today.year, today.month, today.day)) if is_living else None,
+        'death_age': calculate_age(birth_date, death_date, assume_before_birthday=False),
         'gender': person.get_gender(),
         'grave_url': grave_url,
         'ancestry_url': urls.get('Ancestry'),
@@ -123,7 +160,7 @@ def person_data(db, person):
             [{'label': str(u.get_type()), 'url': u.get_path()} for u in person.get_url_list()],
             key=lambda x: (0 if x['label'] == 'Ancestry' else 1, x['label']),
         ),
-        'is_living': probably_alive(person, db),
+        'is_living': is_living,
         'alt_names': _alt_names(db, person, name),
         'tags': tag_names,
     }
@@ -182,7 +219,7 @@ def format_date(date_obj):
     return str(year)
 
 
-def _event_dict(db, event, birth_year, desc=None, desc_url=None, desc_gender=None, label=None, show_age=True):
+def _event_dict(db, event, birth_date, desc=None, desc_url=None, desc_gender=None, label=None, show_age=True):
     etype = int(event.get_type())
     place_h = event.get_place_handle()
     place_obj = db.get_place_from_handle(place_h) if place_h else None
@@ -191,7 +228,7 @@ def _event_dict(db, event, birth_year, desc=None, desc_url=None, desc_gender=Non
     event_month = date_obj.get_month() or 0
     event_day = date_obj.get_day() or 0
     _post_death = {EventType.BURIAL, EventType.CREMATION, EventType.PROBATE}
-    age = max(0, event_year - birth_year - 1) if (show_age and etype not in _post_death and event_year and birth_year) else None
+    age = calculate_age(birth_date, (event_year, event_month, event_day)) if (show_age and etype not in _post_death) else None
     gid = event.get_gramps_id()
     has_photo = any(
         db.get_media_from_handle(ref.get_reference_handle()).get_mime_type().startswith('image/')
@@ -220,7 +257,7 @@ def _event_dict(db, event, birth_year, desc=None, desc_url=None, desc_gender=Non
 
 
 def get_all_events(db, person):
-    birth_year = get_year(get_event(db, person, EventType.BIRTH))
+    birth_date = get_ymd(get_event(db, person, EventType.BIRTH))
     grave_url = get_grave_url(person)
     events = []
 
@@ -231,7 +268,7 @@ def get_all_events(db, person):
         is_birth = etype == EventType.BIRTH
         desc_url = grave_url if is_burial else None
         desc = 'Find a Grave' if (is_burial and grave_url and not event.get_description()) else None
-        events.append(_event_dict(db, event, birth_year, desc=desc, desc_url=desc_url, show_age=not is_burial and not is_birth))
+        events.append(_event_dict(db, event, birth_date, desc=desc, desc_url=desc_url, show_age=not is_burial and not is_birth))
 
     for fam_handle in person.get_family_handle_list():
         family = db.get_family_from_handle(fam_handle)
@@ -243,7 +280,7 @@ def get_all_events(db, person):
         for eref in family.get_event_ref_list():
             event = db.get_event_from_handle(eref.get_reference_handle())
             spouse_gender = spouse.get_gender() if spouse else None
-            events.append(_event_dict(db, event, birth_year, desc=spouse_name, desc_url=spouse_url, desc_gender=spouse_gender))
+            events.append(_event_dict(db, event, birth_date, desc=spouse_name, desc_url=spouse_url, desc_gender=spouse_gender))
 
         for child_ref in family.get_child_ref_list():
             child = db.get_person_from_handle(child_ref.get_reference_handle())
@@ -251,7 +288,7 @@ def get_all_events(db, person):
             if birth:
                 child_data = person_data(db, child)
                 events.append(_event_dict(
-                    db, birth, birth_year,
+                    db, birth, birth_date,
                     label='Child born',
                     desc=child_data['full_name'],
                     desc_url=f'/people/{child.get_gramps_id()}/',
@@ -799,6 +836,7 @@ def build_event_list(db, ancestor_ids):
             'type': EVENT_TYPE_LABELS.get(etype, str(event.get_type())),
             'date': format_date(event.get_date_object()),
             'year': year,
+            'ymd': event.get_date_object().get_ymd(),
             'people': people,
             'couple': couple,
             'place': place_obj.get_name().get_value() if place_obj else None,
@@ -877,6 +915,7 @@ def build_event_pages_data(db, db_path):
             'type': EVENT_TYPE_LABELS.get(etype, str(event.get_type())),
             'date': format_date(event.get_date_object()),
             'year': event.get_date_object().get_year() or None,
+            'ymd': event.get_date_object().get_ymd(),
             'place': place_obj.get_name().get_value() if place_obj else None,
             'place_id': place_obj.get_gramps_id() if place_obj else None,
             'description': event.get_description() or None,
