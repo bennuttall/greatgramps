@@ -813,8 +813,6 @@ def build_event_list(db, ancestor_ids):
         couple = parties['couple']
         all_people = list(people) + [p for p in couple if p] if couple else list(people)
         year = event.get_date_object().get_year() or None
-        if not year:
-            continue
         is_ancestor_event = any(p['gramps_id'] in ancestor_ids for p in all_people)
         etype = int(event.get_type())
         place_h = event.get_place_handle()

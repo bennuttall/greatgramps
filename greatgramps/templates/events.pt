@@ -106,7 +106,9 @@
         let av = cellText(a, sortCol);
         let bv = cellText(b, sortCol);
         if (sortCol === 0) {
-          const an = parseInt(av) || 0, bn = parseInt(bv) || 0;
+          // Undated events sort last whichever direction is chosen
+          const missing = sortAsc ? Infinity : -Infinity;
+          const an = av ? parseInt(av) : missing, bn = bv ? parseInt(bv) : missing;
           return sortAsc ? an - bn : bn - an;
         }
         return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
