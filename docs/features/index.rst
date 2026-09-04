@@ -45,7 +45,9 @@ Person
 A person's page shows their names and birth/death years, their age, their relationship to the
 selected root person, and includes a set of tabs. For relatives who are neither an ancestor nor a
 descendant of the root person (cousins, aunts and uncles, and so on), the closest common ancestor
-is shown with a link to their page.
+is shown with a link to their page. The profile also includes a "How you're related" section for
+anyone related by blood or marriage, listing each person in the chain between the root person and
+them, with how each links to the last.
 
 `Demo <https://gramps.bennuttall.com/I0000/people/I0000/>`_
 

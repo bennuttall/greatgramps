@@ -506,57 +506,165 @@ def get_relation_to_me(db, me_ancestors, person, gender=2):
     return relationship_label(u, d, gender)
 
 
-def is_related_by_marriage(db, me_ancestors, person):
-    """Returns True if person is a spouse of a blood relative of mine."""
-    me_ancestor_set = set(me_ancestors)
+def _is_marriage(family):
+    """True for Married and Civil Union families; other types are partnerships."""
+    return int(family.get_relationship()) in (0, 2)
+
+
+def _partner_label(family, gender=2):
+    return {FEMALE: 'wife', MALE: 'husband'}.get(gender, 'spouse') if _is_marriage(family) else 'partner'
+
+
+def _partners(db, person):
+    """Yields (family, partner) for every family the person is a parent in, whatever its type."""
     for fam_handle in person.get_family_handle_list():
         family = db.get_family_from_handle(fam_handle)
-        if int(family.get_relationship()) not in (0, 2):  # married or civil union only
-            continue
         for handle in [family.get_father_handle(), family.get_mother_handle()]:
             if handle and handle != person.get_handle():
-                spouse = db.get_person_from_handle(handle)
-                if spouse:
-                    spouse_ancestors = ancestors_with_distances(db, spouse)
-                    if me_ancestor_set & set(spouse_ancestors):
-                        return True
+                partner = db.get_person_from_handle(handle)
+                if partner:
+                    yield family, partner
+
+
+def is_related_by_marriage(db, me_ancestors, person):
+    """Returns True if person is a spouse or partner of a blood relative of mine."""
+    me_ancestor_set = set(me_ancestors)
+    for _family, spouse in _partners(db, person):
+        spouse_ancestors = ancestors_with_distances(db, spouse)
+        if me_ancestor_set & set(spouse_ancestors):
+            return True
     return False
 
 
 def get_by_marriage_relation(db, me_ancestors, person, gender=2):
     """Returns a relation label for a person related by marriage, e.g. 'uncle' or 'step-grandfather'."""
     me_ancestor_set = set(me_ancestors)
-    for fam_handle in person.get_family_handle_list():
-        family = db.get_family_from_handle(fam_handle)
-        if int(family.get_relationship()) not in (0, 2):  # married or civil union only
+    for family, spouse in _partners(db, person):
+        spouse_ancestors = ancestors_with_distances(db, spouse)
+        common = me_ancestor_set & set(spouse_ancestors)
+        if not common:
             continue
-        for handle in [family.get_father_handle(), family.get_mother_handle()]:
-            if handle and handle != person.get_handle():
-                spouse = db.get_person_from_handle(handle)
-                if spouse:
-                    spouse_ancestors = ancestors_with_distances(db, spouse)
-                    common = me_ancestor_set & set(spouse_ancestors)
-                    if common:
-                        lca = min(common, key=lambda gid: me_ancestors[gid] + spouse_ancestors[gid])
-                        u = me_ancestors[lca]
-                        d = spouse_ancestors[lca]
-                        if u == 0 and d == 0:
-                            return {FEMALE: 'wife', MALE: 'husband'}.get(gender, 'spouse')
-                        if u == 1 and d == 1:
-                            return None  # sibling's spouse — skip
-                        label = relationship_label(u, d, gender)
-                        if d == 0:
-                            other_spouses = [
-                                db.get_person_from_handle(sh)
-                                for fh in spouse.get_family_handle_list()
-                                for fam in [db.get_family_from_handle(fh)]
-                                for sh in [fam.get_father_handle(), fam.get_mother_handle()]
-                                if sh and sh != spouse.get_handle() and sh != person.get_handle()
-                            ]
-                            if any(s and probably_alive(s, db) for s in other_spouses):
-                                return None
-                            label = 'step-' + label
-                        return label
+        lca = min(common, key=lambda gid: me_ancestors[gid] + spouse_ancestors[gid])
+        u = me_ancestors[lca]
+        d = spouse_ancestors[lca]
+        if u == 0 and d == 0:
+            return _partner_label(family, gender)
+        if u == 1 and d == 1:
+            return None  # sibling's spouse — skip
+        label = relationship_label(u, d, gender)
+        if d == 0:
+            other_spouses = [
+                db.get_person_from_handle(sh)
+                for fh in spouse.get_family_handle_list()
+                for fam in [db.get_family_from_handle(fh)]
+                for sh in [fam.get_father_handle(), fam.get_mother_handle()]
+                if sh and sh != spouse.get_handle() and sh != person.get_handle()
+            ]
+            if any(s and probably_alive(s, db) for s in other_spouses):
+                return None
+            label = 'step-' + label
+        return label
+    return None
+
+
+def _ancestor_links(db, person):
+    """Returns {gramps_id: (distance, child_gramps_id)} for all ancestors including self.
+
+    child_gramps_id is the person through whom the ancestor was first reached, so a
+    path back down to the person can be traced; it is None for the person themself.
+    """
+    result = {}
+    queue = [(person, 0, None)]
+    while queue:
+        p, dist, via = queue.pop(0)
+        gid = p.get_gramps_id()
+        if gid in result:
+            continue
+        result[gid] = (dist, via)
+        father, mother = get_parents(db, p)
+        for parent in (father, mother):
+            if parent:
+                queue.append((parent, dist + 1, gid))
+    return result
+
+
+def _trace(links, target):
+    """Path of gramps IDs from the person the links were built for up to target."""
+    seq = []
+    gid = target
+    while gid is not None:
+        seq.append(gid)
+        gid = links[gid][1]
+    return list(reversed(seq))
+
+
+def _path_step(db, gid, link, direction, relation):
+    person = db.get_person_from_gramps_id(gid)
+    return {'person': person_data(db, person), 'link': link, 'direction': direction,
+            'relation': relation, 'with': [], 'also_via': []}
+
+
+def _blood_path(db, me_links, person):
+    """Steps from ME up to the closest common ancestor and down to person, or None if unrelated."""
+    other_links = _ancestor_links(db, person)
+    common = set(me_links) & set(other_links)
+    if not common:
+        return None
+    best = min(me_links[g][0] + other_links[g][0] for g in common)
+    lcas = [g for g in common if me_links[g][0] + other_links[g][0] == best]
+    # Prefer the father when a couple are both closest common ancestors
+    lcas.sort(key=lambda g: (db.get_person_from_gramps_id(g).get_gender() != MALE, g))
+    lca = lcas[0]
+    up = _trace(me_links, lca)
+    down = _trace(other_links, lca)
+    path = up + list(reversed(down))[1:]
+    u = me_links[lca][0]
+
+    steps = []
+    for i, gid in enumerate(path):
+        gender = db.get_person_from_gramps_id(gid).get_gender()
+        if i == 0:
+            link, direction, relation = None, None, None
+        elif i <= u:
+            link = {FEMALE: 'mother', MALE: 'father'}.get(gender, 'parent')
+            direction = 'up'
+            relation = relationship_label(i, 0, gender)
+        else:
+            link = {FEMALE: 'daughter', MALE: 'son'}.get(gender, 'child')
+            direction = 'down'
+            relation = relationship_label(u, i - u, gender)
+        steps.append(_path_step(db, gid, link, direction, relation))
+    # Group the ancestor with their own spouse or partner; any other equally close
+    # common ancestors belong to a different route (e.g. brothers who married sisters)
+    lca_person = db.get_person_from_gramps_id(lca)
+    partner_ids = {p.get_gramps_id() for _f, p in _partners(db, lca_person)}
+    for other in lcas[1:]:
+        target = steps[u]['with'] if other in partner_ids else steps[u]['also_via']
+        target.append(person_data(db, db.get_person_from_gramps_id(other)))
+    if steps[u]['with'] and u > 0:
+        steps[u]['link'] = 'parents'
+        steps[u]['relation'] = relationship_label(u, 0) + 's'  # e.g. grandparents
+    return steps
+
+
+def relationship_path(db, me, person):
+    """Chain of people linking ME to person: a list of steps, or None if unrelated.
+
+    Each step has 'person' (person_data), 'link' (how they relate to the previous
+    step: father, mother, son, daughter, husband, wife, partner), 'direction' (up,
+    down or marriage), 'relation' (their relation to ME), 'with' (the ancestor's
+    spouse when both are closest common ancestors) and 'also_via' (equally close
+    common ancestors on a different route, e.g. brothers who married sisters).
+    """
+    me_links = _ancestor_links(db, me)
+    steps = _blood_path(db, me_links, person)
+    if steps is not None:
+        return steps
+    for family, spouse in _partners(db, person):
+        spouse_steps = _blood_path(db, me_links, spouse)
+        if spouse_steps is not None:
+            link = _partner_label(family, person.get_gender())
+            return spouse_steps + [_path_step(db, person.get_gramps_id(), link, 'marriage', None)]
     return None
 
 

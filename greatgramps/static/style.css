@@ -626,12 +626,25 @@ pre.event-note {
 /* Person detail */
 .person-detail .events,
 .person-detail .profile-overview,
+.person-detail .relation-path,
 .person-detail .ancestors,
 .person-detail .descendants {
   padding: 1.25rem 1.5rem;
   border-radius: 8px;
   margin-top: 1.5rem;
 }
+
+.person-detail .relation-path { background: #f7f5ef; }
+.person-detail .relation-path h2 { margin-top: 0; }
+.relation-path ol { list-style: none; padding: 0; margin: 0.5rem 0 0; }
+.relation-path li { margin: 0.3rem 0; }
+.path-hop {
+  display: inline-block;
+  min-width: 7.5em;
+  color: #666;
+  font-size: 0.9em;
+}
+.path-arrow { display: inline-block; width: 1em; color: #999; }
 
 .two-col {
   display: grid;

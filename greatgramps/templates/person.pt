@@ -110,6 +110,34 @@
         </div>
       </div>
 
+      <section class="relation-path" tal:condition="relation_path">
+        <h2>How you're related</h2>
+        <ol>
+          <li tal:repeat="step relation_path">
+            <span class="path-hop">
+              <tal:block tal:condition="not step['link']">you</tal:block>
+              <tal:block tal:condition="step['link']">
+                <span class="path-arrow">${'↑' if step['direction'] == 'up' else ('↓' if step['direction'] == 'down' else '⇄')}</span>
+                ${step['link']}
+              </tal:block>
+            </span>
+            <tal:block tal:define="p step['person']">
+              <a href="${base}people/${p['gramps_id']}/"
+                 tal:attributes="class 'male' if p['gender'] == 1 else ('female' if p['gender'] == 0 else None)">${p['full_name']}</a>
+              <span class="years" tal:condition="p['birth_year'] or p['death_year']">(${p['birth_year'] or '?'}–${p['death_year'] or ''})</span>
+            </tal:block>
+            <tal:block tal:repeat="p step['with']">
+              and
+              <a href="${base}people/${p['gramps_id']}/"
+                 tal:attributes="class 'male' if p['gender'] == 1 else ('female' if p['gender'] == 0 else None)">${p['full_name']}</a>
+              <span class="years" tal:condition="p['birth_year'] or p['death_year']">(${p['birth_year'] or '?'}–${p['death_year'] or ''})</span>
+            </tal:block>
+            <span class="years" tal:condition="step['relation']">— your ${step['relation']}</span>
+            <span class="years" tal:condition="step['also_via']">(also via <tal:block tal:repeat="p step['also_via']"><tal:block tal:condition="not repeat.p.start"> and </tal:block><a href="${base}people/${p['gramps_id']}/">${p['full_name']}</a></tal:block>)</span>
+          </li>
+        </ol>
+      </section>
+
       <section class="events" tal:condition="events">
         <h2>Life Events</h2>
         <tal:block tal:define="event_types sorted(set(e['type'] for e in events))">
