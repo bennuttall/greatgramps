@@ -39,7 +39,8 @@ Run ``grgr --help`` for a list of available commands and options.
     │ build               Build the full site.                                               │
     │ census-check        Show census years this person should have a record for, and        │
     │                     whether they do.                                                   │
-    │ config              Interactively generate a config.yml for this project.              │
+    │ config              Interactively generate a config file (config.yml by default) for   │
+    │                     this project.                                                      │
     │ enclose-place       Set one place as enclosed by another (Gramps 'Enclosed by'         │
     │                     relationship).                                                     │
     │ list-ancestors      List ancestors of a person grouped by generation.                  │

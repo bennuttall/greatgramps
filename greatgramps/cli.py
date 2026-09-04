@@ -1316,10 +1316,17 @@ def census_check(
 
 @app.command("config")
 def init_config(
-    output: Path = typer.Option(Path("config.yml"), "--output", "-o", help="Path to write the config file"),
+    output: Optional[Path] = typer.Option(None, "--output", "-o", help="Path to write the config file (skips the prompt)"),
     yes: bool = typer.Option(False, "-y", "--yes", help="Overwrite existing config without prompting"),
 ):
-    """Interactively generate a config.yml for this project."""
+    """Interactively generate a config file (config.yml by default) for this project."""
+    if output is None:
+        try:
+            output = Path(input("Config file name [config.yml]: ").strip() or "config.yml")
+        except KeyboardInterrupt:
+            console.print("\nCancelled.")
+            raise typer.Exit(0)
+
     if output.exists() and not yes:
         console.print(f"[yellow]{output} already exists.[/yellow]")
         try:
