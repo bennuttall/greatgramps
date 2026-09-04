@@ -51,7 +51,8 @@ Run ``grgr --help`` for a list of available commands and options.
     │ list-person-events  List all events for a person.                                      │
     │ list-unconnected    List people with no family connections (not a parent, spouse, or   │
     │                     child in any family).                                              │
-    │ orphans             Find orphaned people, unattached events and unused places.        │
+    │ orphans             Find orphaned people, parentless families, unattached events and  │
+    │                     unused places.                                                    │
     │ pdf                 Generate PDF pedigree, descendant, and hourglass charts.           │
     │ rebuild-page        Copy static files and rebuild specific pages by ID or name.        │
     │ rm-event            Delete one or more events, removing all references from people and │

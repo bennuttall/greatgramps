@@ -4,11 +4,15 @@ grgr orphans
 
 .. program:: grgr-orphans
 
-Find orphaned people, unattached events and unused places.
+Find orphaned people, parentless families, unattached events and unused places.
 
 A person is orphaned when no family connects them to another person. This covers people with no
 families at all, and people who are the only remaining member of a family (for example a spouse
 left behind after the other spouse was deleted or merged).
+
+A family is parentless when it has neither a father nor a mother, whether or not it still lists
+children. Such a family carries no relationship, so its children are effectively parentless too.
+Deleting it removes the children's link to it but leaves the children themselves in place.
 
 An event is unattached when no person or family references it, which is usually what is left
 behind after the people it belonged to were deleted. These show on the events list with an empty
@@ -29,7 +33,7 @@ listed unless ``--delete-groups`` is given, in which case each group is confirme
 
     ╭─ Options ──────────────────────────────────────────────────────────────────────────────╮
     │ --delete               Delete orphaned people (and any families left empty),           │
-    │                        unattached events and unused places                             │
+    │                        parentless families, unattached events and unused places        │
     │ --delete-groups        Offer to delete each disconnected group, confirming one group   │
     │                        at a time                                                       │
     │ --yes           -y     Skip confirmation prompts                                       │
@@ -41,8 +45,9 @@ Options
 
 .. option:: --delete
 
-    Delete the orphaned people, unattached events and unused places after listing them. Any
-    family left with no members is removed too. Disconnected groups are not affected.
+    Delete the orphaned people, parentless families, unattached events and unused places after
+    listing them. Any family left with no members is removed too. Disconnected groups are not
+    affected.
 
 .. option:: --delete-groups
 

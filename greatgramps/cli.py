@@ -1815,16 +1815,17 @@ def list_unconnected():
 
 @app.command("orphans")
 def orphans(
-    delete: bool = typer.Option(False, "--delete", help="Delete orphaned people (and any families left empty), unattached events and unused places"),
+    delete: bool = typer.Option(False, "--delete", help="Delete orphaned people (and any families left empty), parentless families, unattached events and unused places"),
     delete_groups: bool = typer.Option(False, "--delete-groups", help="Offer to delete each disconnected group, confirming one group at a time"),
     yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompts"),
 ):
-    """Find orphaned people, unattached events and unused places.
+    """Find orphaned people, parentless families, unattached events and unused places.
 
     Orphaned people are linked to nobody else, including those alone in an empty family.
-    Unattached events belong to no person or family. Unused places have no events, directly
-    or via any place they enclose. Also reports groups of people that are linked to each
-    other but not to any configured root.
+    Parentless families have neither a father nor a mother, whether or not they list
+    children. Unattached events belong to no person or family. Unused places have no
+    events, directly or via any place they enclose. Also reports groups of people that
+    are linked to each other but not to any configured root.
     """
     db = _open_db(write=delete or delete_groups)
     try:
@@ -1873,6 +1874,12 @@ def orphans(
                 ))
         orphan_people.sort(key=lambda p: p.get_gramps_id())
 
+        # Families with neither parent, whether or not they have children
+        parentless_families = sorted(
+            (f for f in db.iter_families() if not f.get_father_handle() and not f.get_mother_handle()),
+            key=lambda f: f.get_gramps_id(),
+        )
+
         # Events referenced by no person or family
         referenced: set[str] = set()
         for handle in db.get_person_handles():
@@ -1903,8 +1910,8 @@ def orphans(
             key=lambda p: p.get_gramps_id(),
         )
 
-        if not orphan_people and not disconnected and not unattached_events and not unused_places:
-            console.print("No orphaned people, unattached events or unused places found.")
+        if not (orphan_people or disconnected or parentless_families or unattached_events or unused_places):
+            console.print("No orphaned people, parentless families, unattached events or unused places found.")
             return
 
         if orphan_people:
@@ -1922,6 +1929,21 @@ def orphans(
         for group in disconnected:
             console.print(f"\n[bold]Group of {len(group)} not connected to any root:[/bold]")
             console.print(_people_table([(p, _person_name(p)) for p in group]))
+
+        if parentless_families:
+            console.print(f"\n[bold]{len(parentless_families)} family(ies) with no parents:[/bold]")
+            table = Table()
+            table.add_column("ID")
+            table.add_column("Type")
+            table.add_column("Children")
+            for family in parentless_families:
+                children = ', '.join(
+                    f"{db.get_person_from_handle(c.get_reference_handle()).get_gramps_id()} "
+                    f"{_person_name(db.get_person_from_handle(c.get_reference_handle()))}"
+                    for c in family.get_child_ref_list()
+                )
+                table.add_row(family.get_gramps_id(), str(family.get_relationship()), children)
+            console.print(table)
 
         if unattached_events:
             console.print(f"\n[bold]{len(unattached_events)} event(s) attached to no person or family:[/bold]")
@@ -1954,16 +1976,25 @@ def orphans(
                 table.add_row(place.get_gramps_id(), place.get_name().get_value(), str(place.get_type()), ', '.join(chain))
             console.print(table)
 
-        if delete and (orphan_people or unattached_events or unused_places):
+        if delete and (orphan_people or parentless_families or unattached_events or unused_places):
             parts = []
             if orphan_people:
                 parts.append(f"{len(orphan_people)} orphaned person(s) and their empty families")
+            if parentless_families:
+                parts.append(f"{len(parentless_families)} parentless family(ies)")
             if unattached_events:
                 parts.append(f"{len(unattached_events)} unattached event(s)")
             if unused_places:
                 parts.append(f"{len(unused_places)} unused place(s)")
             console.print(f"\n[bold]Delete {', '.join(parts)}[/bold]")
             _confirm(yes)
+            if parentless_families:
+                # Before people, so a child who is also an orphan is not deleted twice over
+                with DbTxn('Delete parentless families', db) as trans:
+                    for family in parentless_families:
+                        db.remove_family_relationships(family.get_handle(), trans)
+                ids = ', '.join(f.get_gramps_id() for f in parentless_families)
+                console.print(f"[green]Deleted {len(parentless_families)} families: {ids}[/green]")
             if orphan_people:
                 _delete_people(db, orphan_people, 'Delete orphaned people')
             if unattached_events:
