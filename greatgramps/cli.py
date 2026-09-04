@@ -1813,6 +1813,118 @@ def list_unconnected():
         db.close()
 
 
+@app.command("orphans")
+def orphans(
+    delete: bool = typer.Option(False, "--delete", help="Delete orphaned people and any families left empty"),
+    delete_groups: bool = typer.Option(False, "--delete-groups", help="Offer to delete each disconnected group, confirming one group at a time"),
+    yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation prompts"),
+):
+    """Find orphaned people: those linked to nobody else, including people alone in an empty family.
+
+    Also reports groups of people that are linked to each other but not to any configured root.
+    """
+    db = _open_db(write=delete or delete_groups)
+    try:
+        # Build adjacency between people who share a family
+        adjacent: dict[str, set[str]] = {}
+        for handle in db.get_family_handles():
+            family = db.get_family_from_handle(handle)
+            members = [family.get_father_handle(), family.get_mother_handle()]
+            members += [ref.get_reference_handle() for ref in family.get_child_ref_list()]
+            members = [h for h in members if h]
+            for h in members:
+                adjacent.setdefault(h, set()).update(m for m in members if m != h)
+
+        # Connected components
+        seen: set[str] = set()
+        components: list[set[str]] = []
+        for handle in db.get_person_handles():
+            if handle in seen:
+                continue
+            component: set[str] = set()
+            stack = [handle]
+            while stack:
+                h = stack.pop()
+                if h in component:
+                    continue
+                component.add(h)
+                stack.extend(adjacent.get(h, set()) - component)
+            seen |= component
+            components.append(component)
+
+        root_handles = set()
+        for root_id in get_config().roots:
+            root = db.get_person_from_gramps_id(root_id)
+            if root:
+                root_handles.add(root.get_handle())
+
+        orphan_people = []
+        disconnected = []
+        for component in components:
+            if len(component) == 1:
+                orphan_people.append(db.get_person_from_handle(next(iter(component))))
+            elif not component & root_handles:
+                disconnected.append(sorted(
+                    (db.get_person_from_handle(h) for h in component),
+                    key=lambda p: p.get_gramps_id(),
+                ))
+        orphan_people.sort(key=lambda p: p.get_gramps_id())
+
+        if not orphan_people and not disconnected:
+            console.print("No orphaned people found.")
+            return
+
+        if orphan_people:
+            console.print(f"[bold]{len(orphan_people)} orphaned person(s):[/bold]")
+            table = Table()
+            table.add_column("ID")
+            table.add_column("Name")
+            table.add_column("Empty families")
+            for person in orphan_people:
+                families = person.get_family_handle_list() + person.get_parent_family_handle_list()
+                family_ids = ', '.join(db.get_family_from_handle(h).get_gramps_id() for h in families)
+                table.add_row(person.get_gramps_id(), _person_name(person), family_ids)
+            console.print(table)
+
+        for group in disconnected:
+            console.print(f"\n[bold]Group of {len(group)} not connected to any root:[/bold]")
+            console.print(_people_table([(p, _person_name(p)) for p in group]))
+
+        if delete and orphan_people:
+            console.print(f"\n[bold]Delete {len(orphan_people)} orphaned person(s) and their empty families[/bold]")
+            _confirm(yes)
+            _delete_people(db, orphan_people, 'Delete orphaned people')
+        elif delete:
+            console.print("\nNo orphaned people to delete.")
+
+        if delete_groups and disconnected:
+            for group in disconnected:
+                console.print(f"\n[bold]Group of {len(group)}:[/bold] " + ', '.join(f"{p.get_gramps_id()} {_person_name(p)}" for p in group))
+                if not yes:
+                    try:
+                        answer = input("Delete this group? [y/N] ").strip().lower()
+                    except KeyboardInterrupt:
+                        console.print("\nCancelled.")
+                        raise typer.Exit(0)
+                    if answer not in ('y', 'yes'):
+                        console.print("Skipped.")
+                        continue
+                _delete_people(db, group, 'Delete disconnected group')
+        elif delete_groups:
+            console.print("\nNo disconnected groups to delete.")
+    finally:
+        db.close()
+
+
+def _delete_people(db, people, description):
+    """Delete people from the database in one transaction and report what was removed."""
+    with DbTxn(description, db) as trans:
+        for person in people:
+            db.delete_person_from_database(person, trans)
+    ids = ', '.join(p.get_gramps_id() for p in people)
+    console.print(f"[green]Deleted {len(people)} people: {ids}[/green]")
+
+
 pdf_app = typer.Typer(help="Generate PDF pedigree, descendant, and hourglass charts.", no_args_is_help=True)
 app.add_typer(pdf_app, name="pdf")
 
