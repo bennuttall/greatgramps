@@ -19,14 +19,16 @@
             <h3>Parents</h3>
             <ul>
               <li tal:condition="father">
-                <a class="male" href="${base}people/${father['gramps_id']}/">${father['full_name']}</a>
+                <a href="${base}people/${father['gramps_id']}/"
+                   tal:attributes="class 'male' if father['gender'] == 1 else ('female' if father['gender'] == 0 else None)">${father['full_name']}</a>
                 <span class="years" tal:condition="father['birth_year'] or father['death_year']">(${father['birth_year'] or '?'}–${father['death_year'] or ''})</span>
                 <span class="ancestor-badge me" tal:condition="father['is_me']">me</span>
                 <span class="ancestor-badge" tal:condition="father['is_ancestor'] and not (is_me or is_ancestor)">ancestor</span>
                 <span class="ancestor-badge descendant" tal:condition="father['is_descendant']">descendant</span>
               </li>
               <li tal:condition="mother">
-                <a class="female" href="${base}people/${mother['gramps_id']}/">${mother['full_name']}</a>
+                <a href="${base}people/${mother['gramps_id']}/"
+                   tal:attributes="class 'male' if mother['gender'] == 1 else ('female' if mother['gender'] == 0 else None)">${mother['full_name']}</a>
                 <span class="years" tal:condition="mother['birth_year'] or mother['death_year']">(${mother['birth_year'] or '?'}–${mother['death_year'] or ''})</span>
                 <span class="ancestor-badge me" tal:condition="mother['is_me']">me</span>
                 <span class="ancestor-badge" tal:condition="mother['is_ancestor'] and not (is_me or is_ancestor)">ancestor</span>
