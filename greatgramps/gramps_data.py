@@ -527,13 +527,14 @@ def _partners(db, person):
 
 
 def is_related_by_marriage(db, me_ancestors, person):
-    """Returns True if person is a spouse or partner of a blood relative of mine."""
+    """Returns 'marriage' or 'partnership' if person is the spouse or partner of a blood
+    relative of mine (according to the family type), else None."""
     me_ancestor_set = set(me_ancestors)
-    for _family, spouse in _partners(db, person):
+    for family, spouse in _partners(db, person):
         spouse_ancestors = ancestors_with_distances(db, spouse)
         if me_ancestor_set & set(spouse_ancestors):
-            return True
-    return False
+            return 'marriage' if _is_marriage(family) else 'partnership'
+    return None
 
 
 def get_by_marriage_relation(db, me_ancestors, person, gender=2):
@@ -551,6 +552,9 @@ def get_by_marriage_relation(db, me_ancestors, person, gender=2):
             return _partner_label(family, gender)
         if u == 1 and d == 1:
             return None  # sibling's spouse — skip
+        if not _is_marriage(family):
+            # An unmarried partner is described through the relative, e.g. "1st cousin's partner"
+            return f"{relationship_label(u, d, spouse.get_gender())}'s partner"
         label = relationship_label(u, d, gender)
         if d == 0:
             other_spouses = [
@@ -601,7 +605,7 @@ def _trace(links, target):
 def _path_step(db, gid, link, direction, relation):
     person = db.get_person_from_gramps_id(gid)
     return {'person': person_data(db, person), 'link': link, 'direction': direction,
-            'relation': relation, 'with': [], 'also_via': []}
+            'relation': relation, 'with': [], 'also_via': [], 'is_common_ancestor': False}
 
 
 def _blood_path(db, me_links, person):
@@ -644,6 +648,8 @@ def _blood_path(db, me_links, person):
     if steps[u]['with'] and u > 0:
         steps[u]['link'] = 'parents'
         steps[u]['relation'] = relationship_label(u, 0) + 's'  # e.g. grandparents
+    if 0 < u < len(path) - 1:  # a turning point, not ME or the person themself
+        steps[u]['is_common_ancestor'] = True
     return steps
 
 

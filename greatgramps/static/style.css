@@ -645,6 +645,7 @@ pre.event-note {
   font-size: 0.9em;
 }
 .path-arrow { display: inline-block; width: 1em; color: #999; }
+.relation-path li.common-ancestor > a { font-weight: bold; }
 
 .two-col {
   display: grid;

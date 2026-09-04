@@ -337,7 +337,8 @@ def _person_relation(ctx, gid):
     marriage_relation = None
     if not relation and gid != root_id:
         marriage_relation = get_by_marriage_relation(db, me_ancestor_distances, p, gender)
-    by_marriage = not relation and gid != root_id and (marriage_relation is not None or is_related_by_marriage(db, me_ancestor_distances, p))
+    # 'marriage', 'partnership' or None, according to the family type linking them to a relative
+    by_marriage = is_related_by_marriage(db, me_ancestor_distances, p) if not relation and gid != root_id else None
     common_ancestors = []
     if relation and gid != root_id and gid not in my_ancestors and gid not in my_descendants:
         common_ancestors = [all_people[a] for a in get_common_ancestors(db, me_ancestor_distances, p) if a in all_people]
@@ -347,7 +348,8 @@ def _person_relation(ctx, gid):
         relation_path = relationship_path(db, ctx['me'], p)
         if relation_path and by_marriage and marriage_relation:
             direct = len(relation_path) == 2  # the root's own spouse or partner
-            relation_path[-1]['relation'] = marriage_relation if direct else f'{marriage_relation} by marriage'
+            suffix = ' by marriage' if by_marriage == 'marriage' and not direct else ''
+            relation_path[-1]['relation'] = marriage_relation + suffix
     return relation, by_marriage, marriage_relation, common_ancestors, relation_path
 
 

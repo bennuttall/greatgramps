@@ -31,7 +31,7 @@
           <span class="ancestor-badge" tal:condition="is_ancestor">ancestor</span>
           <span class="ancestor-badge descendant" tal:condition="is_descendant">descendant</span>
           <span class="ancestor-badge relative" tal:condition="relation and not is_ancestor and not is_descendant">relative</span>
-          <span class="ancestor-badge by-marriage" tal:condition="by_marriage">related by marriage</span>
+          <span class="ancestor-badge by-marriage" tal:condition="by_marriage">${'related by marriage' if by_marriage == 'marriage' else 'partner of a relative'}</span>
           <span class="ancestor-badge unrelated" tal:condition="not relation and not by_marriage and not is_descendant">unrelated</span>
         </td>
         <td tal:condition="relation">your ${relation}</td>

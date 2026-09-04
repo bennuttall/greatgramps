@@ -113,7 +113,8 @@
       <section class="relation-path" tal:condition="relation_path">
         <h2>How you're related</h2>
         <ol>
-          <li tal:repeat="step relation_path">
+          <li tal:repeat="step relation_path"
+              tal:attributes="class 'common-ancestor' if step['is_common_ancestor'] else None">
             <span class="path-hop">
               <tal:block tal:condition="not step['link']">you</tal:block>
               <tal:block tal:condition="step['link']">
