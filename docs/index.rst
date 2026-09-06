@@ -57,6 +57,9 @@ logs a warning and falls back to less accurate sorting of names and places). On 
    greatgramps does not install Gramps itself — it imports the system-installed ``gramps`` Python
    package. If you install greatgramps in a virtualenv, create it with ``--system-site-packages``
    (or otherwise enable site packages), so it can find the system-installed ``gramps`` package.
+   With pipx: ``pipx install --system-site-packages greatgramps[cli,html,pdf]``.
+
+   Gramps 5.1 and 6.0 are both supported.
 
 Then install the project. The core package only handles reading the Gramps database; pick the
 extras for the features you need:

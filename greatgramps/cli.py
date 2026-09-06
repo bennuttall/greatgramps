@@ -15,7 +15,10 @@ from rich.console import Console
 from rich.table import Table
 from typer.main import TyperGroup
 
-from gramps.gen.const import HOME_DIR as GRAMPS_HOME_DIR
+try:
+    from gramps.gen.const import USER_DATA as GRAMPS_DATA_DIR  # Gramps 6
+except ImportError:
+    from gramps.gen.const import HOME_DIR as GRAMPS_DATA_DIR  # Gramps 5.1
 from gramps.gen.db import DBMODE_R, DBMODE_W, DbTxn
 from gramps.gen.lib import (
     ChildRef, Date, Event, EventRef, EventRoleType, EventType,
@@ -1337,7 +1340,7 @@ def init_config(
         if answer not in ('y', 'yes'):
             raise typer.Exit(0)
 
-    grampsdb_dir = Path(GRAMPS_HOME_DIR) / "grampsdb"
+    grampsdb_dir = Path(GRAMPS_DATA_DIR) / "grampsdb"
     discovered = []
     if grampsdb_dir.is_dir():
         for entry in sorted(grampsdb_dir.iterdir()):
