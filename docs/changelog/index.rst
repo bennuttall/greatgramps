@@ -2,6 +2,16 @@
 Changelog
 =========
 
+0.4.1 (2026-09-08)
+==================
+
+* Fix ``ImportError`` on Gramps 6, which replaced ``HOME_DIR`` with ``USER_DATA``; every ``grgr``
+  command failed at import time. Both Gramps 5.1 and 6.0 are now supported, and ``grgr config``
+  looks for databases in the Gramps 6 data directory
+* Document installing with ``pipx``
+* Switch packaging from Poetry to setuptools, with ``pip``, ``build`` and ``twine`` for development
+  and release
+
 0.4.0 (2026-09-04)
 ==================
 
