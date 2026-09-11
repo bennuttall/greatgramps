@@ -2,6 +2,18 @@
 Changelog
 =========
 
+0.4.2 (2026-09-11)
+==================
+
+* Census year pages now list one row per household rather than one per person, with columns for
+  household, place, first person and the number of people on the record, noting how many are
+  ancestors or descendants; hovering the count lists everyone on the record
+* Pick the head of household for each census record by matching the household name against the
+  people on it, including married names, falling back to the oldest person
+* Add a miniature family tree to census event pages showing only the people on the record,
+  drawing couples side by side with children beneath and leaving out unrelated people
+* Use exact ages in the People table on census event pages
+
 0.4.1 (2026-09-08)
 ==================
 
