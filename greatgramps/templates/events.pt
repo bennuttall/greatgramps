@@ -67,6 +67,7 @@
               <span tal:repeat="person event['people']">
                 <a href="${base}people/${person['gramps_id']}/"
                    tal:attributes="class 'male' if person['gender'] == 1 else ('female' if person['gender'] == 0 else None)">${person['full_name']}</a>
+                <span class="years" tal:condition="person.get('role')">(${person['role'].lower()})</span>
               </span>
             </span>
           </td>

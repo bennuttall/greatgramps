@@ -2,6 +2,16 @@
 Changelog
 =========
 
+0.4.3 (unreleased)
+==================
+
+* Fix people being given someone else's birth or death date when they are linked to the event
+  in a non-primary role, such as the informant on a death certificate or a parent on a birth
+  certificate entered with the Gramps forms addon. Only a person's own (primary role) events now
+  count as their birth, death and so on
+* Show the role next to people who took part in someone else's event, on the person's timeline
+  (e.g. "Death (informant)" with a link to the deceased), on event pages and in event lists
+
 0.4.2 (2026-09-11)
 ==================
 

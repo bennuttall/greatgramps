@@ -29,11 +29,50 @@ def open_db(db_path):
     return db
 
 
+def event_role(eref):
+    """The role a person has in an event, or None when it is their own (primary) event.
+
+    Non-primary roles come from e.g. the Gramps forms addon, which links the informant on a
+    death certificate to the deceased's Death event, and the parents and informant on a birth
+    certificate to the child's Birth event.
+    """
+    role = eref.get_role()
+    return None if role.is_primary() else str(role)
+
+
 def get_event(db, person, event_type):
+    """A person's own event of the given type, or None.
+
+    Only references where the person has the primary role count, so an event they merely took
+    part in (e.g. as informant on a parent's death) is never mistaken for their own. Gramps's
+    designated birth and death references are preferred when they are consistent.
+    """
+    if event_type == EventType.BIRTH:
+        ref = person.get_birth_ref()
+    elif event_type == EventType.DEATH:
+        ref = person.get_death_ref()
+    else:
+        ref = None
+    if ref and ref.get_role().is_primary():
+        event = db.get_event_from_handle(ref.get_reference_handle())
+        if event and event.get_type() == event_type:
+            return event
     for eref in person.get_event_ref_list():
+        if not eref.get_role().is_primary():
+            continue
         event = db.get_event_from_handle(eref.get_reference_handle())
         if event.get_type() == event_type:
             return event
+    return None
+
+
+def primary_person(db, event):
+    """The person whose own event this is (primary role), or None."""
+    for _, handle in db.find_backlink_handles(event.get_handle(), include_classes=['Person']):
+        person = db.get_person_from_handle(handle)
+        for eref in person.get_event_ref_list():
+            if eref.get_reference_handle() == event.get_handle() and eref.get_role().is_primary():
+                return person
     return None
 
 
@@ -261,9 +300,35 @@ def get_all_events(db, person):
     grave_url = get_grave_url(person)
     events = []
 
+    # births of the person's own children are listed as "Child born" below, so a parent-role
+    # reference to the same event (from a birth certificate form) would be a duplicate
+    child_births = set()
+    for fam_handle in person.get_family_handle_list():
+        family = db.get_family_from_handle(fam_handle)
+        for child_ref in family.get_child_ref_list():
+            child = db.get_person_from_handle(child_ref.get_reference_handle())
+            birth = get_event(db, child, EventType.BIRTH)
+            if birth:
+                child_births.add(birth.get_handle())
+
     for eref in person.get_event_ref_list():
         event = db.get_event_from_handle(eref.get_reference_handle())
         etype = int(event.get_type())
+        role = event_role(eref)
+        if role and event.get_handle() in child_births:
+            continue
+        if role:
+            # someone else's event this person took part in, e.g. informant on a parent's death
+            label = f"{EVENT_TYPE_LABELS.get(etype, str(event.get_type()))} ({role.lower()})"
+            subject = primary_person(db, event)
+            subject_data = person_data(db, subject) if subject else None
+            events.append(_event_dict(
+                db, event, birth_date, label=label,
+                desc=subject_data['full_name'] if subject_data else None,
+                desc_url=f"/people/{subject.get_gramps_id()}/" if subject else None,
+                desc_gender=subject.get_gender() if subject else None,
+            ))
+            continue
         is_burial = etype == EventType.BURIAL
         is_birth = etype == EventType.BIRTH
         desc_url = grave_url if is_burial else None
@@ -849,29 +914,55 @@ def place_data(place):
     }
 
 
-def build_place_event_index(db):
-    """Returns (place_handle -> [event_dict], event_handle -> [person_data]) indexes."""
-    from greatgramps.gramps_data import format_date, EVENT_TYPE_LABELS
+def _event_parties(db, include_children=False):
+    """event handle -> {'people': [person dicts], 'couple': (father, mother) | None[, 'children']}.
 
-    # event_handle -> list of involved parties as dicts with 'people' and 'couple'
+    Each person dict carries a 'role': None for the person's own event, otherwise the role
+    name (e.g. 'Informant'). Primary participants are listed first.
+    """
     event_parties = {}
-
     for person in db.iter_people():
         pdata = person_data(db, person)
         for eref in person.get_event_ref_list():
             h = eref.get_reference_handle()
-            event_parties.setdefault(h, {'people': [], 'couple': None})
-            event_parties[h]['people'].append(pdata)
-
+            entry = event_parties.setdefault(h, {'people': [], 'couple': None})
+            entry['people'].append({**pdata, 'role': event_role(eref)})
     for family in db.iter_families():
         fh = family.get_father_handle()
         mh = family.get_mother_handle()
         father = person_data(db, db.get_person_from_handle(fh)) if fh else None
         mother = person_data(db, db.get_person_from_handle(mh)) if mh else None
+        children = None
+        if include_children:
+            children = sorted(
+                [person_data(db, db.get_person_from_handle(cr.get_reference_handle()))
+                 for cr in family.get_child_ref_list()],
+                key=lambda p: p['birth_year'] or 9999,
+            )
         for eref in family.get_event_ref_list():
             h = eref.get_reference_handle()
-            event_parties.setdefault(h, {'people': [], 'couple': None})
-            event_parties[h]['couple'] = (father, mother)
+            entry = event_parties.setdefault(h, {'people': [], 'couple': None})
+            entry['couple'] = (father, mother)
+            if include_children:
+                entry['children'] = children
+    for entry in event_parties.values():
+        entry['people'].sort(key=lambda p: p['role'] is not None)
+    return event_parties
+
+
+def _primary_people(parties):
+    """Everyone whose own event this is: primary-role participants plus the couple."""
+    people = [p for p in parties['people'] if not p['role']]
+    if parties['couple']:
+        people += [p for p in parties['couple'] if p]
+    return people
+
+
+def build_place_event_index(db):
+    """Returns (place_handle -> [event_dict], event_handle -> [person_data]) indexes."""
+    from greatgramps.gramps_data import format_date, EVENT_TYPE_LABELS
+
+    event_parties = _event_parties(db)
 
     place_index = {}
     for event in db.iter_events():
@@ -881,7 +972,7 @@ def build_place_event_index(db):
         etype = int(event.get_type())
         parties = event_parties.get(event.get_handle(), {'people': [], 'couple': None})
         gid = event.get_gramps_id()
-        all_people = list(parties['people']) + [p for p in parties['couple'] if p] if parties['couple'] else list(parties['people'])
+        all_people = _primary_people(parties)
         has_photo = any(
             db.get_media_from_handle(ref.get_reference_handle()).get_mime_type().startswith('image/')
             for ref in event.get_media_list()
@@ -913,31 +1004,14 @@ def build_place_event_index(db):
 
 def build_event_list(db, ancestor_ids):
     """Returns all events with an is_ancestor_event flag, sorted by year."""
-    event_parties = {}
-
-    for person in db.iter_people():
-        pdata = person_data(db, person)
-        for eref in person.get_event_ref_list():
-            h = eref.get_reference_handle()
-            event_parties.setdefault(h, {'people': [], 'couple': None})
-            event_parties[h]['people'].append(pdata)
-
-    for family in db.iter_families():
-        fh = family.get_father_handle()
-        mh = family.get_mother_handle()
-        father = person_data(db, db.get_person_from_handle(fh)) if fh else None
-        mother = person_data(db, db.get_person_from_handle(mh)) if mh else None
-        for eref in family.get_event_ref_list():
-            h = eref.get_reference_handle()
-            event_parties.setdefault(h, {'people': [], 'couple': None})
-            event_parties[h]['couple'] = (father, mother)
+    event_parties = _event_parties(db)
 
     events = []
     for event in db.iter_events():
         parties = event_parties.get(event.get_handle(), {'people': [], 'couple': None})
         people = parties['people']
         couple = parties['couple']
-        all_people = list(people) + [p for p in couple if p] if couple else list(people)
+        all_people = _primary_people(parties)
         year = event.get_date_object().get_year() or None
         is_ancestor_event = any(p['gramps_id'] in ancestor_ids for p in all_people)
         etype = int(event.get_type())
@@ -981,28 +1055,7 @@ def build_event_list(db, ancestor_ids):
 
 def build_event_pages_data(db, db_path):
     """Returns {gramps_id: event_detail} for all events, with deduplicated participants."""
-    event_parties = {}
-    for person in db.iter_people():
-        pdata = person_data(db, person)
-        for eref in person.get_event_ref_list():
-            h = eref.get_reference_handle()
-            event_parties.setdefault(h, {'people': [], 'couple': None})
-            event_parties[h]['people'].append(pdata)
-    for family in db.iter_families():
-        fh = family.get_father_handle()
-        mh = family.get_mother_handle()
-        father = person_data(db, db.get_person_from_handle(fh)) if fh else None
-        mother = person_data(db, db.get_person_from_handle(mh)) if mh else None
-        children = sorted(
-            [person_data(db, db.get_person_from_handle(cr.get_reference_handle()))
-             for cr in family.get_child_ref_list()],
-            key=lambda p: p['birth_year'] or 9999,
-        )
-        for eref in family.get_event_ref_list():
-            h = eref.get_reference_handle()
-            event_parties.setdefault(h, {'people': [], 'couple': None, 'children': []})
-            event_parties[h]['couple'] = (father, mother)
-            event_parties[h]['children'] = children
+    event_parties = _event_parties(db, include_children=True)
 
     result = {}
     for event in db.iter_events():
@@ -1030,7 +1083,7 @@ def build_event_pages_data(db, db_path):
                 seen.add(p['gramps_id'])
                 participants.append(p)
         if not couple:
-            participants.sort(key=lambda p: p['birth_year'] or 9999)
+            participants.sort(key=lambda p: (p['role'] is not None, p['birth_year'] or 9999))
         gid = event.get_gramps_id()
         tag_names = {db.get_tag_from_handle(h).get_name() for h in event.get_tag_list()}
         result[event_url_slug(gid)] = {
@@ -1159,6 +1212,9 @@ def get_all_person_pictures(db, person, db_path):
         event = db.get_event_from_handle(eref.get_reference_handle())
         etype = int(event.get_type())
         label = EVENT_TYPE_LABELS.get(etype, str(event.get_type()))
+        role = event_role(eref)
+        if role:
+            label = f'{label} ({role.lower()})'
         year = event.get_date_object().get_year() or None
         slug = event_url_slug(event.get_gramps_id())
         _add(_collect_photos(db, event, db_path), f'/events/{slug}/', label, year=year)

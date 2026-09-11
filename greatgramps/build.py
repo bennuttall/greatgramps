@@ -51,7 +51,7 @@ from .gramps_data import (
     get_parents, get_children, get_siblings, get_spouses, get_all_events,
     ancestors_with_distances, ancestors_with_ahnentafel, get_relation_to_me, get_common_ancestors, is_related_by_marriage, get_by_marriage_relation, relationship_path,
     get_photos, get_occupations, get_person_notes, get_person_attributes, get_all_person_pictures, place_data, build_place_event_index, build_event_list,
-    build_event_pages_data, build_birthday_list, person_data,
+    build_event_pages_data, build_birthday_list, person_data, get_event,
     collect_ancestor_tree, collect_descendant_tree,
     collect_all_descendants, group_descendants_by_generation,
     build_census_data, census_head_of_household, census_family_tree, CENSUS_DATES, MONTHS, relationship_label, event_url_slug, calculate_age,
@@ -699,6 +699,7 @@ def _render_event_page(ctx, slug, event_data, relation_map):
     event_out.mkdir(exist_ok=True)
     couple = event_data.get('couple')
     people = event_data.get('people', [])
+    primaries = [p for p in people if not p.get('role')]
     event_ymd = event_data.get('ymd')
     ages = {p['gramps_id']: calculate_age(p.get('birth_date'), event_ymd) for p in people}
     if event_data['type'] == 'Census' and event_data.get('description'):
@@ -707,8 +708,8 @@ def _render_event_page(ctx, slug, event_data, relation_map):
         names = ' and '.join(p['full_name'] for p in couple if p)
         person_str = f' of {names}' if names else ''
         page_title = f"{event_data['type']}{person_str} — {config.site_title}"
-    elif len(people) == 1:
-        page_title = f"{event_data['type']} of {people[0]['full_name']} — {config.site_title}"
+    elif len(primaries) == 1:
+        page_title = f"{event_data['type']} of {primaries[0]['full_name']} — {config.site_title}"
     else:
         page_title = f"{event_data['type']} — {config.site_title}"
     if event_data['type'] == 'Census':
@@ -815,10 +816,7 @@ def _render_ancestor_records_page(ctx):
     ahnentafel = ancestors_with_ahnentafel(db, me)
 
     def _has_event(person, etype):
-        return any(
-            int(db.get_event_from_handle(er.get_reference_handle()).get_type()) == etype
-            for er in person.get_event_ref_list()
-        )
+        return get_event(db, person, etype) is not None
 
     def _has_marriage(person):
         for fam_handle in person.get_family_handle_list():
