@@ -1195,12 +1195,53 @@ def _household_name(description, year):
     if not description:
         return None
     s = description
-    prefix = f'{year} census - '
-    if s.lower().startswith(prefix.lower()):
-        s = s[len(prefix):]
+    for prefix in (f'{year} census - ', f'{year} register - '):
+        if s.lower().startswith(prefix.lower()):
+            s = s[len(prefix):]
+            break
     if s.lower().endswith(' household'):
         s = s[:-len(' household')]
     return s.strip() or description
+
+
+def _name_tokens(name):
+    return [t for t in (name or '').lower().replace(',', ' ').split() if t]
+
+
+def census_head_of_household(household_name, people):
+    """Best guess at the head of household for a census event.
+
+    Tries to match the household name against the people on the record: an exact name
+    match first, then first name + surname (across primary and alternate/married names),
+    then first name alone. Falls back to the oldest person. People are expected to be
+    sorted oldest first, so the first match in each tier is the oldest candidate.
+    """
+    if not people:
+        return None
+    tokens = _name_tokens(household_name)
+    if not tokens:
+        return people[0]
+    target = ' '.join(tokens)
+    first, last = tokens[0], tokens[-1]
+
+    def names_of(p):
+        yield p['given'], p['surname'], p['full_name']
+        for alt in p.get('alt_names', []):
+            yield alt['given'], alt['surname'], alt['full_name']
+
+    for p in people:
+        if any(' '.join(_name_tokens(full)) == target for _, _, full in names_of(p)):
+            return p
+    for p in people:
+        for given, surname, _ in names_of(p):
+            g = _name_tokens(given)
+            if g and g[0] == first and (surname or '').lower() == last:
+                return p
+    for p in people:
+        g = _name_tokens(p['given'])
+        if g and g[0] == first:
+            return p
+    return people[0]
 
 
 def build_census_data(db):

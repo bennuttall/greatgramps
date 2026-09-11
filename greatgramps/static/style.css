@@ -1061,3 +1061,9 @@ ul.pdf-links li {
 .ex-parents > .ex-node:not(:first-child):not(:last-child)::before {
   content: ''; position: absolute; bottom: -1.25rem; left: -0.5rem; right: -0.5rem; border-bottom: 1px solid #bbb;
 }
+
+.census-people .census-count {
+  display: inline-block;
+  min-width: 1.5em;
+  cursor: help;
+}

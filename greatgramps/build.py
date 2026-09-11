@@ -54,7 +54,7 @@ from .gramps_data import (
     build_event_pages_data, build_birthday_list, person_data,
     collect_ancestor_tree, collect_descendant_tree,
     collect_all_descendants, group_descendants_by_generation,
-    build_census_data, CENSUS_DATES, MONTHS, relationship_label, event_url_slug, calculate_age,
+    build_census_data, census_head_of_household, CENSUS_DATES, MONTHS, relationship_label, event_url_slug, calculate_age,
 )
 from .settings import get_config
 
@@ -1043,15 +1043,19 @@ def _render_census_pages(ctx, relation_map):
     render = ctx['render']
 
     census_data = build_census_data(db)
+    ancestor_ids = set(my_ancestors) - {root_id}
     for events_list in census_data.values():
         for event in events_list:
             pid = event['place_id']
             lat, lon = place_lat_lon.get(pid, (None, None)) if pid else (None, None)
             event['lat'] = lat
             event['lon'] = lon
+            people = event['people']
+            event['ancestor_count'] = sum(1 for p in people if p['gramps_id'] in ancestor_ids)
+            event['descendant_count'] = sum(1 for p in people if p['gramps_id'] in my_descendants)
+            event['first_person'] = census_head_of_household(event['household_name'], people)
     census_dir = root_dir / 'census'
     census_dir.mkdir(exist_ok=True)
-    ancestor_ids = set(my_ancestors) - {root_id}
     print(f'Building {len(census_data)} census year pages...')
     t = time.time()
     census_errors = []
