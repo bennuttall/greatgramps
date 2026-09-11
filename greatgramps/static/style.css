@@ -1067,3 +1067,46 @@ ul.pdf-links li {
   min-width: 1.5em;
   cursor: help;
 }
+
+/* Miniature family tree on census event pages */
+.census-tree { margin-bottom: 1.5rem; --ct-w: 160px; --ct-gap: 1.5rem; --ct-drop: 1.25rem; --ct-line: #bbb; }
+.census-tree .ex-tree { gap: 2.5rem; padding: 1rem; }
+.census-tree .ex-box { width: var(--ct-w); min-width: 0; max-width: none; flex: none; padding: 0.5rem 0.6rem; }
+.ct-node { display: flex; flex-direction: column; align-items: center; position: relative; }
+.ct-couple { display: flex; align-items: center; }
+.ct-marriage { width: var(--ct-gap); flex: none; border-top: 2px solid var(--ct-line); }
+.ct-marriage.unmarried { border-top-style: dashed; }
+/* Below the top generation, keep the person's own box centred so the line from their parents lands on them */
+.ct-kids .ct-couple.has-partner { padding-left: calc(var(--ct-w) + var(--ct-gap)); }
+.ct-kids .ct-node.has-partner > .ct-fams { margin-left: calc(var(--ct-w) + var(--ct-gap)); }
+/* Family groups below a couple: one drop line from the marriage line, then a bar across groups when there are several */
+.ct-fams { display: flex; gap: var(--ct-gap); align-items: flex-start; padding-top: var(--ct-drop); position: relative; }
+.ct-fams::before { content: ''; position: absolute; top: 0; left: 50%; height: var(--ct-drop); border-left: 1px solid var(--ct-line); }
+.ct-fam { display: flex; flex-direction: column; align-items: center; position: relative; }
+.ct-fams.multi > .ct-fam::before {
+  content: ''; position: absolute; left: 50%; top: calc(-1 * var(--ct-drop)); height: var(--ct-drop); border-left: 1px solid var(--ct-line);
+}
+.ct-fams.multi > .ct-fam:first-child:not(:last-child)::after,
+.ct-fams.multi > .ct-fam:last-child:not(:first-child)::after {
+  content: ''; position: absolute; top: calc(-1 * var(--ct-drop)); width: calc(50% + var(--ct-gap) / 2); border-top: 1px solid var(--ct-line);
+}
+.ct-fams.multi > .ct-fam:first-child:not(:last-child)::after { left: 50%; }
+.ct-fams.multi > .ct-fam:last-child:not(:first-child)::after { right: 50%; }
+.ct-fams.multi > .ct-fam:not(:first-child):not(:last-child)::after {
+  content: ''; position: absolute; top: calc(-1 * var(--ct-drop)); left: calc(-1 * var(--ct-gap) / 2); right: calc(-1 * var(--ct-gap) / 2); border-top: 1px solid var(--ct-line);
+}
+.ct-label { font-size: 0.8em; color: #666; white-space: nowrap; }
+/* Children: drop line into each, bar across siblings */
+.ct-kids { display: flex; gap: 0.75rem; align-items: flex-start; padding-top: var(--ct-drop); position: relative; }
+.ct-kids > .ct-node::before {
+  content: ''; position: absolute; left: 50%; top: calc(-1 * var(--ct-drop)); height: var(--ct-drop); border-left: 1px solid var(--ct-line);
+}
+.ct-kids > .ct-node:first-child:not(:last-child)::after,
+.ct-kids > .ct-node:last-child:not(:first-child)::after {
+  content: ''; position: absolute; top: calc(-1 * var(--ct-drop)); width: calc(50% + 0.375rem); border-top: 1px solid var(--ct-line);
+}
+.ct-kids > .ct-node:first-child:not(:last-child)::after { left: 50%; }
+.ct-kids > .ct-node:last-child:not(:first-child)::after { right: 50%; }
+.ct-kids > .ct-node:not(:first-child):not(:last-child)::after {
+  content: ''; position: absolute; top: calc(-1 * var(--ct-drop)); left: -0.375rem; right: -0.375rem; border-top: 1px solid var(--ct-line);
+}

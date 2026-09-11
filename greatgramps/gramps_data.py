@@ -1244,6 +1244,122 @@ def census_head_of_household(household_name, people):
     return people[0]
 
 
+def census_family_tree(db, people):
+    """Build a miniature family tree from only the people on a census record.
+
+    Returns a list of tree nodes, each {'person', 'partner', 'married', 'groups': [{'label', 'children': [nodes]}]}.
+    Only Gramps families with at least two members on the record are used, so people with no
+    relatives on the record are left out. Where a couple both appear, the one whose subtree covers
+    more of the record is used as the node and the other is shown as their partner, so that a
+    person with children from more than one relationship keeps all of them under one box.
+    """
+    people_by_id = {p['gramps_id']: p for p in people}
+    ids = set(people_by_id)
+    families = {}
+    for gid in ids:
+        person = db.get_person_from_gramps_id(gid)
+        if not person:
+            continue
+        for fh in list(person.get_family_handle_list()) + list(person.get_parent_family_handle_list()):
+            if fh in families:
+                continue
+            family = db.get_family_from_handle(fh)
+            if not family:
+                continue
+            def gid_of(handle):
+                if not handle:
+                    return None
+                p = db.get_person_from_handle(handle)
+                g = p.get_gramps_id() if p else None
+                return g if g in ids else None
+            father = gid_of(family.get_father_handle())
+            mother = gid_of(family.get_mother_handle())
+            children = [g for g in (gid_of(ref.ref) for ref in family.get_child_ref_list()) if g]
+            members = [g for g in (father, mother) if g] + children
+            if len(members) < 2:
+                continue
+            families[fh] = {
+                'father': father,
+                'mother': mother,
+                'children': children,
+                'married': int(family.get_relationship()) in (0, 2),
+            }
+
+    families_of = {}
+    has_parent = set()
+    for fam in families.values():
+        for parent in (fam['father'], fam['mother']):
+            if parent:
+                families_of.setdefault(parent, []).append(fam)
+        has_parent.update(fam['children'])
+
+    def partner_of(fam, gid):
+        return fam['mother'] if fam['father'] == gid else fam['father']
+
+    def reach(gid, seen):
+        seen = seen | {gid}
+        total = 1
+        for fam in families_of.get(gid, []):
+            partner = partner_of(fam, gid)
+            if partner and partner not in seen:
+                total += 1
+            for child in fam['children']:
+                if child not in seen:
+                    total += reach(child, seen)
+        return total
+
+    visited = set()
+
+    def node(gid):
+        visited.add(gid)
+        person = people_by_id[gid]
+        fams = families_of.get(gid, [])
+        # the first partner on the record is shown beside the person; any others are rare and
+        # appear only as a label on their children
+        couple = next((f for f in fams if partner_of(f, gid)), None)
+        partner = partner_of(couple, gid) if couple else None
+        if partner:
+            visited.add(partner)
+        groups = []
+        for fam in fams:
+            fam_partner = partner_of(fam, gid)
+            kids = sorted(
+                (c for c in fam['children'] if c not in visited),
+                key=lambda c: people_by_id[c]['birth_year'] or 9999,
+            )
+            if not kids:
+                continue
+            if fam_partner == partner or not partner:
+                label = None
+            elif fam_partner:
+                label = f"children with {people_by_id[fam_partner]['full_name']}"
+            else:
+                label = f"{person['given'].split()[0] if person['given'] else person['full_name']}'s children"
+            groups.append({'label': label, 'children': [node(c) for c in kids]})
+        return {
+            'person': person,
+            'partner': people_by_id.get(partner),
+            'married': couple['married'] if couple else False,
+            'groups': groups,
+        }
+
+    roots = [gid for gid in families_of if gid not in has_parent]
+    roots.sort(key=lambda g: (
+        -reach(g, set()),
+        0 if people_by_id[g]['gender'] == 1 else 1,
+        people_by_id[g]['birth_year'] or 9999,
+    ))
+    trees = []
+    for gid in roots:
+        if gid not in visited:
+            trees.append(node(gid))
+    # anyone left is a child whose parent is not on the record but who has children of their own here
+    for gid in sorted(families_of, key=lambda g: people_by_id[g]['birth_year'] or 9999):
+        if gid not in visited:
+            trees.append(node(gid))
+    return trees
+
+
 def build_census_data(db):
     """Returns {year: [event_dicts]} for all Census events, sorted by description within each year."""
     event_people = {}

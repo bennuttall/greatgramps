@@ -54,7 +54,7 @@ from .gramps_data import (
     build_event_pages_data, build_birthday_list, person_data,
     collect_ancestor_tree, collect_descendant_tree,
     collect_all_descendants, group_descendants_by_generation,
-    build_census_data, census_head_of_household, CENSUS_DATES, MONTHS, relationship_label, event_url_slug, calculate_age,
+    build_census_data, census_head_of_household, census_family_tree, CENSUS_DATES, MONTHS, relationship_label, event_url_slug, calculate_age,
 )
 from .settings import get_config
 
@@ -717,6 +717,7 @@ def _render_event_page(ctx, slug, event_data, relation_map):
         template = 'marriage'
     else:
         template = 'event'
+    family_tree = census_family_tree(db, people) if template == 'census' else []
     couple_details = []
     if template == 'marriage':
         for pd in filter(None, event_data.get('couple') or []):
@@ -747,6 +748,7 @@ def _render_event_page(ctx, slug, event_data, relation_map):
         descendant_ids=my_descendants,
         relation_map=relation_map,
         event_map_json=event_map_json,
+        family_tree=family_tree,
     ))
 
 

@@ -67,12 +67,24 @@
               <span class="ancestor-badge descendant" tal:condition="person['gramps_id'] in descendant_ids">descendant</span>
             </td>
             <td class="year">${person['birth_year'] or ''}</td>
-            <td class="year" tal:condition="event['year'] and person['birth_year']">${max(0, event['year'] - person['birth_year'] - 1)}</td>
-            <td class="year" tal:condition="not (event['year'] and person['birth_year'])"></td>
+            <td class="year" tal:define="age ages.get(person['gramps_id'])">${age if age is not None else ''}</td>
             <td class="year" tal:define="rel relation_map.get(person['gramps_id'])">${('your ' + rel) if rel else ''}</td>
           </tr>
         </tbody>
       </table>
+    </tal:block>
+
+    <tal:block tal:condition="family_tree">
+      <h2>Family</h2>
+      <div class="explore-wrap census-tree">
+        <div class="ex-tree">
+          <tal:block tal:repeat="tree family_tree">
+            <tal:block tal:define="global node tree">
+              <tal:block metal:use-macro="template.macros['census_node']" />
+            </tal:block>
+          </tal:block>
+        </div>
+      </div>
     </tal:block>
 
   </div>
@@ -94,3 +106,37 @@
     </script>
   </tal:block>
 </div>
+
+<!--! Recursive macro for the miniature family tree. Macros only see template globals, so the
+     current node is passed with a global define. Wrapped in a false condition so the definition
+     itself is not rendered as page content. -->
+<tal:block tal:condition="False">
+<tal:block metal:define-macro="census_node" tal:define="p node['person']; q node['partner']">
+  <div tal:attributes="class 'ct-node' + (' has-partner' if q else '')">
+    <div tal:attributes="class 'ct-couple' + (' has-partner' if q else '')">
+      <tal:block tal:repeat="person [p] + ([q] if q else [])">
+        <div tal:condition="repeat['person'].index" tal:attributes="class 'ct-marriage' + ('' if node['married'] else ' unmarried')"
+             title="${'Married' if node['married'] else 'Partners'}"></div>
+        <div tal:define="age ages.get(person['gramps_id'])"
+             tal:attributes="class 'ex-box' + (' male' if person['gender'] == 1 else (' female' if person['gender'] == 0 else ''))">
+          <a class="ex-name" href="${base}people/${person['gramps_id']}/">${person['full_name']}</a>
+          <span class="ex-years" tal:condition="person['birth_year'] or person['death_year']">${person['birth_year'] or '?'}–${person['death_year'] or ''}</span>
+          <span class="ex-rel" tal:condition="age is not None">age ${age}</span>
+        </div>
+      </tal:block>
+    </div>
+    <div tal:condition="node['groups']" tal:attributes="class 'ct-fams' + (' multi' if len(node['groups']) > 1 else '')">
+      <div class="ct-fam" tal:repeat="group node['groups']">
+        <div class="ct-label" tal:condition="group['label']">${group['label']}</div>
+        <div class="ct-kids">
+          <tal:block tal:repeat="child group['children']">
+            <tal:block tal:define="global node child">
+              <tal:block metal:use-macro="template.macros['census_node']" />
+            </tal:block>
+          </tal:block>
+        </div>
+      </div>
+    </div>
+  </div>
+</tal:block>
+</tal:block>
